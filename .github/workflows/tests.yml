@@ -1,0 +1,27 @@
+name: Tests
+on: [push, pull_request]
+jobs:
+  lua:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y lua5.1
+      - uses: actions/checkout@v4
+        with:
+          repository: Spotnick2/LibGlass
+          ref: 7b1b1e6c08f040d3fa495aa5f4308f160d5495d9
+          path: .test-output/LibGlass
+      - name: Lua syntax
+        run: |
+          while IFS= read -r -d '' file; do
+            luac5.1 -p "$file" || exit 1
+          done < <(find Core.lua UI.lua Tools tests -name '*.lua' -print0)
+      - name: Player addon and pinned LibGlass
+        env:
+          LIBGLASS: .test-output/LibGlass
+          PETSTABLE_LIBGLASS: .test-output/LibGlass
+        run: lua5.1 tests/test_addon.lua
+      - name: Probe integration (optional private host)
+        env:
+          FOREVERPROBE_OPTIONAL: '1'
+        run: lua5.1 tests/test_probe.lua
