@@ -112,3 +112,56 @@ local broken=Copy(seed); broken.facts[1].evidence="missing"
 local unavailable,_,reason=G.Build(broken)
 assert(#unavailable==0 and reason)
 io.write("PASS: guide projection, literal/combined filters, selection, provenance, and unknown/conflicting data\n")
+
+assert(cat.modelVerified and cat.portraitVerified and bear.modelVerified and not bird.modelVerified)
+local catGroups=G.Appearances(entries,"family-cat")
+assert(#catGroups==1 and catGroups[1].displayID==1059)
+local unresolved=G.Appearances(entries,"family-tallstrider")
+assert(#unresolved==1 and not unresolved[1].displayID and unresolved[1].entries[1]==bird)
+assert(G.Zone(bird)=="Location unknown","observer map must not become a spawn location")
+assert(G.Level(bird)=="Observed level 9")
+for _,mode in ipairs({"status","build","locale","false"}) do
+    local data=Copy(seed)
+    for _,fact in ipairs(data.facts) do if fact.subject=="appearance-1059" and fact.field=="modelVerified" then
+        if mode=="status" then fact.status="observed"
+        elseif mode=="false" then fact.value=false
+        else
+            local e=Copy(data.evidence[1]); e.key="model-other"; e[mode]=mode=="build" and "other-build" or "frFR"
+            data.evidence[#data.evidence+1]=e; fact.evidence=e.key
+        end
+    end end
+    assert(not Entry(G.Build(data),cat.key).modelVerified,"3D verification needs confirmed matching scope")
+end
+local records={Copy(cat),Copy(cat),Copy(cat),Copy(bird),Copy(bird)}
+records[2].key="same-skin"; records[2].label="Different name"; records[2].observedLevel=7
+records[3].key="other-skin"; records[3].displayID=777; records[3].modelFileID=126171
+records[1].modelFileID=126171
+records[4].key="unknown-a"; records[4].familyKey="family-cat"
+records[5].key="unknown-b"; records[5].familyKey="family-cat"
+local groups=G.Appearances(records,"family-cat")
+assert(#groups==4,"shared verified display groups; shared model geometry and unknown appearances do not")
+local shared
+for _,group in ipairs(groups) do if group.displayID==1059 then shared=group end end
+assert(#shared.entries==2 and shared.entries[1].key~=shared.entries[2].key)
+records[1].levelMin=1; records[1].levelMax=10
+records[1].spawn={mapID=10,x=0.1,y=0.2}; records[2].spawn={mapID=20,x=0.3,y=0.4}
+local filtered=G.FilterAppearances(groups,"different",{low=7,high=7},"20")
+assert(#filtered==1 and #filtered[1].matches==1 and filtered[1].matches[1]==records[2])
+assert(#G.FilterAppearances(groups,"different",{low=1,high=1},"10")==0,"all filters must match the same creature")
+filtered=G.FilterAppearances(groups,"",{low=7,high=7},nil)
+assert(#filtered==1 and #filtered[1].matches==2,"numeric level filter matches observations and overlapping verified ranges")
+local lv,z=G.AppearanceSummary(shared.entries)
+assert(lv=="Levels vary; see creatures" and z:find("UI map 10",1,true) and z:find("UI map 20",1,true))
+local long={}
+for i=1,5 do long[i]=Copy(records[1]); long[i].spawn.mapID=i end
+lv,z=G.AppearanceSummary(long); assert(z:find("+3 zones",1,true))
+assert(#G.FilterAppearances(groups,"%",nil,nil)==0)
+local range=Copy(seed)
+Claim(range,cat.key,"levelMin",1,"cat-models","confirmed"); Claim(range,cat.key,"levelMax",2,"cat-models","confirmed")
+Claim(range,cat.key,"spawn",{kind="spawn",space="ui-map",mapID=10,x=0.2,y=0.3},"cat-models","confirmed")
+local ranged=Entry(G.Build(range),cat.key)
+assert(G.Level(ranged)=="Levels 1–2" and ranged.spawn and ranged.evidence:find("UI map 10",1,true))
+assert(not ranged.details:find("Spawn location: Unknown",1,true))
+Claim(range,cat.key,"spawn",{kind="spawn",space="ui-map",mapID=10,x=0.2,y=0.3},"cat-models","confirmed")
+assert(Entry(G.Build(range),cat.key).spawn,"identical position claims must not conflict by table identity")
+io.write("PASS: appearance identity, proof scopes, unresolved fallbacks, record filters and honest summaries\n")

@@ -10,6 +10,8 @@ function NS.Initialize()
     db.version = 1
     if not Number(db.scale) then db.scale = 1 end
     db.scale = math.max(0.65, math.min(1.3, db.scale))
+    db.width = Number(db.width) and math.max(800, math.min(1440, db.width)) or 1040
+    db.height = Number(db.height) and math.max(560, math.min(1000, db.height)) or 700
     if not pages[db.page] then db.page = "guide" end
     local p = db.position
     if type(p) ~= "table" or not anchors[p.point] or not anchors[p.relativePoint]
@@ -43,6 +45,7 @@ SlashCmdList.PETSTABLE = function(message)
     elseif command == "reset" then
         NS.db.position = { point="CENTER", relativePoint="CENTER", x=0, y=0 }
         NS.db.scale = 1
+        NS.db.width, NS.db.height = 1040, 700
         NS.Layout()
     elseif command == "" then NS.Toggle()
     else print("PetStable: /petstable, /petstable scale 0.65–1.3, /petstable reset, /petstable material reflective|flat") end

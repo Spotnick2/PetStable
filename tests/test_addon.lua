@@ -11,6 +11,8 @@ local function loadAddon()
     assert(loadfile("Catalog.lua"))("PetStable",ns)
     assert(loadfile("CatalogData.lua"))("PetStable",ns)
     assert(loadfile("GuideData.lua"))("PetStable",ns)
+    assert(loadfile("GuideModels.lua"))("PetStable",ns)
+    assert(loadfile("GuideAppearances.lua"))("PetStable",ns)
     assert(loadfile("GuideUI.lua"))("PetStable",ns)
     assert(loadfile("UI.lua"))("PetStable",ns)
     return ns
@@ -39,6 +41,7 @@ WoW.fire("ADDON_LOADED","OtherAddon")
 assert(not ns.db)
 WoW.fire("ADDON_LOADED","PetStable")
 assert(ns.db.scale==1 and not ns.frame, "load must not open a window or require pets")
+assert(ns.db.width==1040 and ns.db.height==700,"old settings receive default window dimensions")
 SlashCmdList.PETSTABLE("")
 assert(ns.frame:IsShown() and not ns.Glass, "missing library must use flat frame")
 for _,key in ipairs({"guide","upgrades","pets"}) do
@@ -47,6 +50,17 @@ for _,key in ipairs({"guide","upgrades","pets"}) do
 end
 checkEscape(ns.frame,ns.Toggle)
 dofile("tests/guide_cases.lua")(ns)
+dofile("tests/appearance_cases.lua")(ns)
+ns.resize:GetScript("OnMouseDown")(ns.resize,"LeftButton")
+ns.frame:SetSize(900,620)
+ns.resize:GetScript("OnMouseUp")(ns.resize,"LeftButton")
+assert(ns.db.width==900 and ns.db.height==620,"grip resize must persist dimensions")
+ns.settingsButton:GetScript("OnClick")()
+assert(ns.settings:IsShown())
+ns.settings.scale:SetValue(0.85)
+assert(ns.db.scale==0.85 and ns.frame:GetScale()==0.85)
+ns.settings.reset:GetScript("OnClick")()
+assert(ns.db.width==1040 and ns.db.height==700 and ns.db.scale==1)
 SlashCmdList.PETSTABLE("scale 99")
 assert(ns.db.scale==1.3)
 SlashCmdList.PETSTABLE("reset")
@@ -59,9 +73,11 @@ local saved=ns.db
 local fresh=loadAddon()
 WoW.fire("ADDON_LOADED","PetStable")
 assert(fresh.db==saved and fresh.db.position.x==120 and fresh.db.page=="pets")
-saved.scale=0/0; saved.position={point="bad"}; saved.page="invalid"
+saved.scale=0/0; saved.width=math.huge; saved.height=-5; saved.position={point="bad"}; saved.page="invalid"
 fresh.Initialize()
 assert(saved.scale==1 and saved.position.point=="CENTER" and saved.page=="guide")
+assert(saved.width==1040 and saved.height==560)
+saved.height=700
 
 -- Real r9 library, including LibStub, loaded with the consumer addon name.
 local embedded=os.getenv("PETSTABLE_LIBGLASS") or "Libs/LibGlass-1.0"
@@ -85,6 +101,7 @@ lib.impl.Reflect=reflect
 assert(reflectionCount==1 and shell.reflect, "window must use one library-owned reflective shell")
 checkEscape(fresh.frame,fresh.Toggle)
 dofile("tests/guide_cases.lua")(fresh)
+dofile("tests/appearance_cases.lua")(fresh)
 assert(fresh.Glass and fresh.Glass~=other)
 assert(fresh.Glass.STYLE.bodyAlpha==0.88 and other.STYLE.bodyAlpha==0.3)
 assert(fresh.Glass.MEDIA:find("PetStable",1,true), "media must use consuming addon path")
@@ -92,7 +109,7 @@ UIParent:SetSize(640,480)
 fresh.Layout()
 local scale
 for _,call in ipairs(fresh.frame._log) do if call[1]=="SetScale" then scale=call[2] end end
-assert(scale and scale <= (640-32)/860, "window must fit small screens")
+assert(scale and fresh.frame:GetWidth()*scale<=640-32+0.001 and fresh.frame:GetHeight()*scale<=480-32+0.001,"window must fit small screens")
 for _,key in ipairs({"guide","upgrades","pets"}) do fresh.SelectPage(key) end
 local widgetCount, selected, position = #WoW.widgets, fresh.db.page, fresh.db.position
 local window = fresh.frame

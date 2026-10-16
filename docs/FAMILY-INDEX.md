@@ -1,15 +1,18 @@
 # 19-family index (#17)
 
-Pet Guide opens to four columns of family cards, independently of creature
-coverage. The three existing creature records and all non-family facts remain
-unchanged. Counts mean creatures recorded in PetStable, not the number of
-tameable creatures in Forever. Sixteen families currently have no creature
+Pet Guide opens to five columns and four rows of family cards at the default
+1040×700 window size, independently of creature coverage. Cards use 64-pixel
+native portraits, wrapped names and subtle hover fades; no empty twentieth card
+or repeated creature-count subtitle is drawn. Smaller windows use fewer columns
+and scrolling. The footer counts displayed families. The three existing creature
+records and all non-family facts remain unchanged. Sixteen families have no creature
 records; they remain selectable and say "No creatures recorded in PetStable yet."
 
 Search families by singular/plural English labels, including Birds of Prey,
-Foxes, and Wolves. Selecting a card starts a fresh creature search within that
-family. Clear preserves that family. Back to families restores the family search;
-Browse all creatures shows the original three-creature browser. Family sources
+Foxes, and Wolves. Selecting a card opens its appearance gallery, restoring
+session search/filter/scroll state when revisited. Clear preserves that family.
+Back to families restores the family search;
+All Creatures shows the original three-creature browser. Family sources
 opens a scrollable source summary. All navigation/search state remains session-only.
 
 ## Reference roster reviewed 2026-10-16
@@ -86,16 +89,20 @@ to the shipped catalog. Temporary deployment verifies the shipped files.
 Live validation is pending:
 
 1. With probes off, record build/locale; reload and open Pet Guide. Check 19 cards,
-   native icons, four-column layout, readable names/counts at preferred/minimum scale.
-2. Open Cat, Bear, and Tallstrider: one recorded creature each. Open the other 16:
-   zero recorded, no stale creature details/portraits and no unavailability claim.
+   native icons, five-column layout, readable names at preferred/minimum scale.
+   Resize with the grip; confirm bottom rows remain reachable with no empty card.
+2. Open Cat and Bear: one verified appearance each. Tallstrider has one unresolved
+   appearance. Open the other 16: an explicit empty state, no stale models or
+   unavailability claim. Follow the drill-down checks in [PET-GUIDE.md](PET-GUIDE.md).
 3. Search `FOXES`, `Birds of Prey`, `wolves`, and `%`. Back must restore family
    search. Within a populated family, search a different creature and Clear;
-   the selected family must remain. Browse all must show exactly three creatures.
+   the selected family must remain. All Creatures must show exactly three creatures.
 4. Open Family sources, drag/scroll to both references and the metadata note;
    return to a family and confirm normal detail layout/scroll reset.
 5. Check typing does not trigger gameplay bindings, Enter releases focus, Escape
    closes cleanly, page switching/reopening works, and reload returns to the index.
 
-No new creature/appearance/ability/source facts, 3D previews, role filters,
-dependencies, or SavedVariables schema changes are part of this milestone.
+The subsequent UI redesign adds model previews and dedicated appearance pages
+using existing evidence, without new creature/appearance/ability facts or
+dependencies. Role filters remain deferred. Saved window width/height are
+additive version-1 settings; existing position, scale and page remain valid.

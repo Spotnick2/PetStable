@@ -6,30 +6,34 @@ My Pets navigation. A small provenance-aware catalog is now loaded, with measure
 Forever observations and a separate Classic reference sample; see
 [catalog coverage and validation](docs/CATALOG.md). Pet Guide now browses the
 19 referenced families and the same three recorded creatures, with search,
-exact 2D portraits where known, and evidence-aware details. Ability Upgrades and My Pets retain their
+appearance galleries, verified saved model previews, and evidence-aware details. Ability Upgrades and My Pets retain their
 empty states; recommendations and pet tracking are not yet implemented.
 
 ## Player addon
 
 Open or close with `/petstable`. Drag the title bar to move; Escape or the close
-button closes the window. `/petstable scale 0.9` adjusts scale (0.65–1.3), and
-`/petstable reset` restores the default scale and centered position. The window
-also fits the available screen size. Position, preferred scale, and selected page
+button closes the window. Drag the lower-right grip to resize. Settings includes
+scale and reset controls; `/petstable scale 0.9` also adjusts scale (0.65–1.3).
+`/petstable reset` restores the 1040×700 size, default scale and centered position.
+The window also fits the available screen size. Position, dimensions, preferred scale, and selected page
 are saved in account-wide `PetStableDB`. Non-hunters can open every page.
 
-Pet Guide opens to a searchable family grid. Its counts describe creatures
-recorded in PetStable: Cats, Bears, and Tallstriders each have one; the other
-16 families have none recorded yet. Click a family or Browse all creatures to
-open the existing browser. Clear removes search text while keeping the selected
-family; Back to families restores the family search. Family sources explains the
-dated reference roster and measured native icons; see [family index](docs/FAMILY-INDEX.md).
-Select a creature for details; Show evidence exposes sources, review dates, and
-measured builds. Scroll details with the wheel, arrows, or draggable thumb.
+Pet Guide opens to a searchable five-column family grid with larger portraits
+and hover feedback. The footer counts displayed families; cards do not imply
+creature coverage or collection progress. A family opens its appearance gallery;
+an appearance opens its associated creatures and their individual details.
+Back restores the family search, level/location filters and gallery scroll.
+Sixteen families still have no creature records. All Creatures retains the
+original browser. Family sources explains the dated reference roster and
+measured native icons; see [family index](docs/FAMILY-INDEX.md).
+Appearance details keep Sources & observations collapsed, with further technical
+evidence and selectable source URLs. Scroll galleries and details using the
+wheel or draggable thumb. The All Creatures view also retains its arrow controls.
 Enter releases search focus; Escape closes the window, including while typing.
 Search, family selection, and view last for the session and reset on reload.
 
 The Cat and Bear have measured appearances but no recorded wild names. Ornery
-Galestrider has no measured display ID and uses a portrait placeholder. Observer
+Galestrider has no measured display ID and uses an unresolved appearance card. Observer
 context is not a spawn location, and no entry claims an acquisition source.
 See [browser scope and live checks](docs/PET-GUIDE.md).
 
@@ -60,7 +64,8 @@ Issue #5 adds creature observations (`/fp steps ps discover`) and an optional
 planned-tame comparison (`/fp steps ps tame`). These collect evidence; they do
 not automatically confirm tameability or hunter ability acquisition.
 
-Catalog references include [Beastmaster's Forever section](https://beastmaster.io/forever),
+Catalog references include [Petopia Forever](https://www.wow-petopia.com/forever/),
+[Beastmaster's Forever section](https://beastmaster.io/forever),
 [Petopia Classic](https://www.wow-petopia.com/classic/), and
 [Petopia mainline](https://www.wow-petopia.com/index.php). Website claims and
 build-stamped in-game observations will retain separate provenance.
@@ -97,8 +102,8 @@ The reflective shell follows the shared
 [window styling recipe](../References/LIBGLASS-WINDOW-STYLING.md): smoked outer
 tint/backing, sliced directional silver rim, fine top highlight, and a masked
 header reflection fading within 70 UI units. A single masked reading region
-starts at y=82 and protects navigation, page content, help, and footer without
-moving them. Green accents and text opacity are preserved. The shell uses r9's
+starts at y=70 and protects the horizontal navigation, content, and footer.
+Sage accents mark active controls and hover states. The shell uses r9's
 `Reflect` and `SetSurfaceAlpha` APIs with the same material settings.
 
 For live comparison at the same position and scale:

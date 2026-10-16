@@ -3,13 +3,23 @@
 local create=CreateFrame
 rawset(_G,"CreateFrame",function(kind,name,parent,template)
     local frame=create(kind,name,parent,template)
+    local setSize=frame.SetSize
+    frame.SetSize=function(self,width,height)
+        local changed=self:GetWidth()~=width or self:GetHeight()~=height
+        setSize(self,width,height)
+        local fn=self:GetScript("OnSizeChanged"); if changed and fn then fn(self,width,height) end
+    end
+    frame.GetPoint=function(self,index) return unpack(self._points[index or 1] or {}) end
+    local setScale=frame.SetScale
+    frame.SetScale=function(self,value) self.scaleValue=value; setScale(self,value) end
+    frame.GetScale=function(self) return self.scaleValue or 1 end
     local makeText=frame.CreateFontString
     frame.CreateFontString=function(self,...)
         local text=makeText(self,...)
         text.GetStringHeight=function(t)
             local lines=0
             for line in ((t:GetText() or "").."\n"):gmatch("(.-)\n") do
-                lines=lines+math.max(1,math.ceil(#line/40))
+                lines=lines+math.max(1,math.ceil(#line/math.max(1,math.floor(t:GetWidth()/7))))
             end
             return lines*16
         end
@@ -20,6 +30,7 @@ rawset(_G,"CreateFrame",function(kind,name,parent,template)
         local wasShown=self:IsShown(); hide(self)
         local fn=self:GetScript("OnHide"); if wasShown and fn then fn(self) end
     end
+    frame.SetShown=function(self,shown) if shown then self:Show() else self:Hide() end end
     frame.SetPropagateKeyboardInput=function(self,value) self.propagate=value end
     if kind=="EditBox" then
         local setFont=frame.SetFont
@@ -41,6 +52,19 @@ rawset(_G,"CreateFrame",function(kind,name,parent,template)
         frame.SetText=function(self,value)
             setText(self,value)
             local fn=self:GetScript("OnTextChanged"); if fn then fn(self,false) end
+        end
+    elseif kind=="ModelScene" then
+        frame.CreateActor=function()
+            local actor={}
+            function actor:SetModelByCreatureDisplayID(id) self.display=id; return not WoW.rejectModel end
+            function actor:ClearModel() self.display=nil; self.cleared=true end
+            function actor:SetScale(value) self.scale=value end
+            function actor:SetUseCenterForOrigin() end
+            function actor:SetPosition() end
+            function actor:SetYaw(value) self.yaw=value end
+            function actor:SetAnimation(...) self.animation={...} end
+            function actor:GetActiveBoundingBox() if not WoW.modelTimeout then return -2,-1,-1,2,1,3 end end
+            return actor
         end
     elseif kind=="Slider" then
         frame.SetValue=function(self,value)

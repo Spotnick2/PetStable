@@ -10,5 +10,7 @@ Core.lua
 Catalog.lua
 CatalogData.lua
 GuideData.lua
+GuideModels.lua
+GuideAppearances.lua
 GuideUI.lua
 UI.lua
