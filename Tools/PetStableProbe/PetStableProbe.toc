@@ -1,0 +1,13 @@
+## Interface: 16001
+## Title: PetStableProbe
+## Notes: Developer measurements for PetStable. ForeverProbe module: /fp ps
+## Author: Spotnick
+## Version: dev
+## Dependencies: ForeverProbe
+## OptionalDeps: PetStable
+## SavedVariables: PetStableProbeDB
+
+PetStableProbe.lua
+Training.lua
+Models.lua
+Discovery.lua
