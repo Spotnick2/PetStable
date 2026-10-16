@@ -22,6 +22,11 @@ rawset(_G,"CreateFrame",function(kind,name,parent,template)
     end
     frame.SetPropagateKeyboardInput=function(self,value) self.propagate=value end
     if kind=="EditBox" then
+        local setFont=frame.SetFont
+        frame.SetFont=function(self,file,height,flags)
+            assert(type(flags)=="string", "EditBox:SetFont requires explicit flags on Forever")
+            return setFont(self,file,height,flags)
+        end
         frame._text=""
         frame.HasFocus=function(self) return self.focused==true end
         frame.SetFocus=function(self)
