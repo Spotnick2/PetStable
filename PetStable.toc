@@ -3,6 +3,7 @@
 ## Notes: Hunter pet field guide for WoW Forever.
 ## Author: Spotnick
 ## Version: 0.1.0
+## X-Curse-Project-ID: 1749062
 ## SavedVariables: PetStableDB
 
 Libs\LibGlass-1.0\LibGlass-1.0.xml

@@ -9,6 +9,10 @@ Forever observations and a separate Classic reference sample; see
 appearance galleries, verified saved model previews, and evidence-aware details. Ability Upgrades and My Pets retain their
 empty states; recommendations and pet tracking are not yet implemented.
 
+CurseForge project ID: **1749062**. The planned public page is
+[PetStable on CurseForge](https://www.curseforge.com/wow/addons/petstable);
+publication is pending.
+
 ## Player addon
 
 Open or close with `/petstable`. Drag the title bar to move; Escape or the close
