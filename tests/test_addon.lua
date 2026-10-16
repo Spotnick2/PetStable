@@ -7,6 +7,8 @@ UIParent:SetSize(1920,1080)
 local function loadAddon()
     local ns={}
     assert(loadfile("Core.lua"))("PetStable",ns)
+    assert(loadfile("Catalog.lua"))("PetStable",ns)
+    assert(loadfile("CatalogData.lua"))("PetStable",ns)
     assert(loadfile("UI.lua"))("PetStable",ns)
     return ns
 end
@@ -26,6 +28,8 @@ local function checkEscape(window, toggle)
     toggle()
 end
 local ns=loadAddon()
+local catalogErrors,catalogConflicts=ns.Catalog.Validate(ns.CatalogData)
+assert(#catalogErrors==0 and #catalogConflicts==0, "player addon must load the validated catalog")
 assert(not ns.db and rawget(_G,"PetStableDB")==nil)
 WoW.fire("ADDON_LOADED","OtherAddon")
 assert(not ns.db)

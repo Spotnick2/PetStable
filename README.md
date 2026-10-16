@@ -2,8 +2,11 @@
 
 Hunter pet field guide and ability upgrade advisor for WoW Forever. The player
 addon currently provides a LibGlass window with Pet Guide, Ability Upgrades, and
-My Pets navigation. Catalog data, recommendations, and pet tracking are not yet
-implemented; each page has an explicit empty state.
+My Pets navigation. A small provenance-aware catalog is now loaded, with measured
+Forever observations and a separate Classic reference sample; see
+[catalog coverage and validation](docs/CATALOG.md). Browser presentation,
+recommendations, and pet tracking are not yet implemented; each page retains
+its explicit empty state.
 
 ## Player addon
 

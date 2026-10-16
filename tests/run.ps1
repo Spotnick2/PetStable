@@ -4,10 +4,12 @@ $root = Split-Path -Parent $PSScriptRoot
 $luac = Join-Path (Split-Path -Parent $Lua) 'luac.exe'
 Push-Location $root
 try {
-    foreach ($file in (Get-ChildItem -Path Core.lua,UI.lua,Tools,tests -Filter '*.lua' -Recurse -File)) {
+    foreach ($file in (Get-ChildItem -Path Core.lua,Catalog.lua,CatalogData.lua,UI.lua,Tools,tests -Filter '*.lua' -Recurse -File)) {
         & $luac -p $file.FullName
         if ($LASTEXITCODE -ne 0) { throw "Syntax check failed: $($file.Name)" }
     }
+    & $Lua tests/test_catalog.lua
+    if ($LASTEXITCODE -ne 0) { throw 'Catalog tests failed.' }
     & $Lua tests/test_addon.lua
     if ($LASTEXITCODE -ne 0) { throw 'Addon tests failed.' }
     & $Lua tests/test_probe.lua
