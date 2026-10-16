@@ -87,8 +87,11 @@ surface. `SetModelByCreatureDisplayID` uses the saved exact skin and does not
 require a nearby/targeted creature. No SetCreature, SetUnit or model-file fallback
 is used. Actor bounds are polled every 0.2 seconds for at most four seconds.
 
-Usable bounds fit the model with margin against both viewport dimensions and
-its horizontal diagonal. Gallery poses are still; callbacks stop after fitting.
+The camera uses a centered square viewport inside the available preview area,
+matching the measured probe's near-square projection rather than stretching it
+across a shallow gallery card. Usable unit-scale bounds are cached and fit with
+margin against height and horizontal diagonal. Resize and Reset reuse those
+measurements. Gallery poses are still; callbacks stop after fitting.
 Detail previews support drag/button rotation, wheel/button zoom and reset.
 Controls appear after successful fitting. Hiding a view cancels fitting/dragging
 and clears actors. Missing/rejected models and bounds timeouts show a verified

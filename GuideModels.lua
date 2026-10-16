@@ -1,5 +1,5 @@
 local _, NS = ...
-local DIST,FOV=4,0.6
+local DIST,FOV=10,0.6
 local function Call(object,name,...)
     if not object or type(object[name])~="function" then return false end
     return pcall(object[name],object,...)
@@ -18,12 +18,21 @@ function NS.CreateAppearancePreview(parent,Text,interactive)
     if not ok then scene=nil end
     local actor
     if scene then
-        scene:SetAllPoints(preview); scene:EnableMouse(false)
+        -- Keep the projection square, as in the measured probe's near-square
+        -- viewport. A wide/shallow card must not squeeze the camera's vertical
+        -- field of view while fitting as though it were a portrait viewport.
+        scene:SetPoint("CENTER",preview,"CENTER"); scene:EnableMouse(false)
         local created,result=Call(scene,"CreateActor"); if created then actor=result end
     end
     preview.scene,preview.actor=scene,actor
-    local group,elapsed,since,dragX,baseScale
+    local group,elapsed,since,dragX,baseScale,boundsWidth,boundsHeight
     preview.yaw=0.5; preview.zoom=1
+    local function Viewport()
+        if scene then
+            local side=math.max(1,math.min(preview:GetWidth(),preview:GetHeight()))
+            scene:SetSize(side,side)
+        end
+    end
     local function Camera()
         Call(scene,"SetCameraFieldOfView",FOV)
         Call(scene,"SetCameraNearClip",0.1); Call(scene,"SetCameraFarClip",100)
@@ -43,13 +52,18 @@ function NS.CreateAppearancePreview(parent,Text,interactive)
         if preview.OnReady then preview.OnReady(false) end
     end
     local function Fit()
-        local success,a,b,c,d,e,f=Call(actor,"GetActiveBoundingBox")
-        if type(a)=="table" and type(b)=="table" then a,b,c,d,e,f=a.x,a.y,a.z,b.x,b.y,b.z end
-        if not success or not (Number(a) and Number(b) and Number(c) and Number(d) and Number(e) and Number(f)) then return false end
-        local w,h=math.sqrt((d-a)^2+(e-b)^2),f-c
-        if w<=0.001 or h<=0.001 then return false end
+        if not boundsWidth then
+            local success,a,b,c,d,e,f=Call(actor,"GetActiveBoundingBox")
+            if type(a)=="table" and type(b)=="table" then a,b,c,d,e,f=a.x,a.y,a.z,b.x,b.y,b.z end
+            if not success or not (Number(a) and Number(b) and Number(c) and Number(d) and Number(e) and Number(f)) then return false end
+            local w,h=math.sqrt((d-a)^2+(e-b)^2),f-c
+            if w<=0.001 or h<=0.001 then return false end
+            -- Bounds are read once at unit scale. Reset/layout never remeasure
+            -- a scaled actor or change the original framing measurements.
+            boundsWidth,boundsHeight=w,h
+        end
         local view=2*DIST*math.tan(FOV/2)
-        baseScale=math.min(0.72*view/h,0.72*view*preview:GetWidth()/math.max(1,preview:GetHeight())/w)
+        baseScale=0.72*view/math.max(boundsWidth,boundsHeight)
         return Call(actor,"SetScale",baseScale*preview.zoom)
     end
     local function Update(self,delta)
@@ -70,6 +84,7 @@ function NS.CreateAppearancePreview(parent,Text,interactive)
         preview:SetScript("OnUpdate",nil); dragX=nil; group=nil; preview.key=nil; preview.ready=false
         Call(actor,"ClearModel"); if scene then scene:Hide() end
         portrait:SetTexture(nil); portrait:Hide(); fallback:Hide()
+        boundsWidth,boundsHeight,baseScale=nil,nil,nil
         if preview.OnReady then preview.OnReady(false) end
     end
     function preview.Set(value)
@@ -78,7 +93,7 @@ function NS.CreateAppearancePreview(parent,Text,interactive)
         preview.key=value.key; preview.yaw=0.5; preview.zoom=1
         fallback:ClearAllPoints(); fallback:SetPoint("CENTER"); fallback:SetText("Loading appearance..."); fallback:Show()
         if not (value.displayID and value.modelVerified and actor) then Fallback(); return end
-        scene:Show(); Camera()
+        Viewport(); scene:Show(); Camera()
         Call(actor,"SetScale",1); Call(actor,"SetUseCenterForOrigin",true,true,true)
         Call(actor,"SetPosition",0,0,0); Call(actor,"SetYaw",preview.yaw)
         local success,accepted=Call(actor,"SetModelByCreatureDisplayID",value.displayID,false)
@@ -94,7 +109,7 @@ function NS.CreateAppearancePreview(parent,Text,interactive)
     function preview.Reset()
         preview.yaw=0.5; preview.zoom=1; Call(actor,"SetYaw",preview.yaw); if preview.ready then Fit() end
     end
-    preview:SetScript("OnSizeChanged",function() if preview.ready then Fit() end end)
+    preview:SetScript("OnSizeChanged",function() Viewport(); if preview.ready then Fit() end end)
     preview:SetScript("OnHide",preview.Clear)
     if interactive then
         preview:EnableMouse(true); preview:EnableMouseWheel(true)

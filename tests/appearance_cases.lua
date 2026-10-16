@@ -9,6 +9,9 @@ return function(ns)
     assert(ui.columns==3 and #ui.results==1 and not guide.browser:IsShown())
     local card=ui.cards[1]; Tick(card.preview)
     assert(card.preview.ready and card.preview.actor.display==1059)
+    assert(card.preview:GetWidth()>card.preview:GetHeight()*2,"exercise a wide, shallow gallery preview")
+    assert(card.preview.scene:GetWidth()==card.preview:GetHeight() and card.preview.scene:GetHeight()==card.preview:GetHeight(),
+        "wide gallery cards must use a centered square camera viewport")
     assert(card.preview.actor.animation[3]==0 and not card.preview:GetScript("OnUpdate"),"gallery model must settle without a continuing update")
     Click(card)
     assert(guide.view=="appearance" and #ui.detailEntries==1 and not ui.sourceText:IsShown())
@@ -18,6 +21,15 @@ return function(ns)
     Click(ui.modelButtons[4]); assert(ui.preview.actor.scale>originalScale)
     Click(ui.modelButtons[1]); assert(ui.preview.actor.yaw<0.5)
     Click(ui.modelButtons[3]); assert(ui.preview.actor.yaw==0.5 and ui.preview.zoom==1)
+    local pw,ph=ui.preview:GetWidth(),ui.preview:GetHeight()
+    local readBounds=ui.preview.actor.GetActiveBoundingBox
+    ui.preview.actor.GetActiveBoundingBox=function() error("layout/reset must reuse the unit-scale bounds") end
+    for _,size in ipairs({{320,90},{90,320},{pw,ph}}) do
+        ui.preview:SetSize(size[1],size[2]); ui.preview.Reset()
+        assert(ui.preview.scene:GetWidth()==math.min(size[1],size[2]) and ui.preview.scene:GetWidth()==ui.preview.scene:GetHeight())
+        assert(math.abs(ui.preview.actor.scale-originalScale)<0.000001,"resize/reset must not compound framing scale")
+    end
+    ui.preview.actor.GetActiveBoundingBox=readBounds
     rawset(_G,"GetCursorPosition",function() return 100,0 end)
     ui.preview:GetScript("OnMouseDown")(ui.preview,"LeftButton")
     rawset(_G,"GetCursorPosition",function() return 125,0 end)
