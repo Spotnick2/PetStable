@@ -57,15 +57,17 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
     local function Scrollbar(host,scroll)
         local bar=CreateFrame("Slider",nil,host,"BackdropTemplate")
         bar:SetOrientation("VERTICAL"); bar:SetMinMaxValues(0,0); bar:SetValueStep(1); bar:SetObeyStepOnDrag(false)
-        bar:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8"}); bar:SetBackdropColor(0.07,0.10,0.08,1)
-        bar:SetThumbTexture("Interface\\Buttons\\WHITE8X8"); bar:GetThumbTexture():SetVertexColor(0.6,0.76,0.53,1)
+        bar:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8"}); bar:SetBackdropColor(0.06,0.08,0.07,0.45)
+        bar:SetThumbTexture("Interface\\Buttons\\WHITE8X8"); bar:GetThumbTexture():SetVertexColor(0.38,0.46,0.4,0.75)
         local syncing=false
         function bar.Sync()
             if syncing then return end; syncing=true
             local range=math.max(0,scroll:GetVerticalScrollRange())
+            if range<1 then range=0 end -- Ignore subpixel overflow when all cards fit.
             local value=math.max(0,math.min(range,scroll:GetVerticalScroll()))
             bar:SetMinMaxValues(0,range); bar:SetValue(value); bar:SetShown(range>0)
-            bar:GetThumbTexture():SetSize(12,math.max(24,bar:GetHeight()*scroll:GetHeight()/math.max(1,scroll:GetHeight()+range)))
+            bar:GetThumbTexture():SetSize(6,math.max(24,bar:GetHeight()*scroll:GetHeight()/math.max(1,scroll:GetHeight()+range)))
+            bar:GetThumbTexture():SetShown(range>0)
             if scroll:GetVerticalScroll()~=value then scroll:SetVerticalScroll(value) end
             syncing=false
         end
@@ -282,7 +284,7 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         Place(search,0,controlsY,width-330,32); hint:SetWidth(width-380)
         Place(root.level,width-318,controlsY,154,32); root.level.label:SetWidth(140)
         Place(root.zone,width-154,controlsY,154,32); root.zone.label:SetWidth(140)
-        Place(gallery,0,galleryY,width-22,math.max(120,height+12-galleryY)); Place(galleryBar,width-12,galleryY,12,gallery:GetHeight())
+        Place(gallery,0,galleryY,width-22,math.max(120,height+12-galleryY)); Place(galleryBar,width-8,galleryY,6,gallery:GetHeight())
         root.columns=width>=900 and 3 or 2
         root.cardWidth=(gallery:GetWidth()-(root.columns-1)*10)/root.columns
         root.cardHeight=math.max(180,(gallery:GetHeight()-10)/2)
@@ -296,7 +298,7 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         for i,b in ipairs(modelButtons) do
             local w=(left-16)/5; Place(b,(i-1)*(w+4),detail:GetHeight()-30,w,26); b.label:SetWidth(w-4)
         end
-        Place(body,left+20,0,width-left-40,detail:GetHeight()); Place(bodyBar,width-12,0,12,detail:GetHeight())
+        Place(body,left+20,0,width-left-40,detail:GetHeight()); Place(bodyBar,width-8,0,6,detail:GetHeight())
         bodyChild:SetWidth(body:GetWidth()-4)
     end
     function root.Layout(width,height)

@@ -9,10 +9,8 @@ local function Number(v) return type(v)=="number" and v==v and math.abs(v)<math.
 -- Same custom ModelScene actor path measured by PetStableProbe Models.lua.
 -- Exact displays preserve skins; no SetCreature/SetUnit or model-file fallback.
 function NS.CreateAppearancePreview(parent,Text,interactive)
-    -- Still gallery poses can fill more of their small viewport; keep the
-    -- accepted detail framing and its extra rotation margin unchanged.
-    local fill=interactive and 0.72 or 0.85
     local preview=CreateFrame("Frame",nil,parent)
+    if not interactive then preview:SetClipsChildren(true) end
     preview.OnReady=false
     local fallback=Text(preview,13,{0.65,0.72,0.7,1})
     fallback:SetPoint("CENTER"); fallback:SetWidth(200); fallback:SetJustifyH("CENTER"); fallback:SetWordWrap(true)
@@ -21,18 +19,17 @@ function NS.CreateAppearancePreview(parent,Text,interactive)
     if not ok then scene=nil end
     local actor
     if scene then
-        -- Keep the projection square, as in the measured probe's near-square
-        -- viewport. A wide/shallow card must not squeeze the camera's vertical
-        -- field of view while fitting as though it were a portrait viewport.
+        -- Keep a square projection. Gallery scenes cover the whole preview;
+        -- the parent clips the surplus, and Fit accounts for the visible area.
         scene:SetPoint("CENTER",preview,"CENTER"); scene:EnableMouse(false)
         local created,result=Call(scene,"CreateActor"); if created then actor=result end
     end
     preview.scene,preview.actor=scene,actor
-    local group,elapsed,since,dragX,baseScale,boundsWidth,boundsHeight
+    local group,elapsed,since,dragX,baseScale,boundsWidth,boundsHeight,boundsX,boundsY
     preview.yaw=0.5; preview.zoom=1
     local function Viewport()
         if scene then
-            local side=math.max(1,math.min(preview:GetWidth(),preview:GetHeight()))
+            local side=math.max(1,(interactive and math.min or math.max)(preview:GetWidth(),preview:GetHeight()))
             scene:SetSize(side,side)
         end
     end
@@ -64,9 +61,31 @@ function NS.CreateAppearancePreview(parent,Text,interactive)
             -- Bounds are read once at unit scale. Reset/layout never remeasure
             -- a scaled actor or change the original framing measurements.
             boundsWidth,boundsHeight=w,h
+            boundsX,boundsY=d-a,e-b
         end
         local view=2*DIST*math.tan(FOV/2)
-        baseScale=fill*view/math.max(boundsWidth,boundsHeight)
+        if interactive then
+            baseScale=0.72*view/math.max(boundsWidth,boundsHeight)
+        else
+            -- Fit all eight centered bounds corners at the still pose's yaw.
+            -- A corner nearer the camera projects larger: s*extent must fit
+            -- inside tangent*(DIST-s*depth), on both visible screen axes.
+            local side=math.max(1,scene:GetWidth())
+            local horizontal=0.85*math.tan(FOV/2)*preview:GetWidth()/side
+            local vertical=0.85*math.tan(FOV/2)*preview:GetHeight()/side
+            local cosine,sine=math.cos(preview.yaw),math.sin(preview.yaw)
+            baseScale=math.huge
+            for _,x in ipairs({-boundsX/2,boundsX/2}) do
+                for _,y in ipairs({-boundsY/2,boundsY/2}) do
+                    local depth=x*cosine-y*sine
+                    local across=x*sine+y*cosine
+                    for _,axis in ipairs({{math.abs(across),horizontal},{boundsHeight/2,vertical}}) do
+                        local denominator=axis[1]+axis[2]*depth
+                        if denominator>0 then baseScale=math.min(baseScale,DIST*axis[2]/denominator) end
+                    end
+                end
+            end
+        end
         return Call(actor,"SetScale",baseScale*preview.zoom)
     end
     local function Update(self,delta)
@@ -87,7 +106,7 @@ function NS.CreateAppearancePreview(parent,Text,interactive)
         preview:SetScript("OnUpdate",nil); dragX=nil; group=nil; preview.key=nil; preview.ready=false
         Call(actor,"ClearModel"); if scene then scene:Hide() end
         portrait:SetTexture(nil); portrait:Hide(); fallback:Hide()
-        boundsWidth,boundsHeight,baseScale=nil,nil,nil
+        boundsWidth,boundsHeight,boundsX,boundsY,baseScale=nil,nil,nil,nil,nil
         if preview.OnReady then preview.OnReady(false) end
     end
     function preview.Set(value)

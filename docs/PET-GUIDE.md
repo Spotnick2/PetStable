@@ -87,12 +87,13 @@ surface. `SetModelByCreatureDisplayID` uses the saved exact skin and does not
 require a nearby/targeted creature. No SetCreature, SetUnit or model-file fallback
 is used. Actor bounds are polled every 0.2 seconds for at most four seconds.
 
-The camera uses a centered square viewport inside the available preview area,
-matching the measured probe's near-square projection rather than stretching it
-across a shallow gallery card. Usable unit-scale bounds are cached and fit with
-margin against height and horizontal diagonal. Resize and Reset reuse those
-measurements. Still gallery previews use an 85% fit, while the detail viewer
-retains its 72% fit for rotation. Card labels grow when needed instead of
+The camera retains a square projection, matching the measured probe's near-square
+projection. Gallery scenes cover the full preview area; their parent clips the
+surplus above/below or beside the preview. The still pose is fitted using its
+rotated bounding-box corners, perspective depth, and the visible area's aspect
+ratio, with a 15% margin. Detail scenes remain inscribed squares and retain the
+72% height/diagonal fit for rotation. Usable unit-scale bounds are cached;
+resize and Reset reuse those measurements. Card labels grow when needed instead of
 reserving a second line for every name, leaving more height for previews.
 Gallery poses are still; callbacks stop after fitting.
 Detail previews support drag/button rotation, wheel/button zoom and reset.

@@ -10,16 +10,50 @@ return function(ns)
     local card=ui.cards[1]; Tick(card.preview)
     assert(card.preview.ready and card.preview.actor.display==1059)
     assert(card.preview:GetWidth()>card.preview:GetHeight()*2,"exercise a wide, shallow gallery preview")
-    assert(card.preview.scene:GetWidth()==card.preview:GetHeight() and card.preview.scene:GetHeight()==card.preview:GetHeight(),
-        "wide gallery cards must use a centered square camera viewport")
+    assert(card.preview.scene:GetWidth()==card.preview:GetWidth() and card.preview.scene:GetHeight()==card.preview:GetWidth(),
+        "gallery projection must cover the full width rather than a small inscribed square")
     assert(card.preview.actor.animation[3]==0 and not card.preview:GetScript("OnUpdate"),"gallery model must settle without a continuing update")
-    local galleryScale=card.preview.actor.scale
+    -- Exercise wide, tall and broad bounds through the actual perspective
+    -- projection. Every corner must stay within the visible preview margin.
+    local cw,ch=card.preview:GetWidth(),card.preview:GetHeight()
+    local originalBounds=card.preview.actor.GetActiveBoundingBox
+    local group=card.result.group
+    for _,dimensions in ipairs({{8,2,2},{2,2,8},{6,6,3}}) do
+        local dx,dy,dz=unpack(dimensions)
+        card.preview.actor.GetActiveBoundingBox=function() return -dx/2,-dy/2,-dz/2,dx/2,dy/2,dz/2 end
+        card.preview.Clear(); card.preview.Set(group); Tick(card.preview)
+        for _,size in ipairs({{cw,ch},{180,240},{cw,ch}}) do
+            card.preview:SetSize(size[1],size[2])
+            local scale=card.preview.actor.scale
+            local sceneSide=card.preview.scene:GetWidth()
+            local largest=0
+            for _,x in ipairs({-dx/2,dx/2}) do
+                for _,y in ipairs({-dy/2,dy/2}) do
+                    local depth=scale*(x*math.cos(0.5)-y*math.sin(0.5))
+                    local across=scale*(x*math.sin(0.5)+y*math.cos(0.5))
+                    assert(depth<10,"gallery bounds must stay in front of the camera")
+                    local projection=sceneSide/(2*math.tan(0.3)*(10-depth))
+                    local horizontal=math.abs(across)*projection/(size[1]/2)
+                    local vertical=(scale*dz/2)*projection/(size[2]/2)
+                    assert(horizontal<=0.850001 and vertical<=0.850001,"gallery bounds must fit the visible preview")
+                    largest=math.max(largest,horizontal,vertical)
+                end
+            end
+            assert(largest>0.84,"gallery should use the available preview area")
+        end
+    end
+    card.preview.actor.GetActiveBoundingBox=originalBounds
+    card.preview.Clear(); card.preview.Set(group); Tick(card.preview)
+    local scrollRange=ui.gallery.GetVerticalScrollRange
+    ui.gallery.GetVerticalScrollRange=function() return 0.25 end
+    ui.galleryBar.Sync()
+    assert(not ui.galleryBar:IsShown() and not ui.galleryBar:GetThumbTexture():IsShown(),"subpixel overflow must not show a full-height thumb")
+    ui.gallery.GetVerticalScrollRange=scrollRange; ui.galleryBar.Sync()
     Click(card)
     assert(guide.view=="appearance" and #ui.detailEntries==1 and not ui.sourceText:IsShown())
     Tick(ui.preview)
     assert(ui.preview.ready and ui.modelButtons[1]:IsShown())
     local originalScale=ui.preview.actor.scale
-    assert(galleryScale>originalScale,"gallery should fill more of its viewport than the rotatable detail model")
     assert(math.abs(originalScale-0.72*20*math.tan(0.3)/math.sqrt(20))<0.000001,
         "gallery enlargement must preserve the accepted detail framing")
     Click(ui.modelButtons[4]); assert(ui.preview.actor.scale>originalScale)
