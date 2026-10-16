@@ -39,7 +39,23 @@ function Guide.Build(data)
     local function SameScope(a,b)
         return a.game==b.game and a.build==b.build and a.locale==b.locale
     end
-    local entries,families={},{}
+    local entries,families,sourceFamilies={},{},{}
+    local plurals={ ["Bird of Prey"]="Birds of Prey", Fox="Foxes", Wolf="Wolves" }
+    for _,r in ipairs(data.records) do
+        if r.kind=="family" and r.game=="forever" then
+            local name,id,icon=Read(r.key,"name"),Read(r.key,"familyID"),Read(r.key,"iconFileID")
+            local label=name.value or "Family unresolved"
+            local display=name.value and (plurals[label] or label.."s") or label
+            families[r.key]={key=r.key,label=label,displayLabel=display,familyID=id.value,
+                iconFileID=icon.value,count=0,search=(label.." "..display):lower()}
+            for _,field in ipairs({name,id,icon}) do
+                for _,claim in ipairs(field.claims) do
+                    sourceFamilies[claim.evidence]=sourceFamilies[claim.evidence] or {}
+                    sourceFamilies[claim.evidence][display]=true
+                end
+            end
+        end
+    end
     for _,r in ipairs(data.records) do
         if r.kind=="creature" and r.game=="forever" then
             local used={}
@@ -53,7 +69,7 @@ function Guide.Build(data)
             local family=familyLink.value and Field(familyLink.value,"name","Family") or familyLink
             local familyName=family.state=="known" and family.value or "Family unknown"
             local familyKey=familyLink.state=="known" and familyLink.value or nil
-            if familyKey then families[familyKey]=familyName end
+            if familyKey and families[familyKey] then families[familyKey].count=families[familyKey].count+1 end
             local label=name.value or (familyName..(name.state=="conflicting" and " — name unresolved" or " — name unknown"))
             local level=Field(r.key,"observedLevel","Observed level")
             local tameable=Field(r.key,"tameable","Tameability")
@@ -118,9 +134,17 @@ function Guide.Build(data)
         return a.label:lower()<b.label:lower()
     end)
     local choices={}
-    for key,label in pairs(families) do choices[#choices+1]={key=key,label=label} end
+    for _,family in pairs(families) do choices[#choices+1]=family end
     table.sort(choices,function(a,b) if a.label==b.label then return a.key<b.key end; return a.label<b.label end)
-    return entries,choices
+    local sources={"Family index sources",
+        "Website listings are references, not confirmation of tameability. Client family IDs and icons identify metadata only. Counts describe PetStable's recorded creatures, not all creatures in the game."}
+    for _,key in ipairs(Sorted(sourceFamilies)) do
+        local e=evidence[key]
+        sources[#sources+1]=table.concat({"\n"..e.kind.."; "..e.game.."; reviewed "..e.date,
+            "Build: "..(e.build or "not stated").."; locale: "..(e.locale or "not stated"),
+            "Families: "..table.concat(Sorted(sourceFamilies[key]),", "),e.locator,e.url},"\n")
+    end
+    return entries,choices,nil,table.concat(sources,"\n\n")
 end
 
 function Guide.Filter(entries,query,familyKey)

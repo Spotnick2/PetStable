@@ -5,8 +5,8 @@ addon currently provides a LibGlass window with Pet Guide, Ability Upgrades, and
 My Pets navigation. A small provenance-aware catalog is now loaded, with measured
 Forever observations and a separate Classic reference sample; see
 [catalog coverage and validation](docs/CATALOG.md). Pet Guide now browses the
-three recorded creatures with search, family filtering, exact 2D portraits where
-known, and evidence-aware details. Ability Upgrades and My Pets retain their
+19 referenced families and the same three recorded creatures, with search,
+exact 2D portraits where known, and evidence-aware details. Ability Upgrades and My Pets retain their
 empty states; recommendations and pet tracking are not yet implemented.
 
 ## Player addon
@@ -17,12 +17,16 @@ button closes the window. `/petstable scale 0.9` adjusts scale (0.65–1.3), and
 also fits the available screen size. Position, preferred scale, and selected page
 are saved in account-wide `PetStableDB`. Non-hunters can open every page.
 
-In Pet Guide, search recorded names or families and click the Family button to
-cycle through All, Bear, Cat, and Tallstrider. Clear resets both filters. Select
-a result for details; Show evidence exposes the sources, review dates, and
-measured builds. Use the mouse wheel or arrow buttons to scroll results and
-details. Enter releases search focus; Escape closes the window, including while
-typing. Search, filters, and selection last for the session and reset on reload.
+Pet Guide opens to a searchable family grid. Its counts describe creatures
+recorded in PetStable: Cats, Bears, and Tallstriders each have one; the other
+16 families have none recorded yet. Click a family or Browse all creatures to
+open the existing browser. Clear removes search text while keeping the selected
+family; Back to families restores the family search. Family sources explains the
+dated reference roster and measured native icons; see [family index](docs/FAMILY-INDEX.md).
+Select a creature for details; Show evidence exposes sources, review dates, and
+measured builds. Scroll details with the wheel, arrows, or draggable thumb.
+Enter releases search focus; Escape closes the window, including while typing.
+Search, family selection, and view last for the session and reset on reload.
 
 The Cat and Bear have measured appearances but no recorded wild names. Ornery
 Galestrider has no measured display ID and uses a portrait placeholder. Observer

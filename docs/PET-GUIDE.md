@@ -1,7 +1,8 @@
-# First Pet Guide browser slice (partial issue #8)
+# Pet Guide browser and family index
 
-Pet Guide now replaces its empty page with the three Forever creature records
-already shipped in the catalog. No catalog facts are added. Ability Upgrades,
+Pet Guide opens to the [19-family index](FAMILY-INDEX.md), then browses the same
+three Forever creature records shipped in PR #16. This follow-up adds family
+metadata and references only. Ability Upgrades,
 My Pets, the window style, and the SavedVariables schema retain their scope.
 
 ## Behavior
@@ -9,8 +10,10 @@ My Pets, the window style, and the SavedVariables schema retain their scope.
 - Search is a trimmed, case-insensitive literal substring over known creature
   and family names. It is intended for the current enUS seed; Lua 5.1 lowercasing
   is not Unicode case folding. Lua pattern characters are treated literally.
-- The Family button cycles through All and the recorded families in alphabetical
-  order. Search and family constraints combine. Clear resets both.
+- Family cards include families with no recorded creatures. Select a family or
+  Browse all creatures to enter the creature browser. Family search is separate
+  from creature search; Back to families restores it. Clear resets search text
+  while keeping the selected family. Family sources reuses the scrollable pane.
 - Results use four reusable rows. Mouse wheel moves through the list; arrow
   buttons move by four. Selection is retained if still present after filtering,
   otherwise the first result is selected. No results clears the selected details.
@@ -56,8 +59,8 @@ The seed's Cat/Bear appearance checks were measured on 1.60.1.70425. The local
 `SetPortraitTextureFromCreatureDisplayID(textureObject, creatureDisplayID)` and
 the EditBox, ScrollFrame, Slider, and FontString methods used here. This establishes the
 API surface; it does not independently validate the new UI's live behavior.
-Source evidence remains in [the catalog guide](CATALOG.md), including Beastmaster
-Forever as a preliminary research reference. No new website claims are imported.
+Source evidence remains in [the catalog guide](CATALOG.md). The family index adds
+dated Petopia/Beastmaster roster references; it imports no website creature claims.
 
 ## Validation
 
@@ -77,20 +80,20 @@ and guide tests, addon/probe regressions, and a temporary deployment that verifi
 exact runtime file copies and loads the guide modules in deployed TOC order.
 CI runs guide tests unconditionally, alongside the existing optional-host policy.
 
-Live browser validation is **in progress**. Owner screenshots show the Cat and
+The owner accepted the first browser slice in PR #16. Screenshots show the Cat and
 Bear filtered views, rendered portraits, and the evidence pane. The owner
-confirmed that the evidence mouse wheel and arrow buttons work. A draggable
-scrollbar thumb has now been added between those arrows; its live validation is
-still pending. The thumb follows wheel/arrow scrolling, resets with the selected
-entry or view, and hides when the text fits without scrolling.
+confirmed that the evidence wheel, arrow buttons, and added draggable thumb work.
+The new family index still needs its own live checks in [FAMILY-INDEX.md](FAMILY-INDEX.md).
 
-Before marking the browser ready:
+Browser regression smoke checklist:
 
 1. Deploy the player addon, disable the probes, reload, and open Pet Guide.
-   Record the client build and locale. Confirm exactly three entries, correct Cat
+   Record the client build and locale. Choose Browse all creatures and confirm
+   exactly three entries, correct Cat
    and Bear skins, and Galestrider's placeholder.
-2. Search `cat`, `GALESTRIDER`, and `%`; combine searches with the Family button,
-   then Clear. Confirm the right result/selection and no stale portraits or details.
+2. Search `cat`, `GALESTRIDER`, and `%`; select families through the index and
+   combine with creature searches, then Clear. Confirm correct results/selection
+   and no stale portraits or details. Clear must retain the selected family.
 3. Check Galestrider's level is labeled observed and its area is observer context,
    not a spawn. Open Show evidence and scroll to the source/build information.
    Drag the scrollbar thumb to both ends, then use the wheel/arrows and confirm
@@ -103,6 +106,7 @@ Before marking the browser ready:
    Repeat on a non-hunter with no summoned pet. Reload should reset browser filters
    while retaining the existing saved window settings and navigation page.
 
-Issue #8 remains open. 3D previews/rotation, appearance-variant controls, additional
-filters, tameable-at-my-level, maps, recommendations, and catalog expansion are
+Issue #8 closed with PR #16; #17 tracks the family index. 3D previews/rotation,
+appearance-variant controls, role and other extra filters, tameable-at-my-level,
+maps, recommendations, and creature expansion are
 not implemented by this slice. Live testing introduces no taming or training action.

@@ -13,7 +13,31 @@ local function Entry(entries,key)
     error("missing entry "..key)
 end
 local entries,families,problem=G.Build(seed)
-assert(not problem and #entries==3 and #families==3)
+assert(not problem and #entries==3 and #families==19)
+local familyCount,emptyFamilies=0,0
+for _,family in ipairs(families) do
+    familyCount=familyCount+family.count
+    if family.count==0 then emptyFamilies=emptyFamilies+1 end
+    assert(family.familyID and family.iconFileID)
+end
+assert(familyCount==3 and emptyFamilies==16)
+assert(Entry(families,"family-bird-of-prey").displayLabel=="Birds of Prey")
+assert(#G.Filter(families,"  FOXES  ")==1 and #G.Filter(families,"wolves")==1)
+assert(#G.Filter(families,"core hound")==1 and #G.Filter(families,"%") ==0)
+local _,_,_,familySources=G.Build(seed)
+assert(familySources:find("https://beastmaster.io/forever",1,true)
+    and familySources:find("https://www.wow-petopia.com/forever/",1,true))
+assert(familySources:find("Core Hound absent",1,true) and familySources:find("2026-10-16",1,true))
+local noCreatures=Copy(seed)
+for i=#noCreatures.facts,1,-1 do
+    if noCreatures.facts[i].subject:match("^creature%-") then table.remove(noCreatures.facts,i) end
+end
+for i=#noCreatures.records,1,-1 do
+    if noCreatures.records[i].kind=="creature" then table.remove(noCreatures.records,i) end
+end
+local noEntries,allFamilies=G.Build(noCreatures)
+assert(#noEntries==0 and #allFamilies==19,"family index must not depend on creature coverage")
+for _,family in ipairs(allFamilies) do assert(family.count==0) end
 local cat,bear,bird=Entry(entries,"creature-3035"),Entry(entries,"creature-251115"),Entry(entries,"creature-251707")
 assert(cat.label=="Cat — name unknown" and cat.displayID==1059)
 assert(bear.label=="Bear — name unknown" and bear.displayID==136606)
@@ -38,7 +62,9 @@ assert(G.Select({bird},cat.key)==bird and G.Select({},cat.key)==nil)
 local reordered=Copy(seed)
 local reversed={}; for i=#reordered.facts,1,-1 do reversed[#reversed+1]=reordered.facts[i] end
 reordered.facts=reversed
-local again=G.Build(reordered)
+local again,reorderedFamilies,_,reorderedSources=G.Build(reordered)
+assert(reorderedSources==familySources)
+for i,family in ipairs(families) do assert(reorderedFamilies[i].key==family.key) end
 for i,entry in ipairs(entries) do
     assert(again[i].key==entry.key and again[i].details==entry.details and again[i].evidence==entry.evidence)
 end
@@ -51,6 +77,13 @@ assert(Entry(disputed,bird.key).label=="Tallstrider — name unresolved")
 assert(not Entry(disputed,cat.key).displayID)
 assert(Entry(disputed,bird.key).details:find("Unresolved (different claims)",1,true))
 assert(Entry(disputed,bird.key).evidence:find("Other name",1,true))
+assert(Entry(select(2,G.Build(conflict)),"family-cat").count==1)
+local familyConflict=Copy(seed)
+Claim(familyConflict,"family-cat","iconFileID",999,"cat-models")
+Claim(familyConflict,"family-cat","name","Other family","cat-models")
+local _,uncertainFamilies=G.Build(familyConflict)
+local uncertain=Entry(uncertainFamilies,"family-cat")
+assert(not uncertain.iconFileID and uncertain.label=="Family unresolved")
 local negative=Copy(seed); Claim(negative,bird.key,"tameable",false)
 assert(Entry(G.Build(negative),bird.key).details:find("Tameability: No",1,true))
 local duplicate=Copy(seed)

@@ -1,8 +1,8 @@
 # Catalog v1: bounded issue #7 seed
 
 This is a static, provenance-aware foundation for Pet Guide, delivered as partial
-work on issue #7. The [first browser slice](PET-GUIDE.md) uses this seed without
-expanding it. Ability Upgrades and My Pets retain their empty states. The catalog
+work on issue #7. The [browser](PET-GUIDE.md) now includes a [19-family index](FAMILY-INDEX.md)
+without expanding creature coverage. Ability Upgrades and My Pets retain their empty states. The catalog
 does not provide recommendations, collection capture, data import, network access,
 or SavedVariables changes.
 
@@ -68,7 +68,9 @@ cross-build and cross-game interpretation remains a research task.
 | Two trainer row observations | Great Stamina Rank 3: required level 18, raw cost 400, Rank 2 prerequisite flag true. Rank 4: required level 24, Rank 3 prerequisite flag false, cost unknown. Both unavailable in the recorded context. No spell IDs, cost-unit interpretation, or links to identified ranks. |
 | Classic reference sample | Great Stamina ranks 2-4, minimum pet levels 12/18/24, training costs 10/15/25 TP, all-family eligibility, trainer source and ordered rank links. No spell IDs or Forever equivalence inferred. |
 
-The seed has 29 records and seven evidence entries. It contains no petNumber,
+The seed has 45 records and ten evidence entries, including 19 families and
+the original three creatures. Family `iconFileID` is a positive native file ID,
+separate from family identity and creature display IDs. It contains no petNumber,
 character GUID, pet GUID, or stable slot. Stable `petAbilities` arrays are not
 used as spellbooks. Hunter learned ranks remain unknown. Synthetic shared looks,
 alternate skins, spawn points, and contradictory facts exist only in tests.
@@ -90,6 +92,11 @@ alternate skins, spawn points, and contradictory facts exist only in tests.
   is deliberately unused by seed facts: this pass did not establish stable
   ID/source mappings or confirm its gameplay claims in Forever. The earlier
   text-only fetch could not read the page; the rendered page is accessible.
+- [Petopia Forever](https://www.wow-petopia.com/forever/) and a new dated
+  [Beastmaster roster](https://beastmaster.io/forever) evidence entry supply
+  family-name references only. Their reviewed counts are 19 and 18; Core Hound
+  appears only in the former overview. All 19 native family IDs/icons come from
+  run 91 capture 1. See [family evidence and limits](FAMILY-INDEX.md).
 - [Petopia mainline](https://www.wow-petopia.com/index.php): retained as a future
   appearance research reference, not evidence of Forever tameability.
 
@@ -112,7 +119,7 @@ introduce rendering; the browser now has its own [live checks](PET-GUIDE.md).
 
 Issue #7 remains open for real shared-look/multiple-appearance seed coverage,
 identified acquisition sources, and more representative requirements/location
-data. Issues #3-#5 retain their documented research gaps. Issue #8 is partially
-implemented by the browser; its 3D and broader filtering work remains pending.
+data. Issues #3-#5 retain their documented research gaps. Issue #8 closed with
+PR #16; #17 tracks the family-index follow-up. 3D and broader filtering remain pending.
 Collection tracking and recommendations (#9-#11), and broad catalog expansion
 (#12) remain outside this milestone.

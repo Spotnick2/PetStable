@@ -39,7 +39,21 @@ local function Corroborate(data,key,field)
     return claim,evidence
 end
 Valid(seed)
-assert(#seed.records==29 and #seed.evidence==7)
+assert(#seed.records==45 and #seed.evidence==10)
+local kinds={}
+for _,record in ipairs(seed.records) do kinds[record.kind]=(kinds[record.kind] or 0)+1 end
+assert(kinds.family==19 and kinds.creature==3 and kinds.appearance==2)
+local referenceCounts={}
+for _,fact in ipairs(seed.facts) do
+    if fact.evidence=="petopia-forever-roster" or fact.evidence=="beastmaster-forever-roster" then
+        assert(fact.status=="reference" and fact.field=="name")
+        assert(C.GetRecord(seed,fact.subject).kind=="family","website roster cannot introduce creature facts")
+        referenceCounts[fact.evidence]=(referenceCounts[fact.evidence] or 0)+1
+        assert(fact.subject~="family-core-hound" or fact.evidence=="petopia-forever-roster")
+    end
+end
+assert(referenceCounts["petopia-forever-roster"]==19 and referenceCounts["beastmaster-forever-roster"]==18)
+assert(Value(seed,"family-core-hound","familyID")==312 and Value(seed,"family-fox","iconFileID")==458223)
 assert(Value(seed,"creature-3035","appearance")=="appearance-1059")
 assert(Value(seed,"creature-251115","appearance")=="appearance-136606")
 assert(Value(seed,"appearance-136606","modelFileID")==7581790)
@@ -79,6 +93,7 @@ Invalid(function(d) d.facts[1].subject="missing" end,"missing subject")
 Invalid(function(d) d.facts[1].field="petNumber" end,"unknown field")
 Invalid(function(d) Claim(d,"creature-251707","family","missing") end,"invalid family")
 Invalid(function(d) Claim(d,"creature-251707","family","appearance-1059") end,"invalid family")
+Invalid(function(d) Claim(d,"family-cat","iconFileID",0) end,"invalid iconFileID")
 for _,id in ipairs({0,-1,1.5,math.huge,"251707"}) do
     Invalid(function(d) Claim(d,"creature-251707","creatureID",id) end,"invalid creatureID")
 end
