@@ -66,10 +66,24 @@ return function(ns)
     ns.SelectPage("guide")
     Click(guide.evidence)
     assert(guide.detail:GetText():find("https://github.com/",1,true))
+    local bar=guide.scrollbar
+    local minimum,maximum=bar:GetMinMaxValues()
+    assert(minimum==0 and maximum==guide.scroll:GetVerticalScrollRange() and maximum>0)
+    assert(bar:IsEnabled() and bar:GetThumbTexture():IsShown())
+    guide.search:SetFocus()
+    bar:SetValue(maximum/2) -- native Slider dragging reports value changes
+    assert(guide.scroll:GetVerticalScroll()==maximum/2 and not guide.HasFocus())
+    bar:SetValue(maximum+100)
+    assert(guide.scroll:GetVerticalScroll()==maximum,"thumb must stop at the end of the evidence")
+    Click(guide.scrollUp)
+    assert(bar:GetValue()==guide.scroll:GetVerticalScroll() and bar:GetValue()<maximum)
+    Click(guide.scrollDown)
+    assert(bar:GetValue()==maximum)
+    bar:SetValue(0)
     guide.scroll:GetScript("OnMouseWheel")(guide.scroll,-10)
-    assert(guide.scroll:GetVerticalScroll()>0)
+    assert(guide.scroll:GetVerticalScroll()>0 and bar:GetValue()==guide.scroll:GetVerticalScroll())
     Choose("creature-251707")
-    assert(guide.scroll:GetVerticalScroll()==0 and not guide.showEvidence)
+    assert(guide.scroll:GetVerticalScroll()==0 and bar:GetValue()==0 and not guide.showEvidence)
 
     local original=guide.entries
     guide.entries={}
@@ -79,6 +93,8 @@ return function(ns)
     end
     local widgets=#WoW.widgets
     guide.selected=nil; guide.Refresh(true)
+    assert(not bar:IsEnabled() and not bar:GetThumbTexture():IsShown(),"short details have no draggable thumb")
+    assert(bar:GetValue()==0 and select(2,bar:GetMinMaxValues())==0,"short content must clear the old range")
     Click(guide.next)
     assert(guide.rows[1].entry.key=="fixture-5" and guide.offset==4)
     guide.rows[1]:GetScript("OnMouseWheel")(guide.rows[1],-1)

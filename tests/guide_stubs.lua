@@ -42,9 +42,38 @@ rawset(_G,"CreateFrame",function(kind,name,parent,template)
             setText(self,value)
             local fn=self:GetScript("OnTextChanged"); if fn then fn(self,false) end
         end
+    elseif kind=="Slider" then
+        frame.SetValue=function(self,value)
+            value=math.max(self.minimum or 0,math.min(self.maximum or 0,value))
+            if value==self.value then return end
+            self.value=value
+            local fn=self:GetScript("OnValueChanged"); if fn then fn(self,value) end
+        end
+        frame.GetValue=function(self) return self.value or 0 end
+        frame.SetMinMaxValues=function(self,minimum,maximum)
+            self.minimum=minimum; self.maximum=maximum; self:SetValue(self:GetValue())
+        end
+        frame.GetMinMaxValues=function(self) return self.minimum,self.maximum end
+        frame.SetEnabled=function(self,value) self.enabled=value end
+        frame.IsEnabled=function(self) return self.enabled end
+        frame.SetThumbTexture=function(self,file)
+            self.thumb=self:CreateTexture(nil,"OVERLAY"); self.thumb:SetTexture(file)
+        end
+        frame.GetThumbTexture=function(self) return self.thumb end
     elseif kind=="ScrollFrame" then
-        frame.SetScrollChild=function(self,child) self.child=child end
-        frame.SetVerticalScroll=function(self,value) self.scrollOffset=value end
+        frame.SetScrollChild=function(self,child)
+            self.child=child
+            local setHeight=child.SetHeight
+            child.SetHeight=function(c,height)
+                setHeight(c,height)
+                local fn=self:GetScript("OnScrollRangeChanged"); if fn then fn(self,0,self:GetVerticalScrollRange()) end
+            end
+        end
+        frame.SetVerticalScroll=function(self,value)
+            if value==self.scrollOffset then return end
+            self.scrollOffset=value
+            local fn=self:GetScript("OnVerticalScroll"); if fn then fn(self,value) end
+        end
         frame.GetVerticalScroll=function(self) return self.scrollOffset or 0 end
         frame.GetVerticalScrollRange=function(self) return math.max(0,self.child:GetHeight()-self:GetHeight()) end
     end

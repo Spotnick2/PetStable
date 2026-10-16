@@ -56,18 +56,47 @@ function NS.CreateGuide(parent, window, Text)
     detail:SetWordWrap(true); detail:SetNonSpaceWrap(true); detail:SetJustifyV("TOP"); detail:SetSpacing(2)
     scroll:SetScrollChild(child)
     panel.detail=detail; panel.scroll=scroll
+    local bar=CreateFrame("Slider",nil,panel,"BackdropTemplate")
+    bar:SetPoint("TOPLEFT",580,-104); bar:SetSize(20,156)
+    bar:SetOrientation("VERTICAL"); bar:SetMinMaxValues(0,0); bar:SetValueStep(1); bar:SetObeyStepOnDrag(false)
+    bar:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
+    bar:SetBackdropColor(0.03,0.045,0.055,1); bar:SetBackdropBorderColor(0.3,0.39,0.34,1)
+    bar:SetThumbTexture("Interface\\Buttons\\WHITE8X8")
+    local thumb=bar:GetThumbTexture(); thumb:SetVertexColor(0.6,0.75,0.55,1)
+    panel.scrollbar=bar
+    local syncing=false
+    local function SyncScrollbar()
+        if syncing then return end
+        syncing=true
+        local range=math.max(0,scroll:GetVerticalScrollRange())
+        local value=math.max(0,math.min(range,scroll:GetVerticalScroll()))
+        bar:SetMinMaxValues(0,range); bar:SetValue(value); bar:SetEnabled(range>0)
+        thumb:SetSize(16,math.max(20,bar:GetHeight()*scroll:GetHeight()/(scroll:GetHeight()+range)))
+        thumb:SetShown(range>0)
+        if scroll:GetVerticalScroll()~=value then scroll:SetVerticalScroll(value) end
+        syncing=false
+    end
+    bar:SetScript("OnValueChanged",function(_,value)
+        if syncing then return end
+        panel.ClearFocus()
+        scroll:SetVerticalScroll(math.max(0,math.min(scroll:GetVerticalScrollRange(),value)))
+    end)
+    scroll:SetScript("OnVerticalScroll",SyncScrollbar)
+    scroll:SetScript("OnScrollRangeChanged",SyncScrollbar)
     local function ScrollDetails(delta)
         panel.ClearFocus()
         scroll:SetVerticalScroll(math.max(0,math.min(scroll:GetVerticalScrollRange(),scroll:GetVerticalScroll()+delta)))
     end
     scroll:SetScript("OnMouseWheel",function(_,delta) ScrollDetails(-delta*36) end)
-    Button(panel,"^",580,74,20,function() ScrollDetails(-72) end)
-    Button(panel,"v",580,264,20,function() ScrollDetails(72) end)
+    bar:EnableMouseWheel(true); bar:SetScript("OnMouseWheel",function(_,delta) ScrollDetails(-delta*36) end)
+    panel.scrollUp=Button(panel,"^",580,74,20,function() ScrollDetails(-72) end)
+    panel.scrollDown=Button(panel,"v",580,264,20,function() ScrollDetails(72) end)
     local function Details()
         local entry=panel.selected
         detail:SetText(Plain(entry and (panel.showEvidence and entry.evidence or entry.details) or "Select a creature to see its recorded details."))
         child:SetHeight(math.max(216,detail:GetStringHeight()+4))
         scroll:SetVerticalScroll(0)
+        SyncScrollbar()
         panel.evidence.label:SetText(panel.showEvidence and "Show details" or "Show evidence")
         detailLabel:SetText(panel.showEvidence and "Evidence" or "Details")
     end

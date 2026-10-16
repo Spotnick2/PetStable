@@ -25,7 +25,8 @@ My Pets, the window style, and the SavedVariables schema retain their scope.
   false tameability value would display No, distinct from Unknown.
 - Show evidence switches the same scrollable pane to fact sources, status,
   game/build/locale, review date, capture locator and URL. References are shown
-  as text, with no network requests. Scroll with the wheel or the up/down buttons.
+  as text, with no network requests. Scroll with the wheel, up/down buttons,
+  or draggable scrollbar thumb.
 - Search, family, selection and the evidence toggle are session-only. Enter
   clears search focus; Escape closes the entire window. Page switches, clicks
   on browser controls, and closing the window release search focus.
@@ -53,7 +54,7 @@ negative claims or eligibility advice.
 The seed's Cat/Bear appearance checks were measured on 1.60.1.70425. The local
 `../References/forever-api-1.60.1.70425.md` declares
 `SetPortraitTextureFromCreatureDisplayID(textureObject, creatureDisplayID)` and
-the EditBox, ScrollFrame, and FontString methods used here. This establishes the
+the EditBox, ScrollFrame, Slider, and FontString methods used here. This establishes the
 API surface; it does not independently validate the new UI's live behavior.
 Source evidence remains in [the catalog guide](CATALOG.md), including Beastmaster
 Forever as a preliminary research reference. No new website claims are imported.
@@ -76,7 +77,14 @@ and guide tests, addon/probe regressions, and a temporary deployment that verifi
 exact runtime file copies and loads the guide modules in deployed TOC order.
 CI runs guide tests unconditionally, alongside the existing optional-host policy.
 
-Live browser validation is **pending**. Before marking the browser ready:
+Live browser validation is **in progress**. Owner screenshots show the Cat and
+Bear filtered views, rendered portraits, and the evidence pane. The owner
+confirmed that the evidence mouse wheel and arrow buttons work. A draggable
+scrollbar thumb has now been added between those arrows; its live validation is
+still pending. The thumb follows wheel/arrow scrolling, resets with the selected
+entry or view, and hides when the text fits without scrolling.
+
+Before marking the browser ready:
 
 1. Deploy the player addon, disable the probes, reload, and open Pet Guide.
    Record the client build and locale. Confirm exactly three entries, correct Cat
@@ -85,6 +93,8 @@ Live browser validation is **pending**. Before marking the browser ready:
    then Clear. Confirm the right result/selection and no stale portraits or details.
 3. Check Galestrider's level is labeled observed and its area is observer context,
    not a spawn. Open Show evidence and scroll to the source/build information.
+   Drag the scrollbar thumb to both ends, then use the wheel/arrows and confirm
+   the thumb follows. Switch entries/views and check the scroll position resets.
 4. Type movement-key letters in search and confirm no movement/bindings fire.
    Check Enter releases focus, Escape closes without opening the game menu,
    reopening works, and page switches/close button release focus.
