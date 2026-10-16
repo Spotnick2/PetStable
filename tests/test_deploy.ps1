@@ -39,12 +39,32 @@ exit 0
     & pwsh -NoProfile -File (Join-Path $repoRoot 'Tools\deploy-addon.ps1') -AddOnsPath $addons -Lua $Lua
     if ($LASTEXITCODE -ne 0) { throw 'Player addon deployment failed.' }
     $player = Join-Path $addons 'PetStable'
-    foreach ($name in @('Core.lua','UI.lua','PetStable.toc','Libs\LibGlass-1.0\LibGlass.lua','Libs\LibGlass-1.0\Media\rim_thin.tga')) {
+    foreach ($name in @('Core.lua','Catalog.lua','CatalogData.lua','UI.lua','PetStable.toc','Libs\LibGlass-1.0\LibGlass.lua','Libs\LibGlass-1.0\Media\rim_thin.tga')) {
         if ((Get-FileHash -LiteralPath (Join-Path $repoRoot $name)).Hash -ne (Get-FileHash -LiteralPath (Join-Path $player $name)).Hash) {
             throw "Player deployment differs: $name"
         }
     }
-    if (Test-Path -LiteralPath (Join-Path $player 'Tools')) { throw 'Player addon must not include probes.' }
+    foreach ($excluded in @('Tools','tests','docs','PetStableProbe.lua','ForeverProbe.lua')) {
+        if (Test-Path -LiteralPath (Join-Path $player $excluded)) { throw "Player addon must not include $excluded." }
+    }
+    # Load the deployed catalog using the actual TOC order, without any game/probe APIs.
+    $catalogCheck = Join-Path $testRoot 'catalog.lua'
+    Set-Content -LiteralPath $catalogCheck -Value @'
+local root=arg[1]:gsub('\\','/')
+local ns={}
+local count=0
+for line in io.lines(root..'/PetStable.toc') do
+    if line:match('^Catalog.*%.lua$') then
+        assert(loadfile(root..'/'..line))('PetStable',ns)
+        count=count+1
+    end
+end
+assert(count==2 and ns.Catalog and ns.CatalogData)
+local errors,conflicts=ns.Catalog.Validate(ns.CatalogData)
+assert(#errors==0 and #conflicts==0)
+'@
+    & $Lua $catalogCheck $player
+    if ($LASTEXITCODE -ne 0) { throw 'Deployed catalog failed to load and validate.' }
     Write-Host 'PASS: player addon deployment includes embedded media and excludes probes'
 } finally {
     $env:FOREVERPROBE = $previousHost
