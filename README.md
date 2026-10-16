@@ -56,8 +56,8 @@ are excluded from player packaging.
 
 Local tests cover initialization, missing-library fallback, non-hunter navigation
 without pet APIs, settings restoration, invalid settings, screen fitting, isolated
-glass styling, and deployed Lua/media files. Initial live feedback is recorded
-below; the Escape fix needs an in-game retest.
+glass styling, and deployed Lua/media files. Live feedback and the successful
+Escape retest are recorded below.
 
 In game, open `/petstable` and visit all three pages. Check readable text over
 bright scenery, drag the title bar, change scale, and close with both Escape and
@@ -70,7 +70,7 @@ Live validation feedback on 2026-10-16 reported that Escape opened the game menu
 instead of closing PetStable; the other checks performed seemed fine. The window
 now handles Escape directly and consumes that key while passing other keys
 through. Local regression checks cover closing and reopening with and without
-LibGlass; the deployed fix still needs an in-game Escape retest.
+LibGlass. The owner confirmed the deployed Escape fix works on 2026-10-16.
 
 The reflective shell follows the shared
 [window styling recipe](../References/LIBGLASS-WINDOW-STYLING.md): smoked outer
