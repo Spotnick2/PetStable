@@ -325,7 +325,7 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         local level,zone=root.levels[state.level],root.zones[state.zone]
         root.level.label:SetText(Plain(level.label.." ›")); root.zone.label:SetText(Plain(zone.label.." ›"))
         root.results=G.FilterAppearances(root.groups,state.query,level.value,zone.value)
-        root.nameHeight,root.levelHeight,root.zoneHeight=32,16,18
+        root.nameHeight,root.levelHeight,root.zoneHeight=16,16,18
         measure:SetWidth(root.cardWidth-30)
         for _,result in ipairs(root.results) do
             local levelText,zoneText=G.AppearanceSummary(result.matches)

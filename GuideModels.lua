@@ -9,6 +9,9 @@ local function Number(v) return type(v)=="number" and v==v and math.abs(v)<math.
 -- Same custom ModelScene actor path measured by PetStableProbe Models.lua.
 -- Exact displays preserve skins; no SetCreature/SetUnit or model-file fallback.
 function NS.CreateAppearancePreview(parent,Text,interactive)
+    -- Still gallery poses can fill more of their small viewport; keep the
+    -- accepted detail framing and its extra rotation margin unchanged.
+    local fill=interactive and 0.72 or 0.85
     local preview=CreateFrame("Frame",nil,parent)
     preview.OnReady=false
     local fallback=Text(preview,13,{0.65,0.72,0.7,1})
@@ -63,7 +66,7 @@ function NS.CreateAppearancePreview(parent,Text,interactive)
             boundsWidth,boundsHeight=w,h
         end
         local view=2*DIST*math.tan(FOV/2)
-        baseScale=0.72*view/math.max(boundsWidth,boundsHeight)
+        baseScale=fill*view/math.max(boundsWidth,boundsHeight)
         return Call(actor,"SetScale",baseScale*preview.zoom)
     end
     local function Update(self,delta)

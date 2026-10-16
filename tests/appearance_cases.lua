@@ -13,11 +13,15 @@ return function(ns)
     assert(card.preview.scene:GetWidth()==card.preview:GetHeight() and card.preview.scene:GetHeight()==card.preview:GetHeight(),
         "wide gallery cards must use a centered square camera viewport")
     assert(card.preview.actor.animation[3]==0 and not card.preview:GetScript("OnUpdate"),"gallery model must settle without a continuing update")
+    local galleryScale=card.preview.actor.scale
     Click(card)
     assert(guide.view=="appearance" and #ui.detailEntries==1 and not ui.sourceText:IsShown())
     Tick(ui.preview)
     assert(ui.preview.ready and ui.modelButtons[1]:IsShown())
     local originalScale=ui.preview.actor.scale
+    assert(galleryScale>originalScale,"gallery should fill more of its viewport than the rotatable detail model")
+    assert(math.abs(originalScale-0.72*20*math.tan(0.3)/math.sqrt(20))<0.000001,
+        "gallery enlargement must preserve the accepted detail framing")
     Click(ui.modelButtons[4]); assert(ui.preview.actor.scale>originalScale)
     Click(ui.modelButtons[1]); assert(ui.preview.actor.yaw<0.5)
     Click(ui.modelButtons[3]); assert(ui.preview.actor.yaw==0.5 and ui.preview.zoom==1)

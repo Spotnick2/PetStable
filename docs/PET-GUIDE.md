@@ -91,7 +91,10 @@ The camera uses a centered square viewport inside the available preview area,
 matching the measured probe's near-square projection rather than stretching it
 across a shallow gallery card. Usable unit-scale bounds are cached and fit with
 margin against height and horizontal diagonal. Resize and Reset reuse those
-measurements. Gallery poses are still; callbacks stop after fitting.
+measurements. Still gallery previews use an 85% fit, while the detail viewer
+retains its 72% fit for rotation. Card labels grow when needed instead of
+reserving a second line for every name, leaving more height for previews.
+Gallery poses are still; callbacks stop after fitting.
 Detail previews support drag/button rotation, wheel/button zoom and reset.
 Controls appear after successful fitting. Hiding a view cancels fitting/dragging
 and clears actors. Missing/rejected models and bounds timeouts show a verified
