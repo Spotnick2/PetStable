@@ -36,8 +36,8 @@ pwsh Tools/embed-libglass.ps1
 pwsh Tools/deploy-addon.ps1
 ```
 
-Then `/reload` and `/petstable`. The embed script reads pinned LibGlass r8
-(`7b1b1e6c08f040d3fa495aa5f4308f160d5495d9`) from `../LibGlass` without modifying
+Then `/reload` and `/petstable`. The embed script reads pinned LibGlass r9
+(`fcfd472b30756a51b265969e71deb36cd3524802`) from `../LibGlass` without modifying
 that checkout, and uses the release's own deployment script to copy its runtime
 files, license, and media. Override the source with `-LibGlass <path>`.
 `.pkgmeta` pins the same release for packaging. The embedded copy is gitignored.
@@ -94,7 +94,8 @@ The reflective shell follows the shared
 tint/backing, sliced directional silver rim, fine top highlight, and a masked
 header reflection fading within 70 UI units. A single masked reading region
 starts at y=82 and protects navigation, page content, help, and footer without
-moving them. Green accents and text opacity are preserved.
+moving them. Green accents and text opacity are preserved. The shell uses r9's
+`Reflect` and `SetSurfaceAlpha` APIs with the same material settings.
 
 For live comparison at the same position and scale:
 

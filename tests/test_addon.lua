@@ -63,7 +63,7 @@ saved.scale=0/0; saved.position={point="bad"}; saved.page="invalid"
 fresh.Initialize()
 assert(saved.scale==1 and saved.position.point=="CENTER" and saved.page=="guide")
 
--- Real r8 library, including LibStub, loaded with the consumer addon name.
+-- Real r9 library, including LibStub, loaded with the consumer addon name.
 local embedded=os.getenv("PETSTABLE_LIBGLASS") or "Libs/LibGlass-1.0"
 local f=assert(io.open(embedded.."/LibGlass-1.0.xml","rb"))
 local xml=f:read("*a"):gsub("<!%-%-.-%-%->",""); f:close()
@@ -71,8 +71,18 @@ for path in xml:gmatch('<Script%s+file="([^"]+)"') do
     assert(loadfile(embedded.."/"..path:gsub("\\","/")))("PetStable",{})
 end
 local lib=LibStub("LibGlass-1.0")
+assert(lib.ready==9, "tests must load the pinned r9 release")
 local other=lib:New({bodyAlpha=0.3})
+local shell, reflectionCount
+local reflect=lib.impl.Reflect
+lib.impl.Reflect=function(inst, surface, host, opts)
+    shell=surface; reflectionCount=(reflectionCount or 0)+1
+    assert(host==fresh.frame and opts.header==70, "reflection must stay within the window header")
+    return reflect(inst, surface, host, opts)
+end
 fresh.Toggle()
+lib.impl.Reflect=reflect
+assert(reflectionCount==1 and shell.reflect, "window must use one library-owned reflective shell")
 checkEscape(fresh.frame,fresh.Toggle)
 dofile("tests/guide_cases.lua")(fresh)
 assert(fresh.Glass and fresh.Glass~=other)
@@ -87,7 +97,18 @@ for _,key in ipairs({"guide","upgrades","pets"}) do fresh.SelectPage(key) end
 local widgetCount, selected, position = #WoW.widgets, fresh.db.page, fresh.db.position
 local window = fresh.frame
 assert(fresh.SetMaterial("flat"))
+for _,layer in pairs(shell.reflect) do assert(not layer:IsShown(), "flat mode must hide reflections") end
 assert(fresh.SetMaterial("reflective"))
+for _,layer in pairs(shell.reflect) do assert(layer:IsShown(), "reflective mode must restore reflections") end
+fresh.Glass.SetSurfaceEnabled(shell,false)
+fresh.SetMaterial("reflective")
+assert(shell.dark:GetAlpha()<0.55, "material repaint must preserve disabled dimming")
+fresh.Glass.SetSurfaceEnabled(shell,true)
+assert(shell.rim:GetAlpha()==0.12 and shell.dark:GetAlpha()==0.55
+    and shell.shadow:GetAlpha()==0.18 and shell.grain:GetAlpha()==0,
+    "enabling must restore PetStable's per-surface alpha settings")
+fresh.Glass.SetRimAlpha(0.9)
+assert(shell.rim:GetAlpha()==0.12, "instance rim changes must preserve the shell's own alpha")
 assert(not fresh.SetMaterial("invalid"))
 assert(#WoW.widgets==widgetCount and fresh.frame==window, "comparison must repaint existing layers")
 assert(fresh.db.page==selected and fresh.db.position==position, "comparison must preserve navigation and placement")
