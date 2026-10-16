@@ -59,7 +59,12 @@ return function(ns)
     local savedScroll=ui.gallery:GetVerticalScroll()
     for _,c in ipairs(ui.cards) do if not c:IsShown() then assert(not c.preview.actor.display) end end
     assert(#WoW.widgets==widgets,"scrolling must reuse model cards")
-    Click(ui.cards[1]); Click(ui.backGallery)
+    Click(ui.cards[1])
+    if ns.history then
+        assert(ns.history.Move(-1) and ui.gallery:GetVerticalScroll()==savedScroll)
+        assert(ns.history.Move(1) and guide.view=="appearance")
+    end
+    Click(ui.backGallery)
     assert(ui.gallery:GetVerticalScroll()==savedScroll)
     ui.search:SetText("Creature 1"); assert(ui.gallery:GetVerticalScroll()==0)
     local shared

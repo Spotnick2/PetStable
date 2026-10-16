@@ -96,13 +96,17 @@ function NS.StyleButton(b,tab)
         local shade=b.pressed and -0.025 or 0
         if g then
             glass.SetSurfaceTint(g,0.075+accent*0.04+shade,0.09+accent*0.065+shade,0.09+accent*0.025+shade,0.96)
-            glass.SetSurfaceRim(g,0.48+accent*0.25,0.55+accent*0.3,0.54+accent*0.12,(0.22+accent*0.42)*dim)
-            glass.SetWash(g,0.025+amount*0.035)
+            glass.SetSurfaceRim(g,0.48+accent*0.25,0.55+accent*0.3,0.54+accent*0.12,((b.familyCard and 0.17 or 0.22)+accent*0.42)*dim)
+            glass.SetWash(g,(b.familyCard and 0.055 or 0.025)+amount*0.035)
+            if b.familyCard then glass.SetEdge(g,0.09+amount*0.02,0,0.012) end
         elseif not tab then
             b:SetBackdropColor((0.075+accent*0.04+shade)*dim,(0.09+accent*0.065+shade)*dim,(0.09+accent*0.025+shade)*dim,0.96)
             b:SetBackdropBorderColor(0.28+accent*0.3,0.33+accent*0.43,0.32+accent*0.23,dim)
         end
-        if b.label then b.label:SetTextColor((0.84+accent*0.08)*dim,(0.88+accent*0.08)*dim,(0.86-accent*0.08)*dim,1) end
+        if b.label then
+            local bright=b.familyCard and 0.06 or 0
+            b.label:SetTextColor((0.84+bright+accent*0.08)*dim,(0.88+bright+accent*0.06)*dim,(0.86+bright-accent*0.08)*dim,1)
+        end
         if b.arrow then b.arrow:SetShown(not b.disabled and b.hoverTarget==1) end
     end
     function b.ResetHover()
@@ -122,6 +126,7 @@ function NS.StyleButton(b,tab)
     b:SetScript("OnMouseUp",function(self) self.pressed=false; self.Paint() end)
     b:SetScript("OnHide",b.ResetHover)
     controls[#controls+1]=b; b.Paint()
+    if NS.history then NS.BindHistoryMouse(b) end
 end
 
 local function Contents()
@@ -167,6 +172,68 @@ function NS.SelectPage(key)
     end
     local _, class = UnitClass("player")
     context:SetText(class == "HUNTER" and "PetStable • Forever" or "The pet guide is open to everyone. Ability advice and pet tracking are for hunters.")
+end
+
+-- Local input hooks only: never change the player's global mouse bindings.
+function NS.BindHistoryMouse(host)
+    if host.petStableHistoryHooked or not host:HasScript("OnMouseUp") then return end
+    host.petStableHistoryHooked=true
+    host:HookScript("OnMouseUp",function(_,button)
+        if not frame:IsShown() then return end
+        if button=="Button4" then NS.history.Move(-1)
+        elseif button=="Button5" then NS.history.Move(1) end
+    end)
+end
+
+local function CreateHistory()
+    local history={entries={},index=1}; NS.history=history
+    local busy=false
+    local function Capture() return {page=NS.db.page,guide=NS.guide.Capture()} end
+    local function Route(saved)
+        if saved.page~="guide" then return saved.page end
+        local g=saved.guide
+        local result=g.view=="appearance" and g.appearance.result
+        return table.concat({saved.page,g.view,g.familyKey or "",g.sourceFamily or "",result and result.group.key or ""},"/")
+    end
+    history.entries[1]=Capture()
+    function history.Move(delta)
+        local target=history.index+delta
+        if busy or target<1 or target>#history.entries then return false end
+        history.entries[history.index]=Capture()
+        history.index=target; local saved=history.entries[target]
+        busy=true
+        NS.SelectPage(saved.page)
+        if saved.page=="guide" then NS.guide.Restore(saved.guide) end
+        busy=false
+        return true
+    end
+    local function Wrap(host,key)
+        local original=host[key]
+        host[key]=function(...)
+            if busy then return original(...) end
+            local before=Capture(); busy=true
+            local ok,result=pcall(original,...)
+            busy=false
+            if not ok then error(result,0) end
+            local after=Capture()
+            if Route(before)~=Route(after) then
+                history.entries[history.index]=before
+                for i=#history.entries,history.index+1,-1 do history.entries[i]=nil end
+                history.entries[#history.entries+1]=after
+                if #history.entries>50 then table.remove(history.entries,1) end
+                history.index=#history.entries
+            else history.entries[history.index]=after end
+            return result
+        end
+    end
+    Wrap(NS,"SelectPage")
+    for _,name in ipairs({"ShowFamilies","OpenFamily","OpenSources"}) do Wrap(NS.guide,name) end
+    for _,name in ipairs({"OpenAppearance","Back"}) do Wrap(NS.guide.appearances,name) end
+    local function BindTree(host)
+        NS.BindHistoryMouse(host)
+        for _,child in ipairs({host:GetChildren()}) do BindTree(child) end
+    end
+    BindTree(frame)
 end
 
 local function Build()
@@ -290,7 +357,7 @@ local function Build()
         if button~="LeftButton" then return end
         NS.guide.ClearFocus(); settings:Hide(); resizing=true; frame:StartSizing("BOTTOMRIGHT")
     end)
-    grip:SetScript("OnMouseUp",StopDrag)
+    grip:SetScript("OnMouseUp",function(_,button) if button=="LeftButton" then StopDrag() end end)
     frame:SetScript("OnSizeChanged",Contents)
     frame:RegisterEvent("DISPLAY_SIZE_CHANGED")
     frame:RegisterEvent("UI_SCALE_CHANGED")
@@ -298,6 +365,7 @@ local function Build()
     NS.Layout()
     NS.SelectPage(NS.db.page)
     NS.buttons=buttons
+    CreateHistory()
     if glass then PaintMaterial() end
 end
 

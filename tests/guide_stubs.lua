@@ -13,6 +13,15 @@ rawset(_G,"CreateFrame",function(kind,name,parent,template)
     local setScale=frame.SetScale
     frame.SetScale=function(self,value) self.scaleValue=value; setScale(self,value) end
     frame.GetScale=function(self) return self.scaleValue or 1 end
+    frame.HasScript=function() return true end
+    frame.GetChildren=function(self)
+        local children={}; for _,child in ipairs(WoW.frames) do if child._parent==self then children[#children+1]=child end end
+        return unpack(children)
+    end
+    frame.HookScript=function(self,event,hook)
+        local original=self:GetScript(event)
+        self:SetScript(event,function(...) if original then original(...) end; hook(...) end)
+    end
     local makeText=frame.CreateFontString
     frame.CreateFontString=function(self,...)
         local text=makeText(self,...)

@@ -2,11 +2,19 @@
 
 Pet Guide opens to five columns and four rows of family cards at the default
 1040×700 window size, independently of creature coverage. Cards use 64-pixel
-native portraits, wrapped names and subtle hover fades; no empty twentieth card
+native portraits, larger 16.5-pixel native family labels and subtle hover fades;
+no empty twentieth card
 or repeated creature-count subtitle is drawn. Smaller windows use fewer columns
 and scrolling. The footer counts displayed families. The three existing creature
 records and all non-family facts remain unchanged. Sixteen families have no creature
 records; they remain selectable and say "No creatures recorded in PetStable yet."
+
+The repeated Browse pet families heading is removed and the grid sits closer to
+the search field. A small Sources information control keeps provenance accessible.
+Cards retain dark backing with a restrained upper highlight, vertical shading
+and neutral rim. The six-pixel subdued scroll thumb appears only on overflow;
+subpixel range noise does not display a full-height bar. Ability subtitles remain
+omitted because the catalog has no verified signature-ability relationships.
 
 Search families by singular/plural English labels, including Birds of Prey,
 Foxes, and Wolves. Selecting a card opens its appearance gallery, restoring

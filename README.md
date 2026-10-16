@@ -18,8 +18,15 @@ scale and reset controls; `/petstable scale 0.9` also adjusts scale (0.65–1.3)
 The window also fits the available screen size. Position, dimensions, preferred scale, and selected page
 are saved in account-wide `PetStableDB`. Non-hunters can open every page.
 
-Pet Guide opens to a searchable five-column family grid with larger portraits
-and hover feedback. The footer counts displayed families; cards do not imply
+With the pointer over PetStable, Mouse Button 4 goes back and Mouse Button 5
+goes forward through visited views and tabs. Visits retain their search,
+filters, selection and scroll. A new destination after going back replaces the
+forward branch. History is session-only, capped at 50 visits, and does not change
+global mouse bindings; closing/reopening preserves it, while reload clears it.
+
+Pet Guide opens to a searchable five-column family grid with larger portraits,
+independently enlarged family labels and subtle shading/hover feedback. The
+slim scrollbar appears only when needed. The footer counts displayed families; cards do not imply
 creature coverage or collection progress. A family opens its appearance gallery;
 an appearance opens its associated creatures and their individual details.
 Back restores the family search, level/location filters and gallery scroll.

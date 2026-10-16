@@ -248,6 +248,21 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
     function root.Back()
         root.Stop(); panel.view="appearances"; state.result=nil; panel.Refresh(false)
     end
+    -- Copy mutable view state; catalog/group records themselves are read-only.
+    function root.Capture()
+        local saved={}; for key,value in pairs(state) do saved[key]=value end
+        saved.bodyScroll=body:GetVerticalScroll()
+        return saved
+    end
+    function root.Restore(saved,view,key)
+        root.Stop(); state={}; for field,value in pairs(saved) do state[field]=value end
+        states[key]=state; panel.familyKey=key; panel.view=view
+        root.restoring=true; search:SetText(state.query); root.restoring=false
+        local offset=state.scroll
+        panel.Refresh(false)
+        if view=="appearances" then gallery:SetVerticalScroll(math.min(offset,gallery:GetVerticalScrollRange())) end
+        if view=="appearance" then body:SetVerticalScroll(math.min(saved.bodyScroll,body:GetVerticalScrollRange())) end
+    end
     function root.Open(key)
         root.Stop(); panel.familyKey=key; panel.view="appearances"
         state=states[key] or {query="",level=1,zone=1,scroll=0}; states[key]=state; state.result=nil

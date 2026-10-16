@@ -71,34 +71,37 @@ function NS.CreateGuide(parent, window, Text)
         panel.restoring=true; search:SetText(saved and saved.query or ""); panel.restoring=false; panel.Refresh(false)
         if saved then panel.scroll:SetVerticalScroll(math.min(saved.scroll,panel.scroll:GetVerticalScrollRange())) end
     end
-    panel.familiesTab=Button(panel,"Families",0,-40,110,panel.ShowFamilies)
+    panel.familiesTab=Button(panel,"Families",0,-40,110,function() panel.ShowFamilies() end)
     panel.allTab=Button(panel,"All Creatures",0,-40,130,function() panel.OpenFamily(nil) end)
     panel.navigation=Button(panel,"< Families",0,44,100,function()
         local key=panel.sourceFamily; panel.sourceFamily=nil
         if key then panel.OpenFamily(key) else panel.ShowFamilies() end
     end)
     local breadcrumb=Text(panel,13,{0.7,0.78,0.72,1}); breadcrumb:SetPoint("TOPLEFT",114,-51); panel.breadcrumb=breadcrumb
-    panel.sources=Button(panel,"Family sources",0,0,140,function()
+    function panel.OpenSources()
         SaveView()
         panel.ClearFocus(); panel.ResetHover(); panel.view="sources"; panel.Refresh(true)
-    end)
+    end
+    panel.sources=Button(panel,"i  Sources",0,0,92,function() panel.OpenSources() end)
     local footer=Text(panel,12,{0.72,0.82,0.66,1}); footer:SetPoint("BOTTOMLEFT",0,0); panel.footer=footer
     local gallery=CreateFrame("ScrollFrame",nil,index); gallery:SetPoint("TOPLEFT",0,-80); gallery:SetSize(968,392); gallery:EnableMouseWheel(true)
     local galleryChild=CreateFrame("Frame",nil,gallery); galleryChild:SetSize(968,392); gallery:SetScrollChild(galleryChild)
     panel.gallery=gallery
     local galleryBar=CreateFrame("Slider",nil,index,"BackdropTemplate"); panel.galleryBar=galleryBar
     galleryBar:SetOrientation("VERTICAL"); galleryBar:SetMinMaxValues(0,0); galleryBar:SetValueStep(1); galleryBar:SetObeyStepOnDrag(false)
-    galleryBar:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8"}); galleryBar:SetBackdropColor(0.06,0.09,0.075,1)
+    galleryBar:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8"}); galleryBar:SetBackdropColor(0.06,0.08,0.07,0.45)
     galleryBar:SetThumbTexture("Interface\\Buttons\\WHITE8X8"); local galleryThumb=galleryBar:GetThumbTexture()
-    galleryThumb:SetVertexColor(0.55,0.7,0.52,1)
+    galleryThumb:SetVertexColor(0.38,0.46,0.4,0.75)
     local gallerySyncing=false
     local function SyncGallery()
         if gallerySyncing then return end
         gallerySyncing=true
         local range=math.max(0,gallery:GetVerticalScrollRange())
+        if range<1 then range=0 end -- Ignore subpixel layout noise when every card fits.
         local value=math.max(0,math.min(range,gallery:GetVerticalScroll()))
         galleryBar:SetMinMaxValues(0,range); galleryBar:SetValue(value); galleryBar:SetShown(range>0)
-        galleryThumb:SetSize(12,math.max(24,galleryBar:GetHeight()*gallery:GetHeight()/(gallery:GetHeight()+range)))
+        galleryThumb:SetSize(6,math.max(24,galleryBar:GetHeight()*gallery:GetHeight()/(gallery:GetHeight()+range)))
+        galleryThumb:SetShown(range>0)
         if gallery:GetVerticalScroll()~=value then gallery:SetVerticalScroll(value) end
         gallerySyncing=false
     end
@@ -116,7 +119,15 @@ function NS.CreateGuide(parent, window, Text)
     for i=1,#panel.families do
         local card=Button(galleryChild,"",0,0,186,function(self)
             if self.family then panel.OpenFamily(self.family.key) end
-        end,14)
+        end,16.5)
+        card.familyCard=true; card.Paint()
+        card.label:SetFont("Fonts\\FRIZQT__.TTF",16.5,"")
+        if not NS.Glass then
+            local shade=card:CreateTexture(nil,"BACKGROUND")
+            shade:SetPoint("TOPLEFT",1,-1); shade:SetPoint("BOTTOMRIGHT",-1,1)
+            shade:SetColorTexture(1,1,1,1)
+            shade:SetGradient("VERTICAL",CreateColor(1,1,1,0),CreateColor(1,1,1,0.055))
+        end
         card:SetHeight(84); card.label:ClearAllPoints(); card.label:SetPoint("LEFT",82,0)
         card.label:SetSize(92,68); card.label:SetJustifyH("LEFT"); card.label:SetJustifyV("MIDDLE"); card.label:SetWordWrap(true)
         card.icon=card:CreateTexture(nil,"ARTWORK"); card.icon:SetPoint("LEFT",8,0); card.icon:SetSize(64,64)
@@ -254,8 +265,8 @@ function NS.CreateGuide(parent, window, Text)
     end
     local function LayoutGallery()
         local width,height=panel:GetWidth(),panel:GetHeight()
-        Place(gallery,0,80,width-24,height-110)
-        Place(galleryBar,width-14,80,14,height-110)
+        Place(gallery,0,50,width-24,height-80)
+        Place(galleryBar,width-14,50,14,height-80)
         local columns=math.max(1,math.min(5,math.floor((gallery:GetWidth()+10)/186)))
         local cardWidth=(gallery:GetWidth()-(columns-1)*10)/columns
         panel.columns=columns
@@ -270,9 +281,9 @@ function NS.CreateGuide(parent, window, Text)
     end
     function panel.Layout(width,height)
         panel.ResetHover(); panel:SetSize(width,height)
-        Place(search,0,0,width-156,34); placeholder:SetWidth(width-210)
+        Place(search,0,0,width-108,34); placeholder:SetWidth(width-162)
         panel.clear:ClearAllPoints(); panel.clear:SetPoint("RIGHT",search,"RIGHT",-4,0); panel.clear:SetSize(26,26)
-        Place(panel.sources,width-140,0,140,34)
+        Place(panel.sources,width-92,4,92,26)
         Place(panel.familiesTab,width-240,-40,110,28); Place(panel.allTab,width-130,-40,130,28)
         breadcrumb:SetWidth(width-260); indexEmpty:SetWidth(width-32)
         panel.listWidth=math.max(260,math.min(360,math.floor(width*0.34)))
@@ -306,6 +317,7 @@ function NS.CreateGuide(parent, window, Text)
         placeholder:SetText(onIndex and "Search families..." or "Search creature names or families...")
         placeholder:SetShown(search:GetText()=="")
         if onIndex then
+            breadcrumb:Hide()
             panel.familyQuery=search:GetText()
             panel.familyResults=NS.GuideData.Filter(panel.families,search:GetText())
             for i,card in ipairs(panel.cards) do
@@ -321,7 +333,7 @@ function NS.CreateGuide(parent, window, Text)
             end
             indexEmpty:SetText(panel.problem or (#panel.families==0 and "No families recorded." or "No matching families. Try another search."))
             indexEmpty:SetShown(#panel.familyResults==0)
-            Place(breadcrumb,0,51); breadcrumb:SetText("Browse pet families")
+            Place(indexEmpty,0,60)
             footer:SetText(#panel.familyResults..(#panel.familyResults==1 and " family" or " families"))
             LayoutGallery(); if resetOffset then gallery:SetVerticalScroll(0) end
             return
@@ -358,6 +370,25 @@ function NS.CreateGuide(parent, window, Text)
     search:SetScript("OnTextChanged",function() if not panel.restoring then panel.Refresh(true) end end)
     search:SetText("")
     panel.appearances=NS.CreateAppearanceBrowser(panel,window,Text)
+    function panel.Capture()
+        return {view=panel.view,familyKey=panel.familyKey,sourceFamily=panel.sourceFamily,
+            query=search:GetText(),familyQuery=panel.familyQuery,selected=panel.selected,
+            evidence=panel.showEvidence,offset=panel.offset,scroll=scroll:GetVerticalScroll(),
+            galleryScroll=gallery:GetVerticalScroll(),appearance=panel.appearances.Capture()}
+    end
+    function panel.Restore(saved)
+        panel.ClearFocus(); panel.ResetHover(); panel.appearances.Stop()
+        panel.familyQuery=saved.familyQuery; panel.sourceFamily=saved.sourceFamily
+        if saved.view=="appearances" or saved.view=="appearance" then
+            panel.appearances.Restore(saved.appearance,saved.view,saved.familyKey); return
+        end
+        panel.view=saved.view; panel.familyKey=saved.familyKey; panel.selected=saved.selected
+        panel.showEvidence=saved.evidence; panel.offset=saved.offset
+        panel.restoring=true; search:SetText(saved.query); panel.restoring=false
+        panel.Refresh(false)
+        scroll:SetVerticalScroll(math.min(saved.scroll,scroll:GetVerticalScrollRange()))
+        gallery:SetVerticalScroll(math.min(saved.galleryScroll,gallery:GetVerticalScrollRange()))
+    end
     panel:SetScript("OnHide",function() panel.ClearFocus(); panel.ResetHover(); panel.appearances.Stop() end)
     panel.Layout(992,502)
     panel.Refresh(true)

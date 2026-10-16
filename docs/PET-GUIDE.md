@@ -20,6 +20,16 @@ scroll. Family information is secondary, and Family sources remains accessible.
 All Creatures preserves the original searchable list, portraits and evidence pane.
 That view also retains its selection, query, evidence mode and scroll in-session.
 
+Mouse Button 4/5 provides Back/Forward while the pointer is over PetStable,
+including child cards, search fields, scrollbars and the model viewer. History
+includes view and top-level tab changes; inline filtering/disclosure edits are
+saved with the visit rather than creating a visit per click/keystroke. Returning
+restores that visit's selection, evidence/disclosure state and scroll as well as
+its filters. New destinations discard the forward branch. Repeated visits to the
+same destination and window reopening do not add duplicates. History is bounded
+to 50 session visits and does not replace global mouse bindings. Native mouse
+delivery over each control still needs a client smoke check.
+
 Search uses literal, trimmed, case-insensitive substrings: family singular/plural
 names on the index; appearance labels and creature names in a family; creature
 and family names under All Creatures. It does not advertise abilities or zones.
@@ -103,6 +113,8 @@ rotation/zoom/reset, detail selection, matching/all disclosure, focus, source UR
 selection, navigation state and minimum-size layout. Existing browser and shell
 coverage remains in `guide_cases.lua` and `test_addon.lua`. Synthetic fixtures
 are test-only. Widget mocks and approximate text heights are not visual testing.
+`tests/history_cases.lua` covers Back/Forward across controls and tabs, visit
+state, branch truncation, boundary no-ops, reopening, and history limits.
 
 The owner accepted the original browser in PR #16 and confirmed its evidence
 wheel, arrows and draggable thumb. That does not validate the new screens.
@@ -127,6 +139,12 @@ Live smoke checklist (pending):
    using Escape/the close button. Check long labels, bottom rows and both thumbs
    at default and minimum size/scale. Reload preserves window settings/page but
    resets browser state. A full exit/relaunch checks disk persistence separately.
+7. Visit Families → a family → an appearance. Press Mouse Button 4 twice and
+   Button 5 twice over cards, the search field, a scrollbar and the model. Check
+   restored search/filter/detail/scroll state and exactly one step per click.
+   Go back, choose a different family, and confirm the old forward route is gone.
+   Check ordinary selection, model dragging, grip resizing and mouse bindings
+   outside PetStable remain unaffected.
 
 No creature expansion, website imports, invented appearance names, ability
 recommendations, collection tracking or gameplay actions accompany this change.
