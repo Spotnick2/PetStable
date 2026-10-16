@@ -27,8 +27,7 @@ saved with the visit rather than creating a visit per click/keystroke. Returning
 restores that visit's selection, evidence/disclosure state and scroll as well as
 its filters. New destinations discard the forward branch. Repeated visits to the
 same destination and window reopening do not add duplicates. History is bounded
-to 50 session visits and does not replace global mouse bindings. Native mouse
-delivery over each control still needs a client smoke check.
+to 50 session visits and does not replace global mouse bindings.
 
 Search uses literal, trimmed, case-insensitive substrings: family singular/plural
 names on the index; appearance labels and creature names in a family; creature
@@ -102,9 +101,10 @@ and clears actors. Missing/rejected models and bounds timeouts show a verified
 portrait where available, otherwise an explicit unavailable-preview message.
 
 API success and offline fitting calculations do not establish correct texture,
-animation extents or whole-body framing in game. Existing Cat/Bear probe results
-support the mechanism; the new gallery/detail composition still needs live
-verification. Other shapes and skins require their own visual evidence.
+animation extents or whole-body framing in game. The owner verified the current
+UI in game on build 1.60.1.70450; Cat/Bear screenshots show the final gallery fit,
+and the owner accepted the detail framing. Taller and winged shapes and other
+skins still require their own visual evidence.
 
 ## Validation
 
@@ -123,10 +123,29 @@ are test-only. Widget mocks and approximate text heights are not visual testing.
 `tests/history_cases.lua` covers Back/Forward across controls and tabs, visit
 state, branch truncation, boundary no-ops, reopening, and history limits.
 
-The owner accepted the original browser in PR #16 and confirmed its evidence
-wheel, arrows and draggable thumb. That does not validate the new screens.
+### Owner verification: 2026-10-16, build 1.60.1.70450
 
-Live smoke checklist (pending):
+The owner explicitly confirmed in-game verification of the current UI on this
+build after the interaction and preview fixes. Supplied screenshots cover Cat
+and Bear appearance galleries and the Cat detail viewer; the owner accepted the
+detail size and confirmed the gallery size, with taller pets deferred. Earlier
+feedback confirmed wheel/arrow/thumb scrolling, and the original browser was
+accepted in PR #16.
+
+API declarations were checked against the owner-supplied
+`../References/forever-api-1.60.1.70450.md` (Interface 16001, WOW_PROJECT_ID 18).
+This updates UI compatibility evidence; catalog observations retain their
+original build 1.60.1.70425 provenance. Locale was not separately reported for
+the 70450 verification.
+
+The final review also replaces the missing resize-arrow font glyph with three
+drawn corner lines. Resizing behavior is unchanged; the replacement's appearance
+still needs a client glance after deployment. Full exit/relaunch persistence and
+taller/winged model framing remain follow-up checks. Shared-appearance and large
+gallery scenarios have synthetic coverage; the seed has no such live examples.
+
+Reusable live smoke checklist (owner acceptance above; expanded cases remain
+follow-up checks):
 
 1. Disable probes, reload and open `/petstable`; record build/locale. Check the
    family grid, hover fade, horizontal tabs and sources over bright/dark scenery.

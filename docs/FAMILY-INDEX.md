@@ -94,7 +94,9 @@ widget reuse, and existing browser/focus/portrait regressions. The UI harness ru
 with fallback styling and the pinned LibGlass r9. Test fixtures add no creatures
 to the shipped catalog. Temporary deployment verifies the shipped files.
 
-Live validation is pending:
+The owner reported in-game verification of the current UI on build 1.60.1.70450;
+see [verification details and remaining cases](PET-GUIDE.md#owner-verification-2026-10-16-build-160170450).
+The reusable live checklist is:
 
 1. With probes off, record build/locale; reload and open Pet Guide. Check 19 cards,
    native icons, five-column layout, readable names at preferred/minimum scale.

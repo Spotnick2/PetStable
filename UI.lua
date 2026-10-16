@@ -354,7 +354,14 @@ local function Build()
     settings:Hide()
     local settingsButton=Button(content,"Settings",80,28,function() NS.guide.ClearFocus(); settings:SetShown(not settings:IsShown()); settings.Sync() end)
     settingsButton:SetPoint("TOPRIGHT",-54,-18); NS.settingsButton=settingsButton
-    local grip=Button(content,"↘",24,24,function() end); grip:SetPoint("BOTTOMRIGHT",-6,6); grip:SetFrameLevel(content:GetFrameLevel()+60); NS.resize=grip
+    local grip=Button(content,"",24,24,function() end); grip:SetPoint("BOTTOMRIGHT",-6,6); grip:SetFrameLevel(content:GetFrameLevel()+60); NS.resize=grip
+    -- Draw the corner affordance: the bundled text font has no resize-arrow glyph.
+    for i=1,3 do
+        local span=i*4
+        local line=grip:CreateTexture(nil,"OVERLAY")
+        line:SetColorTexture(0.62,0.72,0.66,0.9); line:SetSize(span*math.sqrt(2),1)
+        line:SetPoint("CENTER",grip,"BOTTOMRIGHT",-5-span/2,5+span/2); line:SetRotation(math.pi/4)
+    end
     grip:SetScript("OnMouseDown",function(_,button)
         if button~="LeftButton" then return end
         NS.guide.ClearFocus(); settings:Hide(); resizing=true; frame:StartSizing("BOTTOMRIGHT")

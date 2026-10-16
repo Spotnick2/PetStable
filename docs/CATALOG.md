@@ -120,6 +120,8 @@ introduce rendering; the browser now has its own [live checks](PET-GUIDE.md).
 Issue #7 remains open for real shared-look/multiple-appearance seed coverage,
 identified acquisition sources, and more representative requirements/location
 data. Issues #3-#5 retain their documented research gaps. Issue #8 closed with
-PR #16; #17 tracks the family-index follow-up. 3D and broader filtering remain pending.
+PR #16; #17 tracks the family-index follow-up. PR #18 adds saved-display 3D
+previews, appearance grouping, and record-level level/location filters; owner
+UI verification is recorded on build 1.60.1.70450 in [PET-GUIDE.md](PET-GUIDE.md).
 Collection tracking and recommendations (#9-#11), and broad catalog expansion
 (#12) remain outside this milestone.
