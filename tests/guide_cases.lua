@@ -13,7 +13,68 @@ return function(ns)
         texture:SetTexture("display-"..id)
     end
     rawset(_G,"SetPortraitTextureFromCreatureDisplayID",Portrait)
+    assert(guide.view=="families" and guide.index:IsShown() and not guide.browser:IsShown())
+    assert(#guide.cards==19 and #guide.familyResults==19)
+    assert(guide.columns==5 and guide.gallery:GetVerticalScrollRange()==0,"default gallery must show all 19 families")
+    assert(guide.footer:GetText()=="19 families" and not guide.navigation:IsShown())
+    assert(guide.placeholder:GetText()=="Search families..." and guide.placeholder:IsShown())
+    guide.search:SetFocus(); assert(guide.placeholder:IsShown(),"empty focused search still has an accurate hint")
+    guide.ClearFocus()
+    local hovered=guide.cards[1]
+    assert(not hovered.count and hovered.icon:GetWidth()==64,"cards use larger portraits without repeated counts")
+    hovered:GetScript("OnEnter")(hovered); hovered:GetScript("OnUpdate")(hovered,1)
+    assert(hovered.hoverAmount==1 and hovered.arrow:IsShown() and not hovered.active)
+    hovered:GetScript("OnLeave")(hovered); hovered:GetScript("OnUpdate")(hovered,1)
+    assert(hovered.hoverAmount==0 and not hovered.arrow:IsShown() and not hovered:GetScript("OnUpdate"))
+    local originalW,originalH=window:GetWidth(),window:GetHeight()
+    window:SetSize(800,560)
+    assert(guide.columns<5 and guide.gallery:GetVerticalScrollRange()>0 and guide.galleryBar:IsShown())
+    guide.galleryBar:SetValue(guide.gallery:GetVerticalScrollRange())
+    local last=guide.cards[19]; local _,_,lastY=unpack(last._points[1])
+    assert(-lastY+last:GetHeight()-guide.gallery:GetVerticalScroll()<=guide.gallery:GetHeight(),"bottom row is reachable at minimum size")
+    window:SetSize(originalW,originalH)
+    assert(guide.columns==5 and guide.gallery:GetVerticalScroll()==0 and not guide.galleryBar:IsShown())
+    local familyWidgets=#WoW.widgets
+    for _,family in ipairs(guide.families) do
+        local card
+        for _,candidate in ipairs(guide.cards) do if candidate.family==family then card=candidate end end
+        assert(card and card.icon._file==family.iconFileID and not card.placeholder:IsShown())
+        Click(card)
+        assert(guide.appearances.back:IsShown() and guide.appearances.breadcrumb:GetText():find(family.displayLabel,1,true))
+        assert(card.hoverAmount==0 and not card.arrow:IsShown(),"leaving a card must clear hover")
+        assert(guide.view=="appearances" and guide.familyKey==family.key and #guide.appearances.results==family.count)
+        if family.count==0 then
+            assert(guide.appearances.empty:GetText()=="No creatures recorded in PetStable yet.")
+            for _,card in ipairs(guide.appearances.cards) do assert(not card:IsShown()) end
+        end
+        guide.appearances.search:SetText("no match"); Click(guide.appearances.clear)
+        assert(guide.familyKey==family.key and #guide.appearances.results==family.count,"Clear must retain the family")
+        Click(guide.appearances.back)
+    end
+    assert(#WoW.widgets==familyWidgets,"family navigation must reuse cards and browser widgets")
+    guide.search:SetText("FOXES")
+    assert(#guide.familyResults==1 and guide.cards[1].family.key=="family-fox")
+    for i=2,#guide.cards do assert(not guide.cards[i]:IsShown()) end
+    Click(guide.sources)
+    assert(guide.view=="sources" and not guide.search:IsShown() and not guide.evidence:IsShown())
+    assert(guide.detail:GetText():find("https://beastmaster.io/forever",1,true))
+    assert(guide.detail:GetText():find("https://www.wow-petopia.com/forever/",1,true))
+    guide.scrollbar:SetValue(100)
+    assert(guide.scroll:GetVerticalScroll()==100)
+    Click(guide.navigation)
+    assert(guide.search:GetText()=="FOXES" and #guide.familyResults==1,"Back must restore family search")
+    local iconID=guide.cards[1].family.iconFileID
+    guide.cards[1].family.iconFileID=nil; guide.Refresh(false)
+    assert(guide.cards[1].icon._file==nil and guide.cards[1].placeholder:IsShown())
+    guide.cards[1].family.iconFileID=iconID
+    local setTexture=guide.cards[1].icon.SetTexture
+    guide.cards[1].icon.SetTexture=function(self,file) if file then return false end; return setTexture(self,file) end
+    guide.Refresh(false); assert(guide.cards[1].placeholder:IsShown())
+    guide.cards[1].icon.SetTexture=setTexture
+    guide.search:SetText("%")
+    assert(#guide.familyResults==0 and guide.indexEmpty:IsShown())
     Click(guide.clear)
+    Click(guide.allTab)
     assert(#guide.results==3 and guide:IsShown())
     local cat=Choose("creature-3035")
     assert(cat.portrait._file=="display-1059" and not cat.placeholder:IsShown())
@@ -42,10 +103,14 @@ return function(ns)
     assert(guide.selected.key=="creature-3035")
     guide.search:SetText("bear")
     assert(guide.selected.key=="creature-251115","filter must choose first remaining result")
-    Click(guide.family) -- first sorted family: Bear
-    assert(#guide.results==1)
-    Click(guide.family) -- Cat with search Bear
-    assert(#guide.results==0)
+    guide.OpenFamily("family-bear")
+    assert(#guide.appearances.results==1)
+    guide.OpenFamily("family-cat"); guide.appearances.search:SetText("bear")
+    assert(#guide.appearances.results==0)
+    Click(guide.appearances.clear)
+    assert(#guide.appearances.results==1 and guide.familyKey=="family-cat")
+    guide.OpenFamily(nil)
+    assert(guide.search:GetText()=="bear","returning to All Creatures restores its search")
     Click(guide.clear)
 
     guide.search:SetFocus()

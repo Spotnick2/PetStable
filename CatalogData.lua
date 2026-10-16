@@ -37,6 +37,38 @@ for _,row in ipairs({{"cat","Cat","cat-models"},{"bear","Bear","bear-models"},
 end
 Fact("family-tallstrider","familyID",12,"galestrider")
 
+-- The curated roster comes from websites; client enumeration supplies metadata,
+-- not hunter eligibility. Names below normalize the sites' singular/plural labels.
+Evidence("family-metadata", "#live-discovery-2026-10-16-build-160170425",
+    "discover revision 1, run 91, capture 1; C_CreatureInfo.GetCreatureFamilyInfo IDs/names/iconFile; reviewed 2026-10-16")
+data.evidence[#data.evidence+1]={key="petopia-forever-roster",game="forever",kind="reference",
+    date="2026-10-16",url="https://www.wow-petopia.com/forever/",
+    locator="Browse Pet Families: 19 families; site under construction. Core Hound listed; its appearance status is not confirmed. Names normalized to client singular forms."}
+data.evidence[#data.evidence+1]={key="beastmaster-forever-roster",game="forever",kind="reference",
+    date="2026-10-16",url="https://beastmaster.io/forever",
+    locator="Rendered overview v1.39.425: 18 family cards; preliminary beta roster. Core Hound absent from this overview, not evidence of unavailability. Names normalized to client singular forms."}
+for _,row in ipairs({
+    {"bat","Bat",24,132182}, {"bear","Bear",4,132183},
+    {"bird-of-prey","Bird of Prey",26,132192}, {"boar","Boar",5,132184},
+    {"carrion-bird","Carrion Bird",7,132200}, {"cat","Cat",2,132185},
+    {"core-hound","Core Hound",312,236191}, {"crab","Crab",8,132186},
+    {"crocolisk","Crocolisk",6,132187}, {"fox","Fox",319,458223},
+    {"gorilla","Gorilla",9,132189}, {"hyena","Hyena",25,132190},
+    {"raptor","Raptor",11,132193}, {"scorpid","Scorpid",20,132195},
+    {"spider","Spider",3,132196}, {"tallstrider","Tallstrider",12,132198},
+    {"turtle","Turtle",21,132199}, {"wind-serpent","Wind Serpent",27,132202},
+    {"wolf","Wolf",1,132203},
+}) do
+    local key="family-"..row[1]
+    if row[1]~="cat" and row[1]~="bear" and row[1]~="tallstrider" then
+        Record(key,"family"); Fact(key,"name",row[2],"family-metadata")
+    end
+    if row[1]~="tallstrider" then Fact(key,"familyID",row[3],"family-metadata") end
+    Fact(key,"iconFileID",row[4],"family-metadata")
+    Fact(key,"name",row[2],"petopia-forever-roster","reference")
+    if row[1]~="core-hound" then Fact(key,"name",row[2],"beastmaster-forever-roster","reference") end
+end
+
 for _,row in ipairs({{3035,1059,126171,"cat","cat-models"},
     {251115,136606,7581790,"bear","bear-models"}}) do
     local creature,appearance="creature-"..row[1],"appearance-"..row[2]

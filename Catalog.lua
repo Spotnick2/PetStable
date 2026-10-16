@@ -9,7 +9,7 @@ local fields = {
         observedLevel="id", levelMin="id", levelMax="id", tameable="boolean",
         observerArea="text", observerMapID="id", spawn="position", conditions="text" },
     appearance = { displayID="id", modelFileID="id", portraitVerified="boolean", modelVerified="boolean" },
-    family = { familyID="id", name="text" },
+    family = { familyID="id", name="text", iconFileID="id" },
     ability = { name="text" },
     rank = { ability="ref:ability", spellID="id", ordinal="id", label="text",
         petLevel="id", trainingPoints="nonnegative", eligibleFamily="many:family",

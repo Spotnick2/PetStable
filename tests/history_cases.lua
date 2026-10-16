@@ -1,0 +1,70 @@
+return function(ns)
+    local guide,ui,history=ns.guide,ns.guide.appearances,ns.history
+    local function Click(button) button:GetScript("OnClick")(button) end
+    local function Mouse(host,button) assert(host:GetScript("OnMouseUp"),"mouse hook missing")(host,button) end
+    -- Real glass rims cover their button at a higher frame level. They must
+    -- never become mouse targets when navigation hooks traverse the tree.
+    if ns.Glass then
+        local overlays=0
+        for _,host in ipairs({ns.frame,ns.settingsButton,guide.cards[1]}) do
+            assert(host:IsMouseClickEnabled() and host.petStableHistoryHooked)
+            for _,child in ipairs({host:GetChildren()}) do
+                local point=child._points[1]
+                if child:GetFrameLevel()==host:GetFrameLevel()+10 and point and point[1]=="ALL" then
+                    overlays=overlays+1
+                    assert(not child:IsMouseClickEnabled() and not child.petStableHistoryHooked,
+                        "decorative glass overlays must remain click-through")
+                end
+            end
+        end
+        assert(overlays==3,"exercise actual shell, settings-button and family-card glass rims")
+    end
+    local wheelOnly=CreateFrame("ScrollFrame",nil,ns.frame)
+    wheelOnly:EnableMouse(false); wheelOnly:EnableMouseWheel(true); ns.BindHistoryMouse(wheelOnly)
+    assert(not wheelOnly:IsMouseClickEnabled() and not wheelOnly:GetScript("OnMouseUp"),
+        "wheel input alone must not turn a container into a click blocker")
+    ns.SelectPage("guide"); guide.ShowFamilies(); guide.search:SetText("cat")
+    history.entries={{page="guide",guide=guide.Capture()}}; history.index=1
+    Mouse(ns.frame,"Button4"); assert(history.index==1 and guide.view=="families")
+    Click(guide.cards[1]); ui.search:SetText("Cat appearance")
+    Click(ui.level); Click(ui.zone)
+    local level,zone=ui.level.label:GetText(),ui.zone.label:GetText()
+    Click(ui.cards[1]); Click(ui.sources)
+    ui.bodyBar:SetValue(100); local detailScroll=ui.body:GetVerticalScroll()
+    assert(detailScroll>0)
+    Click(ui.copy); assert(guide.HasFocus())
+    Mouse(ui.urls,"Button4")
+    assert(guide.view=="appearances" and not guide.HasFocus())
+    assert(ui.search:GetText()=="Cat appearance" and ui.level.label:GetText()==level and ui.zone.label:GetText()==zone)
+    Mouse(ui.search,"Button4")
+    assert(guide.view=="families" and guide.search:GetText()=="cat")
+    Mouse(ns.frame,"Button5"); assert(guide.view=="appearances")
+    Mouse(ui.galleryBar,"Button5")
+    assert(guide.view=="appearance" and ui.sourceText:IsShown() and ui.body:GetVerticalScroll()==detailScroll)
+    local index=history.index
+    Mouse(ui.preview,"LeftButton"); Mouse(ui.preview,"RightButton"); Mouse(ui.preview,"MiddleButton")
+    assert(history.index==index,"ordinary clicks must not navigate")
+    Mouse(ui.preview,"Button5"); assert(history.index==index,"forward at the end is a no-op")
+    Mouse(ui.preview,"Button4"); guide.OpenFamily("family-bear")
+    assert(not history.Move(1) and guide.familyKey=="family-bear","a new destination must discard the forward branch")
+    assert(history.Move(-1) and guide.familyKey=="family-cat" and ui.search:GetText()=="Cat appearance")
+    assert(history.Move(1) and guide.familyKey=="family-bear")
+    guide.OpenSources(); guide.scrollbar:SetValue(100)
+    Mouse(guide.scrollbar,"Button4"); assert(guide.view=="appearances" and guide.familyKey=="family-bear")
+    Mouse(ui.cards[1],"Button5"); assert(guide.view=="sources" and guide.scroll:GetVerticalScroll()==100)
+    guide.OpenFamily(nil); guide.search:SetText("bear"); Click(guide.evidence); guide.scrollbar:SetValue(72)
+    guide.ShowFamilies(); Mouse(ns.drag,"Button4")
+    assert(guide.view=="creatures" and guide.search:GetText()=="bear" and guide.showEvidence and guide.scroll:GetVerticalScroll()==72)
+    ns.SelectPage("upgrades"); ns.SelectPage("pets")
+    Mouse(ns.settingsButton,"Button4"); assert(ns.db.page=="upgrades")
+    Mouse(ns.buttons.guide,"Button5"); assert(ns.db.page=="pets")
+    index=history.index; ns.SelectPage("pets"); assert(history.index==index)
+    ns.Toggle(); Mouse(ns.frame,"Button4"); assert(history.index==index,"hidden window must ignore input")
+    ns.Toggle(); assert(history.index==index,"reopening must not add a duplicate visit")
+    local outside=CreateFrame("Frame",nil,UIParent)
+    assert(not outside.petStableHistoryHooked and not outside:GetScript("OnMouseUp"),"other UI frames must remain untouched")
+    for i=1,60 do ns.SelectPage(i%2==0 and "pets" or "upgrades") end
+    assert(#history.entries==50 and history.index==50,"session history must remain bounded")
+    ns.SelectPage("guide"); guide.ShowFamilies(); guide.search:SetText("")
+    io.write("PASS: local mouse back/forward, visit state, branching, boundaries, tab navigation and bounded history\n")
+end

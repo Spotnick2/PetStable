@@ -1,108 +1,176 @@
-# First Pet Guide browser slice (partial issue #8)
+# Pet Guide: family index and appearance browsing
 
-Pet Guide now replaces its empty page with the three Forever creature records
-already shipped in the catalog. No catalog facts are added. Ability Upgrades,
-My Pets, the window style, and the SavedVariables schema retain their scope.
+Pet Guide uses the [19-family index](FAMILY-INDEX.md) and the same three creature
+records shipped in PR #16. The redesigned shell has horizontal tabs, saved grip
+resizing, Settings, embedded search clearing and restrained hover feedback.
+Ability Upgrades and My Pets retain their existing empty states.
 
-## Behavior
+## Navigation and presentation
 
-- Search is a trimmed, case-insensitive literal substring over known creature
-  and family names. It is intended for the current enUS seed; Lua 5.1 lowercasing
-  is not Unicode case folding. Lua pattern characters are treated literally.
-- The Family button cycles through All and the recorded families in alphabetical
-  order. Search and family constraints combine. Clear resets both.
-- Results use four reusable rows. Mouse wheel moves through the list; arrow
-  buttons move by four. Selection is retained if still present after filtering,
-  otherwise the first result is selected. No results clears the selected details.
-- Cat (3035) and Bear (251115) use family-based name-unknown labels and display
-  IDs 1059 and 136606. Galestrider (251707) has its recorded name and a portrait
-  placeholder. Stable pet names are not substituted for wild creature names.
-- A reused row clears its texture before every display request. Missing IDs,
-  missing APIs, and API errors show the placeholder. A successful API call is
-  not proof that a texture has loaded: visual verification remains a live check.
-- Details expose family, observed level, appearance verification, unknown
-  tameability/acquisition/spawn, and any recorded observer context. A recorded
-  false tameability value would display No, distinct from Unknown.
-- Show evidence switches the same scrollable pane to fact sources, status,
-  game/build/locale, review date, capture locator and URL. References are shown
-  as text, with no network requests. Scroll with the wheel, up/down buttons,
-  or draggable scrollbar thumb.
-- Search, family, selection and the evidence toggle are session-only. Enter
-  clears search focus; Escape closes the entire window. Page switches, clicks
-  on browser controls, and closing the window release search focus.
+Families opens a five-column index at the default size. Selecting a family opens
+an appearance gallery with three columns and two visible rows at the default
+size for ordinary labels. Long labels increase card height; smaller windows use
+two columns and scrolling. Nine reusable slots load only intersecting cards;
+leaving the gallery clears their models and pending work.
 
-## Evidence boundaries
+An appearance opens a dedicated page with a model at left and a scrollable
+creature/location table at right. Selecting a row reveals that creature's own
+facts. Back to appearances restores family, query, level/location filters and
+scroll. Family information is secondary, and Family sources remains accessible.
+All Creatures preserves the original searchable list, portraits and evidence pane.
+That view also retains its selection, query, evidence mode and scroll in-session.
 
-`GuideData.lua` builds a pure-Lua display projection from valid catalog data.
-It includes only Forever creatures, never Classic rank records, trainer rows,
-or active-pet spell observations as creature results. Invalid structural data
-produces a catalog-unavailable state. Empty catalogs and empty search results
-have separate messages.
+Mouse Button 4/5 provides Back/Forward while the pointer is over PetStable,
+including child cards, search fields, scrollbars and the model viewer. History
+includes view and top-level tab changes; inline filtering/disclosure edits are
+saved with the visit rather than creating a visit per click/keystroke. Returning
+restores that visit's selection, evidence/disclosure state and scroll as well as
+its filters. New destinations discard the forward branch. Repeated visits to the
+same destination and window reopening do not add duplicates. History is bounded
+to 50 session visits and does not replace global mouse bindings.
 
-Scalar disagreements, including differences across builds/locales, remain
-unresolved rather than picking the first or most recent claim. Several distinct
-appearance links also remain unresolved in this slice; variant selection is
-deferred. Agreeing claims retain their evidence. Sorting uses labels and stable
-keys, so input order does not determine the selected factual value.
+Search uses literal, trimmed, case-insensitive substrings: family singular/plural
+names on the index; appearance labels and creature names in a family; creature
+and family names under All Creatures. It does not advertise abilities or zones.
+Lua 5.1 lowercasing is not Unicode case folding; the current seed is enUS.
 
-The appearance-verified text requires a confirmed creature/appearance link,
-a confirmed true portrait verification, and the display ID in the same evidence
-scope. It names the measured build, not the current client. Mere display presence
-or a successful API call cannot grant confirmation. Unknown facts do not become
-negative claims or eligibility advice.
+The level and zone controls cycle through the available choices. Level choices
+match an observed level or overlap a verified range. Unknown levels/locations
+remain selectable. All criteria must match the same creature; an appearance is
+returned if at least one associated creature matches. Details explicitly label
+filtered records and offer Show all associated creatures / Show matching creatures.
+Summaries never turn observations into verified ranges. Longer zone summaries
+show the first two labels plus the number of additional locations; individual
+rows retain the complete known location information.
 
-The seed's Cat/Bear appearance checks were measured on 1.60.1.70425. The local
-`../References/forever-api-1.60.1.70425.md` declares
-`SetPortraitTextureFromCreatureDisplayID(textureObject, creatureDisplayID)` and
-the EditBox, ScrollFrame, Slider, and FontString methods used here. This establishes the
-API surface; it does not independently validate the new UI's live behavior.
-Source evidence remains in [the catalog guide](CATALOG.md), including Beastmaster
-Forever as a preliminary research reference. No new website claims are imported.
+Sources & observations starts collapsed. Opening it shows fact-specific values,
+status, review date and source type for the selected creature. Technical evidence
+adds build/locale/capture/URL details. Select source URLs exposes an EditBox for
+Ctrl+C; edits are not saved and no network requests occur. Evidence for one field
+never certifies another. Enter releases input focus and Escape closes the window.
+
+## Data boundaries
+
+The catalog is unchanged by the visual redesign. Cat and Bear have verified
+saved displays 1059 and 136606 on build 1.60.1.70425; neither has a recorded wild
+name or an appearance color/name. Generic labels include the display identifier
+to distinguish otherwise unnamed appearances. Ornery Galestrider has observed
+level 9 but no resolved display. It remains accessible in its own unresolved
+appearance card. Sixteen families have no creature coverage yet.
+
+`GuideData.lua` groups by family and an unambiguous verified display ID. Matching
+model-file IDs, names or families alone never merge records. Unknown or competing
+appearance links remain separate unresolved creature cards. Every grouped record
+retains its original details and field evidence, including its own level,
+tameability, conditions and location. Structurally invalid catalogs fail closed.
+
+A confirmed appearance relationship, confirmed true visual proof and a display
+claim must share game/build/locale. Model and portrait proof are checked
+separately. A name observation, recorded display alone, successful model API call
+or website reference cannot promote appearance/tameability verification.
+
+The seed contains no verified spawn positions, family roles, learnable family
+abilities or diet. Those fields remain unknown/unverified; no role filters or
+signature-ability icons are fabricated. Galestrider's observer map/area is not a
+spawn location and is excluded from zone filtering. There are no map buttons,
+pins or waypoints. Verified range/spawn projection has synthetic coverage only;
+adding real data remains a separate reviewed task. Known active-pet spells and
+Classic references are not treated as family eligibility or wild acquisition.
+
+## Preview implementation and limitations
+
+`GuideModels.lua` uses the custom ModelScene actor path measured in
+`Tools/PetStableProbe/Models.lua`, documented in [FOREVER-PROBE.md](FOREVER-PROBE.md).
+The local `../References/forever-api-1.60.1.70425.md` provides the client API
+surface. `SetModelByCreatureDisplayID` uses the saved exact skin and does not
+require a nearby/targeted creature. No SetCreature, SetUnit or model-file fallback
+is used. Actor bounds are polled every 0.2 seconds for at most four seconds.
+
+The camera retains a square projection, matching the measured probe's near-square
+projection. Gallery scenes cover the full preview area; their parent clips the
+surplus above/below or beside the preview. The still pose is fitted using its
+rotated bounding-box corners, perspective depth, and the visible area's aspect
+ratio, with a 15% margin. Detail scenes remain inscribed squares and retain the
+72% height/diagonal fit for rotation. Usable unit-scale bounds are cached;
+resize and Reset reuse those measurements. Card labels grow when needed instead of
+reserving a second line for every name, leaving more height for previews.
+Gallery poses are still; callbacks stop after fitting.
+Detail previews support drag/button rotation, wheel/button zoom and reset.
+Controls appear after successful fitting. Hiding a view cancels fitting/dragging
+and clears actors. Missing/rejected models and bounds timeouts show a verified
+portrait where available, otherwise an explicit unavailable-preview message.
+
+API success and offline fitting calculations do not establish correct texture,
+animation extents or whole-body framing in game. The owner verified the current
+UI in game on build 1.60.1.70450; Cat/Bear screenshots show the final gallery fit,
+and the owner accepted the detail framing. Taller and winged shapes and other
+skins still require their own visual evidence.
 
 ## Validation
 
-`tests/test_guide.lua` covers the seed projection, combined/literal filters,
-selection, reordered input, conflicts, explicit false, same-scope visual evidence,
-empty catalogs and malformed references. It requires no WoW client or probe host.
+Run `pwsh -NoProfile -File tests/run.ps1`. This covers Lua 5.1 syntax, catalog and
+projection validation, fallback and embedded LibGlass r9 UI paths, existing probe
+regressions and a temporary deployment with exact runtime copies and TOC loading.
 
-`tests/guide_cases.lua` runs through the existing addon harness with both flat
-fallback and embedded LibGlass. It covers exact portraits, stale texture removal,
-missing/error APIs, search/family changes, focus/Escape/navigation, evidence
-scrolling, empty states, and pooled scrolling over 20 synthetic rows. Fixtures
-are not shipped in the catalog. `guide_stubs.lua` adds state/event behavior to the
-existing LibGlass mocks locally; its text-height estimate is not a visual test.
+`tests/test_guide.lua` checks proof scopes, shared-display grouping, different
+skins sharing geometry, independent unresolved records, observed versus verified
+levels, record-level combined filters, unknown locations and long zone summaries.
+`tests/appearance_cases.lua` checks pooled rendering, model failures/timeouts,
+rotation/zoom/reset, detail selection, matching/all disclosure, focus, source URL
+selection, navigation state and minimum-size layout. Existing browser and shell
+coverage remains in `guide_cases.lua` and `test_addon.lua`. Synthetic fixtures
+are test-only. Widget mocks and approximate text heights are not visual testing.
+`tests/history_cases.lua` covers Back/Forward across controls and tabs, visit
+state, branch truncation, boundary no-ops, reopening, and history limits.
 
-Run `pwsh -NoProfile -File tests/run.ps1`. This includes Lua 5.1 syntax, catalog
-and guide tests, addon/probe regressions, and a temporary deployment that verifies
-exact runtime file copies and loads the guide modules in deployed TOC order.
-CI runs guide tests unconditionally, alongside the existing optional-host policy.
+### Owner verification: 2026-10-16, build 1.60.1.70450
 
-Live browser validation is **in progress**. Owner screenshots show the Cat and
-Bear filtered views, rendered portraits, and the evidence pane. The owner
-confirmed that the evidence mouse wheel and arrow buttons work. A draggable
-scrollbar thumb has now been added between those arrows; its live validation is
-still pending. The thumb follows wheel/arrow scrolling, resets with the selected
-entry or view, and hides when the text fits without scrolling.
+The owner explicitly confirmed in-game verification of the current UI on this
+build after the interaction and preview fixes. Supplied screenshots cover Cat
+and Bear appearance galleries and the Cat detail viewer; the owner accepted the
+detail size and confirmed the gallery size, with taller pets deferred. Earlier
+feedback confirmed wheel/arrow/thumb scrolling, and the original browser was
+accepted in PR #16.
 
-Before marking the browser ready:
+API declarations were checked against the owner-supplied
+`../References/forever-api-1.60.1.70450.md` (Interface 16001, WOW_PROJECT_ID 18).
+This updates UI compatibility evidence; catalog observations retain their
+original build 1.60.1.70425 provenance. Locale was not separately reported for
+the 70450 verification.
 
-1. Deploy the player addon, disable the probes, reload, and open Pet Guide.
-   Record the client build and locale. Confirm exactly three entries, correct Cat
-   and Bear skins, and Galestrider's placeholder.
-2. Search `cat`, `GALESTRIDER`, and `%`; combine searches with the Family button,
-   then Clear. Confirm the right result/selection and no stale portraits or details.
-3. Check Galestrider's level is labeled observed and its area is observer context,
-   not a spawn. Open Show evidence and scroll to the source/build information.
-   Drag the scrollbar thumb to both ends, then use the wheel/arrows and confirm
-   the thumb follows. Switch entries/views and check the scroll position resets.
-4. Type movement-key letters in search and confirm no movement/bindings fire.
-   Check Enter releases focus, Escape closes without opening the game menu,
-   reopening works, and page switches/close button release focus.
-5. Check readability, wrapping, and detail scrolling over bright/dark scenery at
-   preferred and minimum supported scale; check the flat fallback when convenient.
-   Repeat on a non-hunter with no summoned pet. Reload should reset browser filters
-   while retaining the existing saved window settings and navigation page.
+The final review also replaces the missing resize-arrow font glyph with three
+drawn corner lines. Resizing behavior is unchanged; the replacement's appearance
+still needs a client glance after deployment. Full exit/relaunch persistence and
+taller/winged model framing remain follow-up checks. Shared-appearance and large
+gallery scenarios have synthetic coverage; the seed has no such live examples.
 
-Issue #8 remains open. 3D previews/rotation, appearance-variant controls, additional
-filters, tameable-at-my-level, maps, recommendations, and catalog expansion are
-not implemented by this slice. Live testing introduces no taming or training action.
+Reusable live smoke checklist (owner acceptance above; expanded cases remain
+follow-up checks):
+
+1. Disable probes, reload and open `/petstable`; record build/locale. Check the
+   family grid, hover fade, horizontal tabs and sources over bright/dark scenery.
+2. Open Cat and Bear, then their appearance cards with no pet targeted/nearby.
+   Check correct skin and complete body framing. Rotate, zoom and reset. Close
+   while loading and reopen; no stale preview or continuing drag should remain.
+3. Open Tallstriders. Expect Ornery Galestrider with an unresolved preview,
+   Observed level 9, unknown location and explicit observer context in details.
+   Empty families must remain accessible without implying unavailability.
+4. Search, cycle level/location choices, open a detail and go Back. Confirm
+   query/filter/scroll retention. Select sources, technical disclosure and copy
+   URLs. Confirm typing does not trigger gameplay bindings. No seeded appearance
+   has multiple creatures; that scenario currently has synthetic coverage only.
+5. Open All Creatures: exactly three records, existing details/evidence controls.
+   Visit Ability Upgrades/My Pets, then return; verify retained navigation state.
+6. Drag the header, resize with the grip, change scale through Settings and close
+   using Escape/the close button. Check long labels, bottom rows and both thumbs
+   at default and minimum size/scale. Reload preserves window settings/page but
+   resets browser state. A full exit/relaunch checks disk persistence separately.
+7. Visit Families → a family → an appearance. Press Mouse Button 4 twice and
+   Button 5 twice over cards, the search field, a scrollbar and the model. Check
+   restored search/filter/detail/scroll state and exactly one step per click.
+   Go back, choose a different family, and confirm the old forward route is gone.
+   Check ordinary selection, model dragging, grip resizing and mouse bindings
+   outside PetStable remain unaffected.
+
+No creature expansion, website imports, invented appearance names, ability
+recommendations, collection tracking or gameplay actions accompany this change.
