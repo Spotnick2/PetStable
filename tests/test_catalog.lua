@@ -25,6 +25,19 @@ local function Value(data,key,field)
     assert(#facts==1,key.."."..field.." must have exactly one claim")
     return facts[1].value
 end
+local function Corroborate(data,key,field)
+    local original=C.GetFacts(data,key,field)[1]
+    assert(original,"missing test claim")
+    local evidence
+    for _,e in ipairs(data.evidence) do
+        if e.key==original.evidence then evidence=Copy(e); break end
+    end
+    evidence.key="corroboration-"..#data.evidence
+    data.evidence[#data.evidence+1]=evidence
+    local claim=Copy(original); claim.evidence=evidence.key
+    data.facts[#data.facts+1]=claim
+    return claim,evidence
+end
 Valid(seed)
 assert(#seed.records==29 and #seed.evidence==7)
 assert(Value(seed,"creature-3035","appearance")=="appearance-1059")
@@ -83,6 +96,56 @@ Invalid(function(d) Claim(d,"classic-stamina-3","ordinal",3,"petopia-stamina","c
 Invalid(function(d) Claim(d,"creature-251707","levelMin",12); Claim(d,"creature-251707","levelMax",9) end,"inverted level range")
 Invalid(function(d) Claim(d,"classic-stamina-2","previous","classic-stamina-4","petopia-stamina","reference") end,"cyclic rank progression")
 Invalid(function(d) Claim(d,"spell-4188","previous","spell-17255","pet-switch") end,"previous ability mismatch")
+
+-- Agreeing independent evidence must not disable semantic validation.
+Invalid(function(d)
+    Corroborate(d,"trainer-row-stamina-3","sourceType")
+    Claim(d,"spell-4188","source","trainer-row-stamina-3","trainer")
+end,"unmapped trainer observation")
+Invalid(function(d)
+    Corroborate(d,"spell-4188","ability"); Corroborate(d,"spell-17255","ability")
+    Claim(d,"spell-4188","previous","spell-17255","pet-switch")
+end,"previous ability mismatch")
+Invalid(function(d)
+    Corroborate(d,"classic-stamina-2","ordinal"); Corroborate(d,"classic-stamina-3","ordinal")
+    Claim(d,"classic-stamina-2","previous","classic-stamina-3","petopia-stamina","reference")
+end,"invalid rank progression")
+Invalid(function(d)
+    Claim(d,"creature-251707","levelMin",12); Claim(d,"creature-251707","levelMax",9)
+    Corroborate(d,"creature-251707","levelMin"); Corroborate(d,"creature-251707","levelMax")
+end,"inverted level range")
+local corroborated=Copy(seed)
+Corroborate(corroborated,"trainer-row-stamina-3","sourceType")
+Corroborate(corroborated,"classic-stamina-3","ordinal")
+Corroborate(corroborated,"classic-stamina-3","ability")
+Corroborate(corroborated,"trainer-row-stamina-4","prerequisiteSatisfied")
+Valid(corroborated)
+local negatives=C.GetFacts(corroborated,"trainer-row-stamina-4","prerequisiteSatisfied")
+assert(#negatives==2 and negatives[1].value==false and negatives[2].value==false)
+-- Other builds/locales must neither suppress this build's guard nor supply its values.
+for _,scope in ipairs({"build","locale"}) do
+    Invalid(function(d)
+        Corroborate(d,"trainer-row-stamina-3","sourceType")
+        local other,e=Corroborate(d,"trainer-row-stamina-3","sourceType")
+        e[scope]=scope=="build" and "1.60.1.99999" or "frFR"
+        other.value="trainer"
+        Claim(d,"spell-4188","source","trainer-row-stamina-3","trainer")
+    end,"unmapped trainer observation")
+    local separate=Copy(seed)
+    local low=Claim(separate,"creature-251707","levelMin",12)
+    local _,e=Corroborate(separate,"creature-251707","levelMin")
+    e[scope]=scope=="build" and "1.60.1.99999" or "frFR"
+    low.evidence=e.key
+    table.remove(separate.facts) -- keep only the minimum from the other scope
+    Claim(separate,"creature-251707","levelMax",9)
+    Valid(separate)
+end
+local disputed=Copy(seed)
+Corroborate(disputed,"trainer-row-stamina-3","sourceType")
+Claim(disputed,"trainer-row-stamina-3","sourceType","trainer","trainer")
+local disputedErrors,disputedConflicts=C.Validate(disputed)
+assert(#disputedErrors==0 and #disputedConflicts==2,"corroboration must preserve genuine conflicts")
+assert(#C.GetFacts(disputed,"trainer-row-stamina-3","sourceType")==3)
 
 -- Both directions of the many-to-many appearance relation, using synthetic test links only.
 local shared=Copy(seed)

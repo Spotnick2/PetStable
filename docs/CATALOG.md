@@ -50,7 +50,10 @@ rank cycles/order errors, and invalid coordinate representations. Conflicts
 contain both original claims for a single-valued field within the same
 record/build/locale. Multi-valued links permit several distinct targets.
 Neither claims nor conflicts are discarded. Tests fail if the shipped seed has
-errors or unresolved conflicts. Validation does not establish source truth;
+errors or unresolved conflicts. Semantic checks use agreeing claims within the
+same game/build/locale: a second supporting claim does not disable trainer-source,
+rank or level checks, and evidence from another scope does not supply their values.
+Validation does not establish source truth;
 cross-build and cross-game interpretation remains a research task.
 
 ## Exact seed coverage

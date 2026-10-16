@@ -142,11 +142,19 @@ function Catalog.Validate(data)
             end
         end
     end
-    -- Only compare unambiguous facts. Competing claims above remain available to reviewers.
+    -- Corroborating claims are unambiguous within their evidence scope.
+    -- Keep all original claims, including conflicts, available to reviewers.
     if #errors==0 then
-        local function Single(key,field)
-            local facts=Catalog.GetFacts(data,key,field)
-            if #facts==1 then return facts[1].value end
+        local function Agreed(key,field,context)
+            local first
+            for _,fact in ipairs(Catalog.GetFacts(data,key,field)) do
+                local e=evidence[fact.evidence]
+                if e.game==context.game and e.build==context.build and e.locale==context.locale then
+                    if first and not Equal(first.value,fact.value) then return nil end
+                    first=first or fact
+                end
+            end
+            if first then return first.value end
         end
         for key,r in pairs(records) do
             if r.kind=="creature" or r.kind=="appearance" then
@@ -154,18 +162,22 @@ function Catalog.Validate(data)
                 if #Catalog.GetFacts(data,key,field)==0 then Error(key..": missing "..field) end
             end
             if r.kind=="creature" then
-                local low,high=Single(key,"levelMin"),Single(key,"levelMax")
-                if low and high and low>high then Error(key..": inverted level range") end
+                for _,fact in ipairs(Catalog.GetFacts(data,key,"levelMin")) do
+                    local context=evidence[fact.evidence]
+                    local low,high=Agreed(key,"levelMin",context),Agreed(key,"levelMax",context)
+                    if low and high and low>high then Error(key..": inverted level range") end
+                end
             elseif r.kind=="rank" then
                 for _,link in ipairs(Catalog.GetFacts(data,key,"previous")) do
                     local prior=link.value
-                    local ability,priorAbility=Single(key,"ability"),Single(prior,"ability")
-                    local rank,priorRank=Single(key,"ordinal"),Single(prior,"ordinal")
+                    local context=evidence[link.evidence]
+                    local ability,priorAbility=Agreed(key,"ability",context),Agreed(prior,"ability",context)
+                    local rank,priorRank=Agreed(key,"ordinal",context),Agreed(prior,"ordinal",context)
                     if ability and priorAbility and ability~=priorAbility then Error(key..": previous ability mismatch") end
                     if rank and priorRank and priorRank>=rank then Error(key..": invalid rank progression") end
                 end
                 for _,link in ipairs(Catalog.GetFacts(data,key,"source")) do
-                    if Single(link.value,"sourceType")=="trainer-observation" then
+                    if Agreed(link.value,"sourceType",evidence[link.evidence])=="trainer-observation" then
                         Error(key..": unmapped trainer observation cannot be an acquisition source")
                     end
                 end
