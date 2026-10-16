@@ -13,12 +13,18 @@ rawset(_G,"CreateFrame",function(kind,name,parent,template)
     local setScale=frame.SetScale
     frame.SetScale=function(self,value) self.scaleValue=value; setScale(self,value) end
     frame.GetScale=function(self) return self.scaleValue or 1 end
+    frame.mouseClicks=kind=="Button" or kind=="EditBox" or kind=="Slider"
+    frame.EnableMouse=function(self,enabled) self.mouseClicks=enabled==true end
+    frame.SetMouseClickEnabled=frame.EnableMouse
+    frame.IsMouseClickEnabled=function(self) return self.mouseClicks end
     frame.HasScript=function() return true end
     frame.GetChildren=function(self)
         local children={}; for _,child in ipairs(WoW.frames) do if child._parent==self then children[#children+1]=child end end
         return unpack(children)
     end
     frame.HookScript=function(self,event,hook)
+        -- Native mouse handlers activate hit testing, including on visual layers.
+        if event=="OnMouseUp" or event=="OnMouseDown" then self.mouseClicks=true end
         local original=self:GetScript(event)
         self:SetScript(event,function(...) if original then original(...) end; hook(...) end)
     end

@@ -2,6 +2,27 @@ return function(ns)
     local guide,ui,history=ns.guide,ns.guide.appearances,ns.history
     local function Click(button) button:GetScript("OnClick")(button) end
     local function Mouse(host,button) assert(host:GetScript("OnMouseUp"),"mouse hook missing")(host,button) end
+    -- Real glass rims cover their button at a higher frame level. They must
+    -- never become mouse targets when navigation hooks traverse the tree.
+    if ns.Glass then
+        local overlays=0
+        for _,host in ipairs({ns.frame,ns.settingsButton,guide.cards[1]}) do
+            assert(host:IsMouseClickEnabled() and host.petStableHistoryHooked)
+            for _,child in ipairs({host:GetChildren()}) do
+                local point=child._points[1]
+                if child:GetFrameLevel()==host:GetFrameLevel()+10 and point and point[1]=="ALL" then
+                    overlays=overlays+1
+                    assert(not child:IsMouseClickEnabled() and not child.petStableHistoryHooked,
+                        "decorative glass overlays must remain click-through")
+                end
+            end
+        end
+        assert(overlays==3,"exercise actual shell, settings-button and family-card glass rims")
+    end
+    local wheelOnly=CreateFrame("ScrollFrame",nil,ns.frame)
+    wheelOnly:EnableMouse(false); wheelOnly:EnableMouseWheel(true); ns.BindHistoryMouse(wheelOnly)
+    assert(not wheelOnly:IsMouseClickEnabled() and not wheelOnly:GetScript("OnMouseUp"),
+        "wheel input alone must not turn a container into a click blocker")
     ns.SelectPage("guide"); guide.ShowFamilies(); guide.search:SetText("cat")
     history.entries={{page="guide",guide=guide.Capture()}}; history.index=1
     Mouse(ns.frame,"Button4"); assert(history.index==1 and guide.view=="families")

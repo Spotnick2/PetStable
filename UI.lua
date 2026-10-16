@@ -176,7 +176,9 @@ end
 
 -- Local input hooks only: never change the player's global mouse bindings.
 function NS.BindHistoryMouse(host)
-    if host.petStableHistoryHooked or not host:HasScript("OnMouseUp") then return end
+    -- Adding a mouse script can enable hit testing. In particular LibGlass's
+    -- full-size rim frames sit above controls and must remain click-through.
+    if host.petStableHistoryHooked or not host:IsMouseClickEnabled() or not host:HasScript("OnMouseUp") then return end
     host.petStableHistoryHooked=true
     host:HookScript("OnMouseUp",function(_,button)
         if not frame:IsShown() then return end
