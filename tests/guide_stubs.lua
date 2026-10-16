@@ -1,0 +1,81 @@
+-- Extend the existing LibGlass mock locally; no sibling files or second mock world.
+-- These implement only state/events used by the browser, not visual correctness.
+local create=CreateFrame
+rawset(_G,"CreateFrame",function(kind,name,parent,template)
+    local frame=create(kind,name,parent,template)
+    local makeText=frame.CreateFontString
+    frame.CreateFontString=function(self,...)
+        local text=makeText(self,...)
+        text.GetStringHeight=function(t)
+            local lines=0
+            for line in ((t:GetText() or "").."\n"):gmatch("(.-)\n") do
+                lines=lines+math.max(1,math.ceil(#line/40))
+            end
+            return lines*16
+        end
+        return text
+    end
+    local hide=frame.Hide
+    frame.Hide=function(self)
+        local wasShown=self:IsShown(); hide(self)
+        local fn=self:GetScript("OnHide"); if wasShown and fn then fn(self) end
+    end
+    frame.SetPropagateKeyboardInput=function(self,value) self.propagate=value end
+    if kind=="EditBox" then
+        local setFont=frame.SetFont
+        frame.SetFont=function(self,file,height,flags)
+            assert(type(flags)=="string", "EditBox:SetFont requires explicit flags on Forever")
+            return setFont(self,file,height,flags)
+        end
+        frame._text=""
+        frame.HasFocus=function(self) return self.focused==true end
+        frame.SetFocus=function(self)
+            self.focused=true
+            local fn=self:GetScript("OnEditFocusGained"); if fn then fn(self) end
+        end
+        frame.ClearFocus=function(self)
+            local hadFocus=self.focused; self.focused=false
+            local fn=self:GetScript("OnEditFocusLost"); if hadFocus and fn then fn(self) end
+        end
+        local setText=frame.SetText
+        frame.SetText=function(self,value)
+            setText(self,value)
+            local fn=self:GetScript("OnTextChanged"); if fn then fn(self,false) end
+        end
+    elseif kind=="Slider" then
+        frame.SetValue=function(self,value)
+            value=math.max(self.minimum or 0,math.min(self.maximum or 0,value))
+            if value==self.value then return end
+            self.value=value
+            local fn=self:GetScript("OnValueChanged"); if fn then fn(self,value) end
+        end
+        frame.GetValue=function(self) return self.value or 0 end
+        frame.SetMinMaxValues=function(self,minimum,maximum)
+            self.minimum=minimum; self.maximum=maximum; self:SetValue(self:GetValue())
+        end
+        frame.GetMinMaxValues=function(self) return self.minimum,self.maximum end
+        frame.SetEnabled=function(self,value) self.enabled=value end
+        frame.IsEnabled=function(self) return self.enabled end
+        frame.SetThumbTexture=function(self,file)
+            self.thumb=self:CreateTexture(nil,"OVERLAY"); self.thumb:SetTexture(file)
+        end
+        frame.GetThumbTexture=function(self) return self.thumb end
+    elseif kind=="ScrollFrame" then
+        frame.SetScrollChild=function(self,child)
+            self.child=child
+            local setHeight=child.SetHeight
+            child.SetHeight=function(c,height)
+                setHeight(c,height)
+                local fn=self:GetScript("OnScrollRangeChanged"); if fn then fn(self,0,self:GetVerticalScrollRange()) end
+            end
+        end
+        frame.SetVerticalScroll=function(self,value)
+            if value==self.scrollOffset then return end
+            self.scrollOffset=value
+            local fn=self:GetScript("OnVerticalScroll"); if fn then fn(self,value) end
+        end
+        frame.GetVerticalScroll=function(self) return self.scrollOffset or 0 end
+        frame.GetVerticalScrollRange=function(self) return math.max(0,self.child:GetHeight()-self:GetHeight()) end
+    end
+    return frame
+end)

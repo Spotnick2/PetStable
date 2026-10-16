@@ -18,10 +18,10 @@ local function PaintMaterial()
             glass.SetSurfaceTint(g, 0.095, 0.11, 0.135, 0.90)
         end
         glass.SetWash(g, shell and 0 or 0.025)
-        g.rim:SetAlpha(shell and 0.12 or 0.22)
-        g.dark:SetAlpha(shell and 0.55 or 0.35)
-        g.shadow:SetAlpha(shell and 0.18 or 0.05)
-        g.grain:SetAlpha(0)
+        glass.SetSurfaceAlpha(g, "rim", shell and 0.12 or 0.22)
+        glass.SetSurfaceAlpha(g, "dark", shell and 0.55 or 0.35)
+        glass.SetSurfaceAlpha(g, "shadow", shell and 0.18 or 0.05)
+        glass.SetSurfaceAlpha(g, "grain", 0)
         if reflective then
             glass.SetEdge(g, shell and 0 or 0.10, shell and 0 or 0.015, shell and 0 or 0.12, 3)
         else
@@ -40,7 +40,7 @@ function NS.SetMaterial(mode)
 end
 local pages = {
     { key="guide", label="Pet Guide", title="Discover your next companion",
-      text="The pet guide is coming soon.\n\nBrowseable families, appearances, and locations will appear here as the Forever catalog is added." },
+      text="" },
     { key="upgrades", label="Ability Upgrades", title="Plan your pet's next ability",
       text="Ability recommendations are coming soon.\n\nThis page will help you find new ranks and the creatures or trainers that teach them." },
     { key="pets", label="My Pets", title="Your companions, together",
@@ -56,29 +56,8 @@ local function Surface(host, size, role)
             backing:SetAllPoints(host)
             backing:AddMaskTexture(surface.mask)
             item.backing = backing
-            -- Static layers from References/LIBGLASS-WINDOW-STYLING.md.
-            -- Alpha belongs in gradient endpoints on Forever.
-            local S = glass.SIZES[surface.size]
-            local rim = surface.top:CreateTexture(nil, "OVERLAY", nil, 6)
-            rim:SetAllPoints(host)
-            rim:SetTexture(glass.MEDIA .. S.rim)
-            rim:SetTextureSliceMargins(S.rimMargin, S.rimMargin, S.rimMargin, S.rimMargin)
-            rim:SetTextureSliceMode(Enum.UITextureSliceMode.Stretched)
-            rim:SetGradient("VERTICAL", CreateColor(0.55,0.65,0.75,0.035), CreateColor(0.84,0.88,0.91,0.52))
-            local top = surface.top:CreateTexture(nil, "OVERLAY", nil, 7)
-            top:SetColorTexture(1,1,1,1)
-            top:SetPoint("TOPLEFT", host, "TOPLEFT", S.maskMargin,-1)
-            top:SetPoint("TOPRIGHT", host, "TOPRIGHT", -S.maskMargin,-1)
-            top:SetHeight(1)
-            top:SetGradient("HORIZONTAL", CreateColor(0.88,0.91,0.93,0.58), CreateColor(0.65,0.73,0.8,0.035))
-            local reflection = host:CreateTexture(nil, "BACKGROUND", nil, -3)
-            reflection:SetColorTexture(1,1,1,1)
-            reflection:AddMaskTexture(surface.mask)
-            reflection:SetPoint("TOPLEFT",host,"TOPLEFT",0,0)
-            reflection:SetPoint("TOPRIGHT",host,"TOPRIGHT",0,0)
-            reflection:SetHeight(70) -- fade before the reading region at y=82
-            reflection:SetGradient("VERTICAL", CreateColor(0.77,0.81,0.85,0), CreateColor(0.77,0.81,0.85,0.105))
-            item.reflections = { rim, top, reflection }
+            local reflection = glass.Reflect(surface, host, { header=70 })
+            item.reflections = { reflection.rim, reflection.top, reflection.header }
         end
         material.surfaces[#material.surfaces+1] = item
         return surface
@@ -110,6 +89,7 @@ function NS.Layout()
 end
 
 function NS.SelectPage(key)
+    if NS.guide then NS.guide.ClearFocus() end
     for _, page in ipairs(pages) do
         local selected = page.key == key
         local b = buttons[page.key]
@@ -120,6 +100,11 @@ function NS.SelectPage(key)
             title:SetText(page.title)
             description:SetText(page.text)
         end
+    end
+    if NS.guide then
+        NS.guide:SetShown(key=="guide")
+        description:SetShown(key~="guide")
+        if key=="guide" then NS.guide.Refresh(false) end
     end
     local _, class = UnitClass("player")
     context:SetText(class == "HUNTER" and "PetStable • Forever" or "The pet guide is open to everyone. Ability advice and pet tracking are for hunters.")
@@ -144,8 +129,10 @@ local function Build()
     frame:EnableKeyboard(true)
     frame:SetPropagateKeyboardInput(true)
     frame:SetScript("OnKeyDown", function(self, key)
-        self:SetPropagateKeyboardInput(key ~= "ESCAPE")
-        if key == "ESCAPE" then self:Hide() end
+        if key == "ESCAPE" then
+            self:Hide()
+            self:SetPropagateKeyboardInput(false)
+        else self:SetPropagateKeyboardInput(not (NS.guide and NS.guide.HasFocus())) end
     end)
     Surface(frame, "large", "shell")
     content = CreateFrame("Frame", nil, frame)
@@ -176,7 +163,10 @@ local function Build()
         NS.db.position = {point=point,relativePoint=relativePoint,x=x,y=y}
     end
     drag:SetScript("OnDragStop", StopDrag)
-    frame:SetScript("OnHide", StopDrag)
+    frame:SetScript("OnHide", function()
+        if NS.guide then NS.guide.ClearFocus() end
+        StopDrag()
+    end)
     local close = CreateFrame("Button", nil, content, "BackdropTemplate")
     close:SetSize(30,28); close:SetPoint("TOPRIGHT", -14,-14)
     Surface(close,"small","control")
@@ -197,6 +187,7 @@ local function Build()
     description=Text(content,16); description:SetPoint("TOPLEFT",232,-158)
     description:SetSize(580,220); description:SetWordWrap(true)
     description:SetJustifyV("TOP"); description:SetSpacing(5)
+    NS.guide=NS.CreateGuide(content,frame,Text)
     context=Text(content,12,{0.72,0.78,0.82,1}); context:SetPoint("BOTTOMLEFT",24,24); context:SetWidth(810)
     local hint=Text(content,12,{0.64,0.70,0.75,1})
     hint:SetPoint("BOTTOMLEFT",232,82); hint:SetText("Drag the title bar to move • /petstable scale 0.9 to resize")

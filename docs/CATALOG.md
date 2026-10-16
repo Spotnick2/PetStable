@@ -1,9 +1,10 @@
 # Catalog v1: bounded issue #7 seed
 
-This is a static, provenance-aware foundation for Pet Guide. It is partial work
-on issue #7, not the browser in #8. The three player pages still show their
-existing empty states. No recommendations, collection capture, data import,
-network access, or SavedVariables changes are introduced.
+This is a static, provenance-aware foundation for Pet Guide, delivered as partial
+work on issue #7. The [first browser slice](PET-GUIDE.md) uses this seed without
+expanding it. Ability Upgrades and My Pets retain their empty states. The catalog
+does not provide recommendations, collection capture, data import, network access,
+or SavedVariables changes.
 
 ## Contract
 
@@ -106,12 +107,12 @@ validation unconditionally and retains the optional private-host probe skip.
 
 After deployment, smoke-test `/petstable` on build 70425 or record the newer
 build: enable only the player addon, open each page, close with Escape, reopen,
-and reload. Include a non-hunter/no-pet check. No new appearance rendering is
-introduced, so the successful Cat/Bear experiments need not be repeated.
-Live smoke validation of this catalog revision is pending owner testing.
+and reload. Include a non-hunter/no-pet check. The catalog-only change did not
+introduce rendering; the browser now has its own [live checks](PET-GUIDE.md).
 
 Issue #7 remains open for real shared-look/multiple-appearance seed coverage,
 identified acquisition sources, and more representative requirements/location
-data. Issues #3-#5 retain their documented research gaps. Browser/filter/model
-work (#8), collection tracking and recommendations (#9-#11), and broad catalog
-expansion (#12) are outside this milestone.
+data. Issues #3-#5 retain their documented research gaps. Issue #8 is partially
+implemented by the browser; its 3D and broader filtering work remains pending.
+Collection tracking and recommendations (#9-#11), and broad catalog expansion
+(#12) remain outside this milestone.

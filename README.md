@@ -4,9 +4,10 @@ Hunter pet field guide and ability upgrade advisor for WoW Forever. The player
 addon currently provides a LibGlass window with Pet Guide, Ability Upgrades, and
 My Pets navigation. A small provenance-aware catalog is now loaded, with measured
 Forever observations and a separate Classic reference sample; see
-[catalog coverage and validation](docs/CATALOG.md). Browser presentation,
-recommendations, and pet tracking are not yet implemented; each page retains
-its explicit empty state.
+[catalog coverage and validation](docs/CATALOG.md). Pet Guide now browses the
+three recorded creatures with search, family filtering, exact 2D portraits where
+known, and evidence-aware details. Ability Upgrades and My Pets retain their
+empty states; recommendations and pet tracking are not yet implemented.
 
 ## Player addon
 
@@ -16,6 +17,18 @@ button closes the window. `/petstable scale 0.9` adjusts scale (0.65–1.3), and
 also fits the available screen size. Position, preferred scale, and selected page
 are saved in account-wide `PetStableDB`. Non-hunters can open every page.
 
+In Pet Guide, search recorded names or families and click the Family button to
+cycle through All, Bear, Cat, and Tallstrider. Clear resets both filters. Select
+a result for details; Show evidence exposes the sources, review dates, and
+measured builds. Use the mouse wheel or arrow buttons to scroll results and
+details. Enter releases search focus; Escape closes the window, including while
+typing. Search, filters, and selection last for the session and reset on reload.
+
+The Cat and Bear have measured appearances but no recorded wild names. Ornery
+Galestrider has no measured display ID and uses a portrait placeholder. Observer
+context is not a spawn location, and no entry claims an acquisition source.
+See [browser scope and live checks](docs/PET-GUIDE.md).
+
 For a development checkout:
 
 ```powershell
@@ -23,8 +36,8 @@ pwsh Tools/embed-libglass.ps1
 pwsh Tools/deploy-addon.ps1
 ```
 
-Then `/reload` and `/petstable`. The embed script reads pinned LibGlass r8
-(`7b1b1e6c08f040d3fa495aa5f4308f160d5495d9`) from `../LibGlass` without modifying
+Then `/reload` and `/petstable`. The embed script reads pinned LibGlass r9
+(`fcfd472b30756a51b265969e71deb36cd3524802`) from `../LibGlass` without modifying
 that checkout, and uses the release's own deployment script to copy its runtime
 files, license, and media. Override the source with `-LibGlass <path>`.
 `.pkgmeta` pins the same release for packaging. The embedded copy is gitignored.
@@ -66,8 +79,9 @@ In game, open `/petstable` and visit all three pages. Check readable text over
 bright scenery, drag the title bar, change scale, and close with both Escape and
 the close button. Reopen after `/reload` to check position, scale, and selected
 page. A full exit/relaunch is needed to verify disk persistence independently
-of reload. Repeat opening on a non-hunter when convenient. No catalog, ability,
-or owned-pet results should be implied by these empty pages.
+of reload. Repeat opening on a non-hunter when convenient. Pet Guide shows the
+bounded catalog; Ability Upgrades and My Pets still have explicit empty states.
+The browser's own live validation remains pending as documented in its guide.
 
 Live validation feedback on 2026-10-16 reported that Escape opened the game menu
 instead of closing PetStable; the other checks performed seemed fine. The window
@@ -80,7 +94,8 @@ The reflective shell follows the shared
 tint/backing, sliced directional silver rim, fine top highlight, and a masked
 header reflection fading within 70 UI units. A single masked reading region
 starts at y=82 and protects navigation, page content, help, and footer without
-moving them. Green accents and text opacity are preserved.
+moving them. Green accents and text opacity are preserved. The shell uses r9's
+`Reflect` and `SetSurfaceAlpha` APIs with the same material settings.
 
 For live comparison at the same position and scale:
 
