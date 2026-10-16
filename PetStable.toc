@@ -9,4 +9,6 @@ Libs\LibGlass-1.0\LibGlass-1.0.xml
 Core.lua
 Catalog.lua
 CatalogData.lua
+GuideData.lua
+GuideUI.lua
 UI.lua

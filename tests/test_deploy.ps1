@@ -39,7 +39,7 @@ exit 0
     & pwsh -NoProfile -File (Join-Path $repoRoot 'Tools\deploy-addon.ps1') -AddOnsPath $addons -Lua $Lua
     if ($LASTEXITCODE -ne 0) { throw 'Player addon deployment failed.' }
     $player = Join-Path $addons 'PetStable'
-    foreach ($name in @('Core.lua','Catalog.lua','CatalogData.lua','UI.lua','PetStable.toc','Libs\LibGlass-1.0\LibGlass.lua','Libs\LibGlass-1.0\Media\rim_thin.tga')) {
+    foreach ($name in @('Core.lua','Catalog.lua','CatalogData.lua','GuideData.lua','GuideUI.lua','UI.lua','PetStable.toc','Libs\LibGlass-1.0\LibGlass.lua','Libs\LibGlass-1.0\Media\rim_thin.tga')) {
         if ((Get-FileHash -LiteralPath (Join-Path $repoRoot $name)).Hash -ne (Get-FileHash -LiteralPath (Join-Path $player $name)).Hash) {
             throw "Player deployment differs: $name"
         }
@@ -54,14 +54,16 @@ local root=arg[1]:gsub('\\','/')
 local ns={}
 local count=0
 for line in io.lines(root..'/PetStable.toc') do
-    if line:match('^Catalog.*%.lua$') then
+    if line:match('^Catalog.*%.lua$') or line:match('^Guide.*%.lua$') then
         assert(loadfile(root..'/'..line))('PetStable',ns)
         count=count+1
     end
 end
-assert(count==2 and ns.Catalog and ns.CatalogData)
+assert(count==4 and ns.Catalog and ns.CatalogData and ns.CreateGuide)
 local errors,conflicts=ns.Catalog.Validate(ns.CatalogData)
 assert(#errors==0 and #conflicts==0)
+local entries=ns.GuideData.Build(ns.CatalogData)
+assert(#entries==3)
 '@
     & $Lua $catalogCheck $player
     if ($LASTEXITCODE -ne 0) { throw 'Deployed catalog failed to load and validate.' }

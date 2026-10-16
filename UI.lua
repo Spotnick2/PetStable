@@ -40,7 +40,7 @@ function NS.SetMaterial(mode)
 end
 local pages = {
     { key="guide", label="Pet Guide", title="Discover your next companion",
-      text="The pet guide is coming soon.\n\nBrowseable families, appearances, and locations will appear here as the Forever catalog is added." },
+      text="" },
     { key="upgrades", label="Ability Upgrades", title="Plan your pet's next ability",
       text="Ability recommendations are coming soon.\n\nThis page will help you find new ranks and the creatures or trainers that teach them." },
     { key="pets", label="My Pets", title="Your companions, together",
@@ -110,6 +110,7 @@ function NS.Layout()
 end
 
 function NS.SelectPage(key)
+    if NS.guide then NS.guide.ClearFocus() end
     for _, page in ipairs(pages) do
         local selected = page.key == key
         local b = buttons[page.key]
@@ -120,6 +121,11 @@ function NS.SelectPage(key)
             title:SetText(page.title)
             description:SetText(page.text)
         end
+    end
+    if NS.guide then
+        NS.guide:SetShown(key=="guide")
+        description:SetShown(key~="guide")
+        if key=="guide" then NS.guide.Refresh(false) end
     end
     local _, class = UnitClass("player")
     context:SetText(class == "HUNTER" and "PetStable • Forever" or "The pet guide is open to everyone. Ability advice and pet tracking are for hunters.")
@@ -144,8 +150,10 @@ local function Build()
     frame:EnableKeyboard(true)
     frame:SetPropagateKeyboardInput(true)
     frame:SetScript("OnKeyDown", function(self, key)
-        self:SetPropagateKeyboardInput(key ~= "ESCAPE")
-        if key == "ESCAPE" then self:Hide() end
+        if key == "ESCAPE" then
+            self:Hide()
+            self:SetPropagateKeyboardInput(false)
+        else self:SetPropagateKeyboardInput(not (NS.guide and NS.guide.HasFocus())) end
     end)
     Surface(frame, "large", "shell")
     content = CreateFrame("Frame", nil, frame)
@@ -176,7 +184,10 @@ local function Build()
         NS.db.position = {point=point,relativePoint=relativePoint,x=x,y=y}
     end
     drag:SetScript("OnDragStop", StopDrag)
-    frame:SetScript("OnHide", StopDrag)
+    frame:SetScript("OnHide", function()
+        if NS.guide then NS.guide.ClearFocus() end
+        StopDrag()
+    end)
     local close = CreateFrame("Button", nil, content, "BackdropTemplate")
     close:SetSize(30,28); close:SetPoint("TOPRIGHT", -14,-14)
     Surface(close,"small","control")
@@ -197,6 +208,7 @@ local function Build()
     description=Text(content,16); description:SetPoint("TOPLEFT",232,-158)
     description:SetSize(580,220); description:SetWordWrap(true)
     description:SetJustifyV("TOP"); description:SetSpacing(5)
+    NS.guide=NS.CreateGuide(content,frame,Text)
     context=Text(content,12,{0.72,0.78,0.82,1}); context:SetPoint("BOTTOMLEFT",24,24); context:SetWidth(810)
     local hint=Text(content,12,{0.64,0.70,0.75,1})
     hint:SetPoint("BOTTOMLEFT",232,82); hint:SetText("Drag the title bar to move • /petstable scale 0.9 to resize")

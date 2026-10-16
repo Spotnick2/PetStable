@@ -15,9 +15,11 @@ jobs:
         run: |
           while IFS= read -r -d '' file; do
             luac5.1 -p "$file" || exit 1
-          done < <(find Core.lua Catalog.lua CatalogData.lua UI.lua Tools tests -name '*.lua' -print0)
+          done < <(find Core.lua Catalog.lua CatalogData.lua GuideData.lua GuideUI.lua UI.lua Tools tests -name '*.lua' -print0)
       - name: Catalog validation (no client or probe required)
         run: lua5.1 tests/test_catalog.lua
+      - name: Guide data and filters
+        run: lua5.1 tests/test_guide.lua
       - name: Player addon and pinned LibGlass
         env:
           LIBGLASS: .test-output/LibGlass

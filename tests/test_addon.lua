@@ -1,6 +1,7 @@
 -- Use the material's shared widget mocks and the actual embedded release.
 local source = (os.getenv("LIBGLASS") or "../LibGlass"):gsub("\\", "/")
 dofile(source .. "/tests/wow_stubs.lua")
+dofile("tests/guide_stubs.lua")
 rawset(_G,"SlashCmdList",{})
 rawset(_G,"UnitClass",function() return "Mage", "MAGE" end)
 UIParent:SetSize(1920,1080)
@@ -9,12 +10,15 @@ local function loadAddon()
     assert(loadfile("Core.lua"))("PetStable",ns)
     assert(loadfile("Catalog.lua"))("PetStable",ns)
     assert(loadfile("CatalogData.lua"))("PetStable",ns)
+    assert(loadfile("GuideData.lua"))("PetStable",ns)
+    assert(loadfile("GuideUI.lua"))("PetStable",ns)
     assert(loadfile("UI.lua"))("PetStable",ns)
     return ns
 end
 local function checkEscape(window, toggle)
     local propagated
-    window.SetPropagateKeyboardInput=function(_, value) propagated=value end
+    local propagate=window.SetPropagateKeyboardInput
+    window.SetPropagateKeyboardInput=function(self, value) propagated=value; propagate(self,value) end
     local keyDown=assert(window:GetScript("OnKeyDown"))
     keyDown(window,"W")
     assert(window:IsShown() and propagated, "ordinary keys must pass through without closing")
@@ -42,6 +46,7 @@ for _,key in ipairs({"guide","upgrades","pets"}) do
     assert(ns.db.page==key)
 end
 checkEscape(ns.frame,ns.Toggle)
+dofile("tests/guide_cases.lua")(ns)
 SlashCmdList.PETSTABLE("scale 99")
 assert(ns.db.scale==1.3)
 SlashCmdList.PETSTABLE("reset")
@@ -49,6 +54,7 @@ assert(ns.db.scale==1 and ns.db.position.x==0)
 ns.frame.GetPoint=function() return "TOPLEFT",UIParent,"TOPLEFT",120,-90 end
 ns.frame:GetScript("OnHide")()
 assert(ns.db.position.x==120 and ns.db.position.y==-90)
+ns.SelectPage("pets")
 local saved=ns.db
 local fresh=loadAddon()
 WoW.fire("ADDON_LOADED","PetStable")
@@ -68,6 +74,7 @@ local lib=LibStub("LibGlass-1.0")
 local other=lib:New({bodyAlpha=0.3})
 fresh.Toggle()
 checkEscape(fresh.frame,fresh.Toggle)
+dofile("tests/guide_cases.lua")(fresh)
 assert(fresh.Glass and fresh.Glass~=other)
 assert(fresh.Glass.STYLE.bodyAlpha==0.88 and other.STYLE.bodyAlpha==0.3)
 assert(fresh.Glass.MEDIA:find("PetStable",1,true), "media must use consuming addon path")
@@ -85,4 +92,4 @@ assert(not fresh.SetMaterial("invalid"))
 assert(#WoW.widgets==widgetCount and fresh.frame==window, "comparison must repaint existing layers")
 assert(fresh.db.page==selected and fresh.db.position==position, "comparison must preserve navigation and placement")
 assert(other.STYLE.bodyAlpha==0.3, "comparison must not modify another glass instance")
-io.write("PASS: addon lifecycle, Escape handling, non-hunter empty pages, fallback, saved settings, scaling, and embedded LibGlass\n")
+io.write("PASS: addon lifecycle, guide rows/portraits/focus/scrolling, Escape, non-hunter navigation, fallback, saved settings, scaling, and embedded LibGlass\n")
