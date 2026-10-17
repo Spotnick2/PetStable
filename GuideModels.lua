@@ -114,7 +114,7 @@ function NS.CreateAppearancePreview(parent,Text,interactive)
         preview.Clear(); group=value; if not value then return end
         preview.key=value.key; preview.yaw=0.5; preview.zoom=1
         fallback:ClearAllPoints(); fallback:SetPoint("CENTER"); fallback:SetText("Loading appearance..."); fallback:Show()
-        if not (value.displayID and value.modelVerified and actor) then Fallback(); return end
+        if not (value.displayID and (value.modelVerified or value.referencePreview) and actor) then Fallback(); return end
         Viewport(); scene:Show(); Camera()
         Call(actor,"SetScale",1); Call(actor,"SetUseCenterForOrigin",true,true,true)
         Call(actor,"SetPosition",0,0,0); Call(actor,"SetYaw",preview.yaw)

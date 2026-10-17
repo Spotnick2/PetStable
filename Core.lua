@@ -19,6 +19,7 @@ function NS.Initialize()
         db.position = { point="CENTER", relativePoint="CENTER", x=0, y=0 }
     end
     NS.db = db
+    if NS.Sightings then NS.Sightings.Initialize() end
 end
 
 local boot = CreateFrame("Frame")
@@ -34,7 +35,8 @@ SlashCmdList.PETSTABLE = function(message)
     if not NS.db then return end
     local command, value = message:match("^%s*(%S*)%s*(.-)%s*$")
     command = command:lower()
-    if command == "material" then
+    if command == "sightings" and NS.Sightings then NS.Sightings.Command(value:lower())
+    elseif command == "material" then
         if not NS.SetMaterial(value) then print("PetStable: /petstable material reflective|flat") end
     elseif command == "scale" then
         local scale = tonumber(value)

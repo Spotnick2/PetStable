@@ -333,7 +333,7 @@ local function Build()
         NS.StyleButton(b); b:SetScript("OnClick",click); return b
     end
     local settings=CreateFrame("Frame",nil,content,"BackdropTemplate"); NS.settings=settings
-    settings:SetSize(320,228); settings:SetPoint("TOPRIGHT",-16,-58); settings:SetFrameLevel(content:GetFrameLevel()+50); settings:EnableMouse(true)
+    settings:SetSize(320,266); settings:SetPoint("TOPRIGHT",-16,-58); settings:SetFrameLevel(content:GetFrameLevel()+50); settings:EnableMouse(true)
     settings:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
     settings:SetBackdropColor(0.045,0.065,0.055,1); settings:SetBackdropBorderColor(0.4,0.5,0.42,1)
     local help=Text(settings,13); help:SetPoint("TOPLEFT",16,-14); help:SetWidth(288)
@@ -351,6 +351,18 @@ local function Build()
     scale:SetScript("OnValueChanged",function(_,value) if not syncing then NS.db.scale=value; NS.Layout() end end)
     local reset=Button(settings,"Reset window",136,28,function() SlashCmdList.PETSTABLE("reset") end); reset:SetPoint("TOPLEFT",16,-170); settings.reset=reset
     local done=Button(settings,"Done",136,28,function() settings:Hide() end); done:SetPoint("TOPRIGHT",-16,-170)
+    if NS.Sightings then
+        local capture
+        capture=Button(settings,"",288,28,function()
+            NS.Sightings.Command(NS.db.captureSightings and "off" or "on")
+            capture.label:SetText("Record beast sightings: "..(NS.db.captureSightings and "On" or "Off"))
+        end)
+        capture:SetPoint("TOPLEFT",16,-208)
+        local sync=settings.Sync
+        settings.Sync=function()
+            sync(); capture.label:SetText("Record beast sightings: "..(NS.db.captureSightings and "On" or "Off"))
+        end
+    end
     settings:Hide()
     local settingsButton=Button(content,"Settings",80,28,function() NS.guide.ClearFocus(); settings:SetShown(not settings:IsShown()); settings.Sync() end)
     settingsButton:SetPoint("TOPRIGHT",-54,-18); NS.settingsButton=settingsButton

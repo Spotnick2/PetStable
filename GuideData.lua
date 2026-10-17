@@ -66,6 +66,16 @@ function Guide.Build(data)
             local name,id,icon=Read(r.key,"name"),Read(r.key,"familyID"),Read(r.key,"iconFileID")
             local label=name.value or "Family unresolved"
             local display=name.value and (plurals[label] or label.."s") or label
+            local api=rawget(_G,"C_CreatureInfo")
+            if id.value and api and type(api.GetCreatureFamilyInfo)=="function" then
+                local ok,info=pcall(api.GetCreatureFamilyInfo,id.value)
+                if ok and type(info)=="table" and type(info.name)=="string" and info.name~="" then
+                    label=info.name
+                    -- English plurals are not rules for other client languages.
+                    display=(type(GetLocale)=="function" and GetLocale()~="enUS" and GetLocale()~="enGB")
+                        and label or (plurals[label] or label.."s")
+                end
+            end
             families[r.key]={key=r.key,label=label,displayLabel=display,familyID=id.value,
                 iconFileID=icon.value,count=0,search=(label.." "..display):lower()}
             for _,field in ipairs({name,id,icon}) do
@@ -89,13 +99,28 @@ function Guide.Build(data)
             local family=familyLink.value and Field(familyLink.value,"name","Family") or familyLink
             local familyName=family.state=="known" and family.value or "Family unknown"
             local familyKey=familyLink.state=="known" and familyLink.value or nil
+            if familyKey and families[familyKey] then familyName=families[familyKey].label end
             if familyKey and families[familyKey] then families[familyKey].count=families[familyKey].count+1 end
             local label=name.value or (familyName..(name.state=="conflicting" and " — name unresolved" or " — name unknown"))
+            local creatureID=Field(r.key,"creatureID","NPC ID").value
+            local localized=NS.Sightings and NS.Sightings.Name(creatureID)
+            if localized then label=localized end
             local level=Field(r.key,"observedLevel","Observed level")
             local tameable=Field(r.key,"tameable","Tameability")
             local area=Field(r.key,"observerArea","Observer context")
             local map=Field(r.key,"observerMapID","Observer map")
             local appearance=Field(r.key,"appearance","Appearance association")
+            local variants,variantKeys={},{}
+            -- Reference links enumerate exact displays; named-look candidates never enter this list.
+            for _,link in ipairs(appearance.claims) do
+                if link.status=="reference" and not variantKeys[link.value] then
+                    local id=Field(link.value,"displayID","Reference display ID")
+                    if id.value then
+                        variantKeys[link.value]=true
+                        variants[#variants+1]={key=link.value,displayID=id.value,referencePreview=true}
+                    end
+                end
+            end
             local display,verified,modelVerified
             if appearance.value then
                 display=Field(appearance.value,"displayID","Display ID")
@@ -131,17 +156,36 @@ function Guide.Build(data)
             local high=Field(r.key,"levelMax","Maximum level")
             local conditions=Field(r.key,"conditions","Conditions")
             local spawn=Field(r.key,"spawn","Spawn location")
-            local levelMin,levelMax,location
+            local levelMin,levelMax,location,referenceLevel
             for _,a in ipairs(low.claims) do
                 for _,b in ipairs(high.claims) do
                     if low.value and high.value and a.status=="confirmed" and b.status=="confirmed"
                         and SameScope(evidence[a.evidence],evidence[b.evidence]) then levelMin,levelMax=low.value,high.value end
                 end
             end
+            if not levelMin and low.value and high.value then
+                for _,a in ipairs(low.claims) do for _,b in ipairs(high.claims) do
+                    if a.status=="reference" and b.status=="reference" and a.evidence==b.evidence then
+                        levelMin,levelMax,referenceLevel=low.value,high.value,true
+                    end
+                end end
+            end
             if spawn.state=="known" then
                 for _,claim in ipairs(spawn.claims) do if claim.status=="confirmed" then location=spawn.value end end
             end
-            if levelMin then details[#details+1]="Verified level range: "..levelMin.."–"..levelMax end
+            if levelMin then details[#details+1]=(referenceLevel and "Reference level range: " or "Verified level range: ")..levelMin.."–"..levelMax end
+            local zones,notes={},{}
+            for _,claim in ipairs(Field(r.key,"zoneName","Reference zone").claims) do zones[claim.value]=true end
+            for _,claim in ipairs(Field(r.key,"referenceNote","Reference acquisition/location note").claims) do notes[claim.value]=true end
+            local zoneNames=Sorted(zones)
+            if #zoneNames>0 then details[#details+1]="Reference zones: "..table.concat(zoneNames,", ") end
+            if next(notes) then details[#details+1]="Reference notes:\n"..table.concat(Sorted(notes),"\n") end
+            local rarity=Field(r.key,"rarity","Reference creature classification")
+            if rarity.state~="unknown" then details[#details+1]="Reference creature classification: "..Value(rarity) end
+            local referenceTame=false
+            for _,claim in ipairs(tameable.claims) do if claim.status=="reference" then referenceTame=true end end
+            if referenceTame then details[5]="Reference tameability: "..Value(tameable).." (not verified in game)" end
+            if #variants>0 then details[#details+1]="Website appearance references; a working preview does not confirm a wild spawn or tameability." end
             if conditions.state~="unknown" then details[#details+1]="Conditions: "..Value(conditions) end
             if location then
                 details[7]=string.format("Recorded spawn: UI map %d (%.1f%%, %.1f%%)",location.mapID,location.x*100,location.y*100)
@@ -169,11 +213,13 @@ function Guide.Build(data)
                 for _,line in ipairs(Sorted(lines)) do sources[#sources+1]=line end
             end
             entries[#entries+1]={key=r.key,label=label,familyKey=familyKey,family=familyName,displayID=displayID,
+                creatureID=creatureID,familyID=familyKey and families[familyKey] and families[familyKey].familyID,
+                variants=variants,zoneNames=zoneNames,referenceLevel=referenceLevel,
                 appearanceKey=appearance.value,portraitVerified=VerifiedAppearance(appearance,display,verified),
                 modelVerified=VerifiedAppearance(appearance,display,modelVerified),
                 observedLevel=level.value,levelMin=levelMin,levelMax=levelMax,spawn=location,
                 sourceSummary=table.concat(summaries,"\n"),sourceURLs=Sorted(urls),
-                search=((name.value or "").." "..(family.state=="known" and family.value or "")):lower(),
+                search=(label.." "..(name.value or "").." "..familyName):lower(),
                 details=table.concat(details,"\n\n"),evidence=table.concat(sources,"\n")}
         end
     end
@@ -211,24 +257,37 @@ function Guide.Select(entries,key)
     return entries[1]
 end
 
--- Group only an unambiguous, verified display, never a model file or a name.
--- Unresolved records each keep their own card and all original detail/evidence.
+-- Exact reference IDs may be previewed, but never acquire a verification flag.
+-- One creature can occur beneath several skins; geometry/names never merge them.
 function Guide.Appearances(entries,familyKey)
     local groups,byKey={},{}
     for _,entry in ipairs(entries) do
         if entry.familyKey==familyKey then
             local verified=entry.displayID and (entry.portraitVerified or entry.modelVerified)
-            local key=verified and (familyKey.."/display/"..entry.displayID) or ("unresolved/"..entry.key)
+            local variants={}
+            for _,v in ipairs(entry.variants or {}) do variants[#variants+1]=v end
+            if verified then
+                local found=false
+                for _,v in ipairs(variants) do if v.displayID==entry.displayID then found=true end end
+                if not found then variants[#variants+1]={displayID=entry.displayID} end
+            end
+            if #variants==0 then variants[1]={} end
+            for _,variant in ipairs(variants) do
+            local id=variant.displayID
+            local key=id and (familyKey.."/display/"..id) or ("unresolved/"..entry.key)
             local group=byKey[key]
             if not group then
-                group={key=key,familyKey=familyKey,displayID=verified and entry.displayID or nil,
-                    label=verified and (entry.family.." appearance · "..entry.displayID) or (entry.label.." — appearance unresolved"),
+                group={key=key,familyKey=familyKey,displayID=id,
+                    label=id and (entry.family.." appearance · "..id) or (entry.label.." — appearance unresolved"),
                     entries={},modelVerified=false,portraitVerified=false}
                 byKey[key]=group; groups[#groups+1]=group
             end
-            group.modelVerified=group.modelVerified or entry.modelVerified
-            group.portraitVerified=group.portraitVerified or entry.portraitVerified
+            group.referencePreview=group.referencePreview or variant.referencePreview
+            group.seen=group.seen or (NS.Sightings and NS.Sightings.Seen(entry.familyID,id))
+            group.modelVerified=group.modelVerified or (id==entry.displayID and entry.modelVerified) or false
+            group.portraitVerified=group.portraitVerified or (id==entry.displayID and entry.portraitVerified) or false
             group.entries[#group.entries+1]=entry
+            end
         end
     end
     table.sort(groups,function(a,b) return a.label==b.label and a.key<b.key or a.label<b.label end)
@@ -236,7 +295,10 @@ function Guide.Appearances(entries,familyKey)
 end
 
 function Guide.Zone(entry)
-    if not entry.spawn then return "Location unknown", "unknown" end
+    if not entry.spawn then
+        if entry.zoneNames and #entry.zoneNames>0 then return table.concat(entry.zoneNames,", "), "reference:"..entry.zoneNames[1] end
+        return "Location unknown", "unknown"
+    end
     local id=entry.spawn.mapID
     local maps=rawget(_G,"C_Map")
     if maps and type(maps.GetMapInfo)=="function" then
@@ -248,7 +310,8 @@ end
 
 function Guide.Level(entry)
     if entry.levelMin and entry.levelMax then
-        return entry.levelMin==entry.levelMax and ("Level "..entry.levelMin) or ("Levels "..entry.levelMin.."–"..entry.levelMax)
+        local label=entry.levelMin==entry.levelMax and ("Level "..entry.levelMin) or ("Levels "..entry.levelMin.."–"..entry.levelMax)
+        return label..(entry.referenceLevel and " (reference)" or "")
     end
     return entry.observedLevel and ("Observed level "..entry.observedLevel) or "Level unknown"
 end
@@ -256,7 +319,10 @@ end
 function Guide.AppearanceSummary(entries)
     local levels,zones={},{}
     for _,entry in ipairs(entries) do
-        levels[Guide.Level(entry)]=true; zones[Guide.Zone(entry)]=true
+        levels[Guide.Level(entry)]=true
+        if not entry.spawn and entry.zoneNames and #entry.zoneNames>0 then
+            for _,name in ipairs(entry.zoneNames) do zones[name]=true end
+        else zones[Guide.Zone(entry)]=true end
     end
     local levelList,zoneList=Sorted(levels),Sorted(zones)
     -- Do not collapse observations into a range or hide unknown levels/locations.
@@ -272,7 +338,9 @@ function Guide.AppearanceFilters(groups)
         local low,high=entry.levelMin or entry.observedLevel,entry.levelMax or entry.observedLevel
         local label=low and (low==high and ("Level "..low) or ("Levels "..low.."–"..high)) or "Level unknown"
         levels[label]=low and {low=low,high=high} or "unknown"
-        local label,key=Guide.Zone(entry); zones[key]=label
+        if not entry.spawn and entry.zoneNames and #entry.zoneNames>0 then
+            for _,name in ipairs(entry.zoneNames) do zones["reference:"..name]=name.." (reference)" end
+        else local label,key=Guide.Zone(entry); zones[key]=label end
     end end
     local levelChoices,zoneChoices={{label="All levels"}},{{label="All zones"}}
     for _,level in ipairs(Sorted(levels)) do levelChoices[#levelChoices+1]={label=level,value=levels[level]} end
@@ -289,10 +357,12 @@ function Guide.FilterAppearances(groups,query,level,zone)
         local matches={}
         for _,entry in ipairs(group.entries) do
             local _,zoneKey=Guide.Zone(entry)
+            local zoneMatch=not zone or zoneKey==zone
+            for _,name in ipairs(entry.zoneNames or {}) do if zone=="reference:"..name then zoneMatch=true end end
             local low,high=entry.levelMin or entry.observedLevel,entry.levelMax or entry.observedLevel
             local levelMatch=not level or (level=="unknown" and not low)
                 or (type(level)=="table" and low and low<=level.high and high>=level.low)
-            if levelMatch and (not zone or zoneKey==zone)
+            if levelMatch and zoneMatch
                 and (group.label:lower():find(query,1,true) or entry.label:lower():find(query,1,true)) then
                 matches[#matches+1]=entry
             end

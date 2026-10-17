@@ -90,6 +90,16 @@ are excluded from player packaging.
 
 ## Scaffold validation
 
+The browser now includes an attributed [Forever reference expansion](docs/REFERENCE-CATALOG.md):
+810 creatures and 499 distinct numeric display IDs across 18 families, alongside
+the 19-family index. Core Hound availability remains unconfirmed. Website model
+previews are labeled as references and do not establish tameability.
+
+Targeting or mousing over a world beast records its exact appearance locally when
+the client supplies its IDs. Toggle this in Settings or with `/petstable sightings on|off`;
+`/petstable sightings` reports the journal size. Nothing is uploaded automatically.
+See the reference guide for export, limits, and required in-game checks.
+
 Local tests cover initialization, missing-library fallback, non-hunter navigation
 without pet APIs, settings restoration, invalid settings, screen fitting, isolated
 glass styling, and deployed Lua/media files. Live feedback and the successful

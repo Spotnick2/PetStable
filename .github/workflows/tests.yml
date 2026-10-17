@@ -15,16 +15,23 @@ jobs:
         run: |
           while IFS= read -r -d '' file; do
             luac5.1 -p "$file" || exit 1
-          done < <(find Core.lua Catalog.lua CatalogData.lua GuideData.lua GuideModels.lua GuideAppearances.lua GuideUI.lua UI.lua Tools tests -name '*.lua' -print0)
+          done < <(find Core.lua Catalog.lua CatalogData.lua CatalogReference.lua Sightings.lua GuideData.lua GuideModels.lua GuideAppearances.lua GuideUI.lua UI.lua Tools tests -name '*.lua' -print0)
       - name: Catalog validation (no client or probe required)
         run: lua5.1 tests/test_catalog.lua
+      - name: Reference catalog and local sightings
+        run: |
+          lua5.1 tests/test_reference.lua
+          lua5.1 tests/test_sightings.lua
+          python3 -m unittest discover -s tests -p "test_import_reference.py"
       - name: Guide data and filters
         run: lua5.1 tests/test_guide.lua
       - name: Player addon and pinned LibGlass
         env:
           LIBGLASS: .test-output/LibGlass
           PETSTABLE_LIBGLASS: .test-output/LibGlass
-        run: lua5.1 tests/test_addon.lua
+        run: |
+          lua5.1 tests/test_addon.lua
+          lua5.1 tests/test_reference_ui.lua
       - name: Probe integration (optional private host)
         env:
           FOREVERPROBE_OPTIONAL: '1'

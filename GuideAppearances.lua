@@ -176,6 +176,12 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
     function root.PaintDetail()
         if not state.result then return end
         local group=state.result.group
+        group.seen=false
+        if NS.Sightings then
+            for _,entry in ipairs(group.entries) do
+                if NS.Sightings.Seen(entry.familyID,group.displayID) then group.seen=true; break end
+            end
+        end
         local entries=state.showAll and group.entries or state.result.matches
         root.detailEntries=entries
         local width=body:GetWidth()-4; local y=0
@@ -185,8 +191,8 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         end
         TextRow(locationTitle)
         local filtered=#state.result.matches<#group.entries
-        TextRow(matchText,filtered and (state.showAll and "Showing all associated creatures." or "Showing only creatures matching your search and filters.")
-            or "All recorded creatures for this appearance. Locations may be unknown.")
+        TextRow(matchText,(group.seen and "Seen by you in game. " or "")..(filtered and (state.showAll and "Showing all associated creatures." or "Showing only creatures matching your search and filters.")
+            or "All recorded creatures for this appearance. Locations may be unknown.")..(group.referencePreview and " Website references do not guarantee availability." or ""))
         root.showAll:SetShown(filtered)
         if filtered then
             root.showAll.label:SetText(state.showAll and "Show matching creatures" or "Show all associated creatures")
@@ -315,7 +321,8 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         breadcrumb:SetText(Plain("› "..familyName..(isDetail and (" › "..state.result.group.label) or "")))
         breadcrumb:SetWordWrap(false)
         heading:SetText(Plain(isDetail and state.result.group.label or familyName))
-        subtitle:SetText(isDetail and "Appearance details" or "Browse appearances")
+        local reference=isDetail and state.result.group.referencePreview and not state.result.group.modelVerified
+        subtitle:SetText(isDetail and (reference and "Reference appearance · availability unverified" or "Appearance details") or "Browse appearances · includes website references")
         Position(root:GetWidth(),root:GetHeight()-40)
         if isDetail then
             for _,card in ipairs(root.cards) do card.preview.Clear() end
@@ -342,8 +349,12 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         gallery:SetVerticalScroll(math.min(restoreScroll,gallery:GetVerticalScrollRange()))
         empty:SetText(panel.problem or (#root.groups==0 and "No creatures recorded in PetStable yet." or "No matching appearances. Clear search or change the filters."))
         empty:SetShown(#root.results==0)
-        local unresolved=0; for _,result in ipairs(root.results) do if not result.group.displayID then unresolved=unresolved+1 end end
-        footer:SetText(#root.results.." results · "..(#root.results-unresolved).." verified appearances"..(unresolved>0 and (" · "..unresolved.." unresolved") or ""))
+        local unresolved,verified=0,0
+        for _,result in ipairs(root.results) do
+            if not result.group.displayID then unresolved=unresolved+1
+            elseif result.group.modelVerified or result.group.portraitVerified then verified=verified+1 end
+        end
+        footer:SetText(#root.results.." results · "..verified.." verified · "..(#root.results-unresolved-verified).." reference"..(unresolved>0 and (" · "..unresolved.." unresolved") or ""))
         root.PaintCards()
     end
     search:SetScript("OnTextChanged",function()
