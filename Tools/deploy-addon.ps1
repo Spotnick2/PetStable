@@ -1,4 +1,4 @@
-param([string]$AddOnsPath = 'C:\Program Files (x86)\World of Warcraft\_classic_beta_\Interface\AddOns',
+param([string]$AddOnsPath = 'C:\Program Files (x86)\World of Warcraft\_forever_\Interface\AddOns',
     [string]$Lua = 'C:\Program Files (x86)\Lua\5.1\lua.exe')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
