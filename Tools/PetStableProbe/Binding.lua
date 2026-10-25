@@ -57,7 +57,8 @@ end
 local function Start(unit)
     if run and run.watcher then run.watcher:SetScript("OnUpdate", nil) end
     local ok, guid = Probe:Try("UnitGUID", rawget(_G, "UnitGUID"), unit)
-    local _, build = Probe:Try("GetBuildInfo", rawget(_G, "GetBuildInfo"))
+    local _, version, number = Probe:Try("GetBuildInfo", rawget(_G, "GetBuildInfo"))
+    local build = type(version) == "string" and number ~= nil and (version .. "." .. tostring(number)) or nil
     local _, creatureID = Probe:Try("UnitCreatureID", rawget(_G, "UnitCreatureID"), unit)
     local kind = type(guid) == "string" and not FP.IsSecret(guid) and guid:match("^(%a+)%-") or nil
     run = { unit = unit, rows = {}, elapsed = 0, since = 0, kind = kind,

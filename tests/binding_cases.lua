@@ -22,6 +22,7 @@ return function(ns)
     local runs = db.binding.runs
     local run = runs[#runs]
     assert(run.guidKind == "Creature" and run.creatureID == 100)
+    assert(type(run.build) == "string" and run.build:match("^\"%d+%.%d+%.%d+%.%d+\"$"), "the full version.build is saved, got " .. tostring(run.build))
     assert(#made == 5, "one model per variant")
     for _, row in pairs(run.rows) do assert(row.at == nil, "nothing resolved before the display loads") end
     state.display = 1234

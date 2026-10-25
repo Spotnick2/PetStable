@@ -16,6 +16,7 @@ return function(ns)
     local index=ns._test.Facts.Capture("test")
     local capture=db.facts.captures[index]
     assert(#db.facts.captures==before+1 and capture.target.kind=="Creature" and capture.pet.kind=="Pet")
+    assert(type(capture.build)=="string" and capture.build:match("^%d+%.%d+%.%d+%.%d+$"),"the full version.build is saved, got "..tostring(capture.build))
     assert(capture.target.attackSpeed[2]==1.3 and capture.pet.attackSpeed[2]==2,"speeds are recorded as the client gives them")
     assert(capture.foods.active[2][1]=="Meat" and capture.foods.stabled[1].family[1]=="Cat")
     -- Missing APIs and no unit are recorded, not errors.

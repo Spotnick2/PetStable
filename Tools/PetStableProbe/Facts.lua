@@ -57,7 +57,8 @@ local function Foods()
 end
 
 local function Capture(label)
-    local _, build = Probe:Try("GetBuildInfo", rawget(_G, "GetBuildInfo"))
+    local _, version, number = Probe:Try("GetBuildInfo", rawget(_G, "GetBuildInfo"))
+    local build = type(version) == "string" and number ~= nil and (version .. "." .. tostring(number)) or nil
     local capture = { label = label, build = build, locale = Plain(Probe:Try("GetLocale", rawget(_G, "GetLocale"))),
         target = Unit("target"), pet = Unit("pet"), foods = Foods() }
     local store = Store()
