@@ -150,7 +150,7 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
     end)
     local selectedTitle=Label(bodyChild,16)
     local specific=Label(bodyChild,13); root.specific=specific
-    local familyText=Label(bodyChild,13)
+    local familyText=Label(bodyChild,13); root.familyText=familyText
     root.familyRow=Button(bodyChild,"Family abilities & diet ›",function() state.family=not state.family; root.PaintDetail() end)
     root.sources=Button(bodyChild,"Sources & observations ›",function() state.sources=not state.sources; root.PaintDetail() end)
     local sourceText=Label(bodyChild,12); root.sourceText=sourceText
@@ -326,7 +326,10 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         Disclosure(root.familyRow,state.family,"Family abilities & diet")
         familyText:SetShown(state.family==true)
         if state.family then
-            TextRow(familyText,(root.family and root.family.displayLabel or "Family").."\nRole: Unknown · Diet: Not verified\nLearnable family abilities: Not verified\nCreature observations are not family ability eligibility.")
+            local family=root.family
+            local diet=family and family.diet and #family.diet>0
+                and (table.concat(family.diet,", ").." (client family table, build "..family.traitBuild..")") or "Not recorded"
+            TextRow(familyText,(family and family.displayLabel or "Family").."\nRole: Unknown\nDiet: "..diet.."\nLearnable family abilities: Not verified\nCreature observations are not family ability eligibility.")
         end
         Disclosure(root.sources,state.sources,"Sources & observations")
         -- Facts are set even while collapsed, so reopening never shows stale text.

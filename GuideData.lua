@@ -9,6 +9,19 @@ end
 
 -- A display projection, not a resolver that promotes one source/build over another.
 -- Even cross-build disagreements remain unresolved in this first browser slice.
+-- The client's PetFoodMask: one bit per food type, in this order. The names are our reading of
+-- the bits. They agree with an independent diet listing for all 19 families, but should be
+-- confirmed in game with C_StableInfo.GetStablePetFoodTypes (see docs/FAMILY-FACTS.md).
+local FOOD_BITS={"Meat","Fish","Cheese","Bread","Fungus","Fruit","Raw Meat","Raw Fish"}
+function Guide.Diet(mask)
+    local foods={}
+    if type(mask)~="number" or mask<=0 or mask~=math.floor(mask) then return foods end
+    for i,name in ipairs(FOOD_BITS) do
+        if math.floor(mask/2^(i-1))%2==1 then foods[#foods+1]=name end
+    end
+    return foods
+end
+
 function Guide.Build(data)
     local errors=NS.Catalog.Validate(data)
     if #errors>0 then return {},{},"Catalog unavailable: invalid data." end
@@ -84,6 +97,12 @@ function Guide.Build(data)
             end
             families[r.key]={key=r.key,label=label,displayLabel=display,familyID=id.value,
                 iconFileID=icon.value,count=0,search=(label.." "..display):lower()}
+            -- Client family table (datamined): the food mask decoded into a diet.
+            local traits=data.familyTraits
+            local trait=type(traits)=="table" and type(traits.families)=="table" and id.value and traits.families[id.value]
+            if trait then
+                families[r.key].diet=Guide.Diet(trait.foodMask); families[r.key].traitBuild=traits.build
+            end
             for _,field in ipairs({name,id,icon}) do
                 for _,claim in ipairs(field.claims) do
                     sourceFamilies[claim.evidence]=sourceFamilies[claim.evidence] or {}

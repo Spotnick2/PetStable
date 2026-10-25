@@ -7,7 +7,7 @@ Forever observations and a separate Classic reference sample; see
 [catalog coverage and validation](docs/CATALOG.md). Pet Guide now browses the
 19 referenced families and the same three recorded creatures, with search,
 appearance galleries, verified saved model previews, and evidence-aware details. The guide and Ability Upgrades are filtered to your hunter's level unless you turn that off
-(see [docs/LEVEL-FILTER.md](docs/LEVEL-FILTER.md)). An optional [nearby teacher alert](docs/TEACHER-ALERT.md) is off by default. Ability Upgrades lists pet ability ranks and the creatures reported to teach them
+(see [docs/LEVEL-FILTER.md](docs/LEVEL-FILTER.md)). Family diet comes from the client's own family table ([docs/FAMILY-FACTS.md](docs/FAMILY-FACTS.md)). An optional [nearby teacher alert](docs/TEACHER-ALERT.md) is off by default. Ability Upgrades lists pet ability ranks and the creatures reported to teach them
 (see [docs/UPGRADES.md](docs/UPGRADES.md)); My Pets shows your active pet and stable as last observed
 (see [docs/MY-PETS.md](docs/MY-PETS.md)); recommendations and learned-rank tracking are not yet implemented.
 

@@ -13,6 +13,7 @@ Catalog.lua
 CatalogData.lua
 CatalogReference.lua
 CatalogTeachers.lua
+CatalogFamilies.lua
 Sightings.lua
 PetState.lua
 GuideData.lua
