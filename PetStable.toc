@@ -11,6 +11,7 @@ Core.lua
 Catalog.lua
 CatalogData.lua
 CatalogReference.lua
+CatalogTeachers.lua
 Sightings.lua
 GuideData.lua
 GuideModels.lua
