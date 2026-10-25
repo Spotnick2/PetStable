@@ -79,6 +79,7 @@ not automatically confirm tameability or hunter ability acquisition.
 
 Catalog references include [Petopia Forever](https://www.wow-petopia.com/forever/),
 [Beastmaster's Forever section](https://beastmaster.io/forever),
+[WarcraftDB Forever pet families](https://forever.warcraftdb.com/list/pet-families),
 [Petopia Classic](https://www.wow-petopia.com/classic/), and
 [Petopia mainline](https://www.wow-petopia.com/index.php). Website claims and
 build-stamped in-game observations will retain separate provenance.

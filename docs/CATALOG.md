@@ -101,6 +101,18 @@ alternate skins, spawn points, and contradictory facts exist only in tests.
   family-name references only. Their reviewed counts are 19 and 18; Core Hound
   appears only in the former overview. All 19 native family IDs/icons come from
   run 91 capture 1. See [family evidence and limits](FAMILY-INDEX.md).
+- [WarcraftDB Forever](https://forever.warcraftdb.com/): additional research
+  reference with a direct [Pet Families directory](https://forever.warcraftdb.com/list/pet-families)
+  and [NPC browser](https://forever.warcraftdb.com/list/npcs). The directory's
+  public page-data response listed 19 family records, including Core Hound, on
+  this review date. Family IDs, names, and icons can help cross-reference other
+  sources; a database entry does not establish that creatures are obtainable or
+  tameable in Forever. Do not import its role/talent labels as verified Forever
+  classifications. The NPC browser's inspected metadata exposed name, title,
+  and creature-type filters; a working pet-family filter was not independently
+  confirmed. Use the family directory as the starting point for further browser
+  research. These page-data endpoints are not assumed to be a supported export
+  API, and no WarcraftDB claims have been added to the runtime catalog.
 - [Petopia mainline](https://www.wow-petopia.com/index.php): retained as a future
   appearance research reference, not evidence of Forever tameability.
 
