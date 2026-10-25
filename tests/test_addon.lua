@@ -7,15 +7,18 @@ rawset(_G,"UnitClass",function() return "Mage", "MAGE" end)
 UIParent:SetSize(1920,1080)
 local function loadAddon()
     local ns={}
+    assert(loadfile("Util.lua"))("PetStable",ns)
     assert(loadfile("Core.lua"))("PetStable",ns)
     assert(loadfile("Catalog.lua"))("PetStable",ns)
     assert(loadfile("CatalogData.lua"))("PetStable",ns)
+    assert(loadfile("PetState.lua"))("PetStable",ns)
     assert(loadfile("GuideData.lua"))("PetStable",ns)
     assert(loadfile("GuideModels.lua"))("PetStable",ns)
     assert(loadfile("GuideAppearances.lua"))("PetStable",ns)
     assert(loadfile("GuideUI.lua"))("PetStable",ns)
     assert(loadfile("UpgradesData.lua"))("PetStable",ns)
     assert(loadfile("UpgradesUI.lua"))("PetStable",ns)
+    assert(loadfile("PetsUI.lua"))("PetStable",ns)
     assert(loadfile("UI.lua"))("PetStable",ns)
     return ns
 end

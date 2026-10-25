@@ -3,12 +3,7 @@ local S={}; NS.Sightings=S
 local LIMIT=10000
 local names,seen={},{}
 local function ID(v) return type(v)=="number" and v>0 and v<math.huge and v==math.floor(v) end
-local function Call(fn,...)
-    if type(fn)~="function" then return nil end
-    local ok,a,b,c,d=pcall(fn,...)
-    local secret=rawget(_G,"issecretvalue")
-    if ok and (not secret or not (secret(a) or secret(b) or secret(c) or secret(d))) then return a,b,c,d end
-end
+local Call=NS.Call
 local function Locale() return Call(rawget(_G,"GetLocale")) or "unknown" end
 local function Index(row)
     if row.familyID then seen[row.familyID..":"..row.displayID]=true end

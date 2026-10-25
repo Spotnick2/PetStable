@@ -20,6 +20,7 @@ function NS.Initialize()
     end
     NS.db = db
     if NS.Sightings then NS.Sightings.Initialize() end
+    if NS.PetState then NS.PetState.Initialize() end
 end
 
 local boot = CreateFrame("Frame")

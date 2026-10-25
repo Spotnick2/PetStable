@@ -7,16 +7,19 @@
 ## SavedVariables: PetStableDB
 
 Libs\LibGlass-1.0\LibGlass-1.0.xml
+Util.lua
 Core.lua
 Catalog.lua
 CatalogData.lua
 CatalogReference.lua
 CatalogTeachers.lua
 Sightings.lua
+PetState.lua
 GuideData.lua
 GuideModels.lua
 GuideAppearances.lua
 GuideUI.lua
 UpgradesData.lua
 UpgradesUI.lua
+PetsUI.lua
 UI.lua

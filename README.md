@@ -7,8 +7,8 @@ Forever observations and a separate Classic reference sample; see
 [catalog coverage and validation](docs/CATALOG.md). Pet Guide now browses the
 19 referenced families and the same three recorded creatures, with search,
 appearance galleries, verified saved model previews, and evidence-aware details. Ability Upgrades lists pet ability ranks and the creatures reported to teach them
-(see [docs/UPGRADES.md](docs/UPGRADES.md)); My Pets keeps its empty state, and
-recommendations and pet tracking are not yet implemented.
+(see [docs/UPGRADES.md](docs/UPGRADES.md)); My Pets shows your active pet and stable as last observed
+(see [docs/MY-PETS.md](docs/MY-PETS.md)); recommendations and learned-rank tracking are not yet implemented.
 
 CurseForge project ID: **1749062**. The planned public page is
 [PetStable on CurseForge](https://www.curseforge.com/wow/addons/petstable);
@@ -112,7 +112,7 @@ bright scenery, drag the title bar, change scale, and close with both Escape and
 the close button. Reopen after `/reload` to check position, scale, and selected
 page. A full exit/relaunch is needed to verify disk persistence independently
 of reload. Repeat opening on a non-hunter when convenient. Pet Guide shows the
-bounded catalog; My Pets still has an explicit empty state, and Ability Upgrades is a reference listing.
+bounded catalog; My Pets shows observed pets and Ability Upgrades is a reference listing.
 The browser's own live validation remains pending as documented in its guide.
 
 Live validation feedback on 2026-10-16 reported that Escape opened the game menu
