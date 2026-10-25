@@ -31,6 +31,15 @@ return function(ns)
     assert(#rows==1 and rows[1].pet.familyKey=="family-bear")
     rows[1]:GetScript("OnClick")(rows[1])
     assert(ns.db.page=="guide" and ns.guide:IsShown() and not pets:IsShown())
+    -- A later scan that cannot read one list keeps its entries but says so, even after a complete scan.
+    assert(not Texts():find("Only part of the stable list",1,true))
+    local stableApi=C_StableInfo
+    C_StableInfo={GetActivePetList=stableApi.GetActivePetList,GetStabledPetList=function() return nil end}
+    PS.Refresh("test"); ns.SelectPage("pets")
+    assert(Texts():find("Grumpy",1,true) and Texts():find("Only part of the stable list could be read",1,true))
+    C_StableInfo=stableApi; PS.Refresh("test")
+    assert(not Texts():find("Only part of the stable list",1,true))
+    ns.SelectPage("guide")
     -- Dismissing the pet is recorded as a check, not as data loss.
     UnitExists=function() return false end
     PS.Refresh("test"); ns.SelectPage("pets")

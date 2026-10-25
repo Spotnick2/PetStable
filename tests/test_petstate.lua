@@ -76,11 +76,12 @@ now = 250
 C_StableInfo = { GetActivePetList = function() return {} end, GetStabledPetList = function() return nil end }
 PS.Refresh("test")
 local partial, partialTime, complete = PS.Stable()
-assert(#partial == 3 and partialTime == 100 and complete, "stabled pets survive an unreadable stabled list")
+assert(#partial == 3 and partialTime == 100 and not complete, "stabled pets survive an unreadable stabled list, reported as partial")
 for _, pet in ipairs(partial) do assert(not pet.active) end
 C_StableInfo = { GetActivePetList = function() return {} end, GetStabledPetList = function() return {} end }
 now = 300; PS.Refresh("test")
 assert(#PS.Stable() == 0 and select(2, PS.Stable()) == 300, "an empty answer is a real answer")
+assert(select(3, PS.Stable()), "a later full scan clears the partial flag")
 pet.exists = true
 issecretvalue = function(v) return v == "SECRET" end
 pet.family = "SECRET"; PS.Refresh("test")

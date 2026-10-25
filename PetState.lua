@@ -110,9 +110,9 @@ local function ScanStable(record, now)
     -- Each list is its own section: one that cannot be read keeps its last answer and time.
     for _, section in ipairs({ { "active", activeList, true }, { "stabled", stabledList, false } }) do
         local pets = {}
-        if ReadPets(section[2], section[3], pets) then
-            stable[section[1]] = { observed = now, build = Build(), pets = pets }
-        end
+        local ok = ReadPets(section[2], section[3], pets)
+        if ok then stable[section[1]] = { observed = now, build = Build(), pets = pets } end
+        stable[section[1] .. "Read"] = ok -- whether the latest scan read this list
     end
 end
 
@@ -170,7 +170,7 @@ function PS.Active()
     return record and record.active or nil
 end
 
--- All stable entries, when the older list was read, and whether both lists have been read.
+-- All stable entries, when the older list was read, and whether the latest scan read both lists.
 function PS.Stable()
     local record = Record(false)
     local stable = record and record.stable
@@ -182,7 +182,7 @@ function PS.Stable()
             observed = observed and math.min(observed, section.observed or observed) or section.observed
         end
     end
-    return pets, observed, type(stable) == "table" and stable.active ~= nil and stable.stabled ~= nil
+    return pets, observed, type(stable) == "table" and stable.activeRead == true and stable.stabledRead == true
 end
 
 -- Pets of one catalog family: the active pet and any stabled ones.
