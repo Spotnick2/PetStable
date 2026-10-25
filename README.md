@@ -91,7 +91,7 @@ are excluded from player packaging.
 ## Scaffold validation
 
 The browser now includes an attributed [Forever reference expansion](docs/REFERENCE-CATALOG.md):
-810 creatures and 499 distinct numeric display IDs across 18 families, alongside
+808 creatures and 499 distinct numeric display IDs across 18 families, alongside
 the 19-family index. Core Hound availability remains unconfirmed. Website model
 previews are labeled as references and do not establish tameability.
 
@@ -123,7 +123,7 @@ The reflective shell follows the shared
 [window styling recipe](../References/Docs/LIBGLASS-WINDOW-STYLING.md): smoked outer
 tint/backing, sliced directional silver rim, fine top highlight, and a masked
 header reflection fading within 70 UI units. A single masked reading region
-starts at y=70 and protects the horizontal navigation, content, and footer.
+starts at y=52 and protects the horizontal navigation, content, and footer.
 Sage accents mark active controls and hover states. The shell uses r9's
 `Reflect` and `SetSurfaceAlpha` APIs with the same material settings.
 

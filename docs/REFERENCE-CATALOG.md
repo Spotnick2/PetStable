@@ -2,7 +2,7 @@
 
 The 2026-10-16 research inventory expands the original observed seed without
 changing its verification evidence. `CatalogReference.lua` contains generated
-reference facts for 810 creatures (806 numeric NPC identities and four unresolved
+reference facts for 808 creatures (804 numeric NPC identities and four unresolved
 source identities) and 499 distinct display IDs. All 19 family metadata records
 remain available. Eighteen families have creature records; Core Hounds have only
 unconfirmed website looks with no supplied exact NPC/display mapping.
@@ -13,10 +13,20 @@ The raw research stays outside this repository and addon package:
 
 - `../References/Forever/petstable/petstable-forever-research.md`
 - `../References/Forever/petstable/petstable-forever-inventory.json`
+- `../References/Forever/db/forever-creaturedisplayinfo-1.60.1.70450.csv` and
+  `../References/Forever/db/forever-creaturedisplayinfogeosetdata-1.60.1.70450.csv`
+  (wago.tools `wow_classic_beta` 1.60.1.70450, downloaded 2026-10-17)
+- `../References/Forever/db/forever-creaturetexturepaths-1.60.1.70450.csv`: the `creature/`
+  texture paths those displays use, extracted from the wowdev community listfile
 
-Run `python Tools/import-reference.py ../References/Forever/petstable/petstable-forever-inventory.json`
-to regenerate, or add `--check` to compare without writing. The generated file
-includes the input SHA-256 as `referenceRevision`. Python uses only its standard
+Regenerate with:
+
+```
+python Tools/import-reference.py ../References/Forever/petstable/petstable-forever-inventory.json   --displays ../References/Forever/db/forever-creaturedisplayinfo-1.60.1.70450.csv   --geosets ../References/Forever/db/forever-creaturedisplayinfogeosetdata-1.60.1.70450.csv   --textures ../References/Forever/db/forever-creaturetexturepaths-1.60.1.70450.csv
+```
+
+Add `--check` to compare without writing. The generated file includes the inventory
+SHA-256 as `referenceRevision` and the display tables' SHA-256 in `displaySkins`. Python uses only its standard
 library; neither Python nor the raw JSON is needed by the player addon.
 
 Each imported fact retains its inspected source URL, locator, review date, and
@@ -39,6 +49,54 @@ They remain in the raw research. No zone ID is treated as a UI map ID. The runti
 subset is not an exhaustive inventory of obtainable pets or unique visual skins.
 Identical display IDs group within a family, never across family boundaries.
 Multiple displays for one NPC retain that NPC under every explicit variant.
+
+## Display skins
+
+Website galleries list many display IDs that are the same skin at different
+creature scales (bear displays 706, 707, 719, 762, 8843 and 136876 are all model 83
+with texture 123041). The importer reads CreatureDisplayInfo and its geoset table
+for the stated build and gives each catalog display a skin key: model, the four
+texture variations, alpha, state spell visual kit, object effect package and any
+geoset overrides. Scale is excluded because previews are fitted to their bounds.
+Within a family, displays with the same key share one card, represented by a
+verified display if any, else the lowest ID; every member ID stays searchable and
+is listed on the detail page. This cut the 500 family/display cards to 160.
+
+The key is visual identity only. It says nothing about availability or
+tameability and adds no verification. A display missing from the table keeps its
+own card. Model file IDs alone are still never used, since one model carries many
+textures. Re-download both tables for a new build if displays change.
+
+## Look names
+
+Petopia's look slugs are the skin's texture file names (`bearskinblack` is
+`creature/bear/bearskinblack.blp`). The importer names a skin only when its first
+texture variation's file name equals a Petopia look slug in the same family; a
+numbered texture (`batskinbrown01`) may match its stem (`batskinbrown`), recorded as
+`match="texture stem"`. 143 skins match exactly and 23 bat displays by stem. A
+skin Petopia files under another family stays unnamed in this one (Vulgara's
+fox-wyvern under Wolves, the Shriekling birds under Raptors). Two skins Petopia
+gives the same name append their display ID. The detail page cites the Petopia
+page and the texture. Petopia availability other than "obtainable" is shown as
+its claim; it is never treated as a verification.
+
+## Reviewed exclusions
+
+`EXCLUDED_CREATURES` in the importer drops website records that are not wild
+beasts of their listed family; the raw research keeps them. The evidence is each
+display's model path (CreatureModelData plus the community listfile, 70450):
+
+| NPC | Listed as | Renders | Reason |
+|---|---|---|---|
+| Cooking Wolf (247914) | Bear | `creature/wolf/wolf.m2` (161) | Profession prop; display 161 stays under Wolves via its coyotes |
+| Twain Test Prop (5596) | Wolf | `creature/dragonwhelp/dragonwhelp.m2` (138634) | Test NPC |
+
+Other families also contain a model unlike the rest, kept until checked in game:
+Vulgara the Insatiable (fox-wyvern, Wolves), Young Pridewing (wyvern, Wind
+Serpents), Shriekling Fledgling/Matriarch (Thunder Isle bird, Raptors),
+Bloodshrike (eagle, Birds of Prey), Gharrik and Enraged Stormcrow (stormcrow,
+Carrion Birds). Skinning Bear and Cooking Bear also remain: their bear models
+are correct, but their eligibility is still unreviewed.
 
 Reference models use the exact-display preview API with the existing bounded
 visible-card pool. Successful loading changes no verification or sighting flags.

@@ -74,6 +74,7 @@ rawset(_G,"CreateFrame",function(kind,name,parent,template)
             function actor:SetModelByCreatureDisplayID(id) self.display=id; return not WoW.rejectModel end
             function actor:ClearModel() self.display=nil; self.cleared=true end
             function actor:SetScale(value) self.scale=value end
+            function actor:SetAlpha(value) self.alpha=value end
             function actor:SetUseCenterForOrigin() end
             function actor:SetPosition() end
             function actor:SetYaw(value) self.yaw=value end

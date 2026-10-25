@@ -143,6 +143,22 @@ assert(#groups==4,"shared verified display groups; shared model geometry and unk
 local shared
 for _,group in ipairs(groups) do if group.displayID==1059 then shared=group end end
 assert(#shared.entries==2 and shared.entries[1].key~=shared.entries[2].key)
+local scaled={{key="small",label="Small",familyKey="cat",family="Cat",variants={{displayID=30,skin="82:1",referencePreview=true}}},
+    {key="large",label="Large",familyKey="cat",family="Cat",variants={{displayID=20,skin="82:1",referencePreview=true},{displayID=21,skin="82:1",referencePreview=true}}},
+    {key="recolor",label="Recolor",familyKey="cat",family="Cat",variants={{displayID=10,skin="82:2",referencePreview=true}}}}
+local skins=G.Appearances(scaled,"cat")
+assert(#skins==2 and skins[1].displayID==10 and skins[2].displayID==20,"same skin merges; other textures do not")
+assert(#skins[2].entries==2 and table.concat(skins[2].displayIDs,",")=="20,21,30","each creature listed once under its skin")
+scaled[3].variants[1].look={name="Tan Cat"}; scaled[4]={key="lost",label="Lost",familyKey="cat",family="Cat"}
+skins=G.Appearances(scaled,"cat")
+assert(skins[1].label=="Tan Cat" and skins[2].label=="Cat appearance · 20" and skins[3].label=="Lost — appearance unresolved",
+    "named looks, then unnamed displays, then unresolved creatures")
+C_Map={GetMapInfo=function(id) return ({[1]={name="Kalimdor"},[2]={name="Tanaris",parentMapID=1},[3]={name="Tanaris",parentMapID=1}})[id] end,
+    GetMapChildrenInfo=function() return {{name="Tanaris",mapID=3,mapType=4},{name="Tanaris",mapID=2,mapType=3}} end}
+local id,zoneName,parent=G.ZoneMap({zoneNames={"Tanaris"}})
+assert(id==2 and zoneName=="Tanaris" and parent=="Kalimdor","a reference zone resolves to the client's zone map")
+assert(not G.ZoneMap({zoneNames={"Nowhere"}}) and G.ZoneMap({spawn={mapID=3}})==3)
+C_Map=nil
 records[1].levelMin=1; records[1].levelMax=10
 records[1].spawn={mapID=10,x=0.1,y=0.2}; records[2].spawn={mapID=20,x=0.3,y=0.4}
 local filtered=G.FilterAppearances(groups,"different",{low=7,high=7},"20")
@@ -151,7 +167,7 @@ assert(#G.FilterAppearances(groups,"different",{low=1,high=1},"10")==0,"all filt
 filtered=G.FilterAppearances(groups,"",{low=7,high=7},nil)
 assert(#filtered==1 and #filtered[1].matches==2,"numeric level filter matches observations and overlapping verified ranges")
 local lv,z=G.AppearanceSummary(shared.entries)
-assert(lv=="Levels vary; see creatures" and z:find("UI map 10",1,true) and z:find("UI map 20",1,true))
+assert(lv=="Levels vary" and z:find("UI map 10",1,true) and z:find("UI map 20",1,true))
 local long={}
 for i=1,5 do long[i]=Copy(records[1]); long[i].spawn.mapID=i end
 lv,z=G.AppearanceSummary(long); assert(z:find("+3 zones",1,true))

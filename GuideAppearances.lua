@@ -71,11 +71,24 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
             if scroll:GetVerticalScroll()~=value then scroll:SetVerticalScroll(value) end
             syncing=false
         end
-        bar:SetScript("OnValueChanged",function(_,value) if not syncing then panel.ClearFocus(); scroll:SetVerticalScroll(value) end end)
+        -- The wheel eases toward its target instead of jumping a whole step.
+        local animator,target=CreateFrame("Frame",nil,host)
+        function bar.StopEasing() target=nil; animator:SetScript("OnUpdate",nil) end
+        local function Ease(_,elapsed)
+            local current=scroll:GetVerticalScroll()
+            target=math.max(0,math.min(scroll:GetVerticalScrollRange(),target))
+            local value=current+(target-current)*math.min(1,elapsed*15)
+            if math.abs(target-value)<0.5 then value=target; bar.StopEasing() end
+            scroll:SetVerticalScroll(value)
+        end
+        bar:SetScript("OnValueChanged",function(_,value)
+            if not syncing then panel.ClearFocus(); bar.StopEasing(); scroll:SetVerticalScroll(value) end
+        end)
         scroll:SetScript("OnScrollRangeChanged",bar.Sync)
         local function Wheel(_,delta)
             panel.ClearFocus(); root.ResetHover()
-            scroll:SetVerticalScroll(math.max(0,math.min(scroll:GetVerticalScrollRange(),scroll:GetVerticalScroll()-delta*90)))
+            target=math.max(0,math.min(scroll:GetVerticalScrollRange(),(target or scroll:GetVerticalScroll())-delta*90))
+            animator:SetScript("OnUpdate",Ease)
         end
         scroll:SetScript("OnMouseWheel",Wheel); bar:EnableMouseWheel(true); bar:SetScript("OnMouseWheel",Wheel)
         return bar,Wheel
@@ -83,14 +96,18 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
     local galleryBar,Wheel=Scrollbar(root,gallery); root.galleryBar=galleryBar
     local empty=Label(root,14); root.empty=empty
     local footer=Label(root,12); root.footer=footer
-    local measure=Label(root,12); measure:Hide()
+    root.more=Button(root,"",function() state.unresolved=not state.unresolved; root.Refresh() end)
+    local measure,measureName=Label(root,12),Label(root,15); measure:Hide(); measureName:Hide()
     root.cards={}
-    -- Three columns, two visible rows plus one partial row; reuse the nine slots.
+    -- Up to three columns, two visible rows plus one partial row; reuse the nine slots.
     for i=1,9 do
         local card=Button(canvas,"",function(self) if self.result then root.OpenAppearance(self.result) end end)
         card.preview=NS.CreateAppearancePreview(card,Text,false)
-        card.level=Label(card,11); card.zone=Label(card,11)
-        card.arrow=Label(card,18); card.arrow:SetPoint("BOTTOMRIGHT",-8,12); card.arrow:SetText("›"); card.arrow:Hide()
+        -- A darker band carries the look's name and where to find it.
+        card.band=card:CreateTexture(nil,"BORDER"); card.band:SetColorTexture(0,0,0,0.24)
+        card.title=Label(card,15); card.title:SetWordWrap(true)
+        card.level=Label(card,12); card.level:SetTextColor(0.72,0.78,0.74,1)
+        card.arrow=Label(card,20); card.arrow:SetText("›")
         card:EnableMouseWheel(true); card:SetScript("OnMouseWheel",Wheel)
         root.cards[i]=card
     end
@@ -113,15 +130,28 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
     local bodyChild=CreateFrame("Frame",nil,body); bodyChild:SetSize(500,400); body:SetScrollChild(bodyChild)
     local bodyBar=Scrollbar(detail,body); root.bodyBar=bodyBar
     body:SetScript("OnVerticalScroll",bodyBar.Sync)
-    local locationTitle=Label(bodyChild,17); locationTitle:SetText("Where to find this appearance")
-    local matchText=Label(bodyChild,12)
+    local locationTitle=Label(bodyChild,20); locationTitle:SetText("Where to tame this look")
+    local matchText=Label(bodyChild,12); matchText:SetTextColor(0.72,0.78,0.74,1)
     root.showAll=Button(bodyChild,"Show all associated creatures",function() state.showAll=not state.showAll; root.PaintDetail() end)
     local columnNames={Label(bodyChild,12),Label(bodyChild,12),Label(bodyChild,12)}
     columnNames[1]:SetText("Creature"); columnNames[2]:SetText("Level"); columnNames[3]:SetText("Location")
     local rows={}; root.rows=rows
+    local rule=bodyChild:CreateTexture(nil,"ARTWORK"); rule:SetColorTexture(0.35,0.43,0.39,0.4)
+    local taming,spawn=Label(bodyChild,13),Label(bodyChild,13); root.taming,root.spawn=taming,spawn
+    -- The selected creature's zone, with the world map when the client knows it.
+    local zone=CreateFrame("Frame",nil,bodyChild,"BackdropTemplate"); root.zoneBlock=zone
+    zone:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
+    zone:SetBackdropColor(0.03,0.045,0.04,0.9); zone:SetBackdropBorderColor(0.3,0.4,0.34,0.6)
+    local zoneName,zoneParent=Label(zone,17),Label(zone,12); root.zoneName=zoneName
+    zoneParent:SetTextColor(0.72,0.78,0.74,1)
+    root.openMap=Button(zone,"Open zone map",function(self)
+        local open=rawget(_G,"OpenWorldMap")
+        if self.mapID and type(open)=="function" then pcall(open,self.mapID) end
+    end)
     local selectedTitle=Label(bodyChild,16)
     local specific=Label(bodyChild,13); root.specific=specific
     local familyText=Label(bodyChild,13)
+    root.familyRow=Button(bodyChild,"Family abilities & diet ›",function() state.family=not state.family; root.PaintDetail() end)
     root.sources=Button(bodyChild,"Sources & observations ›",function() state.sources=not state.sources; root.PaintDetail() end)
     local sourceText=Label(bodyChild,12); root.sourceText=sourceText
     root.technical=Button(bodyChild,"Technical evidence ›",function() state.technical=not state.technical; root.PaintDetail() end)
@@ -146,40 +176,67 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
     end
     function root.ResetHover() for _,b in ipairs(buttons) do b.ResetHover() end end
     function root.Stop()
+        root.StopLoading(); galleryBar.StopEasing(); bodyBar.StopEasing()
         preview.Clear(); for _,card in ipairs(root.cards) do card.preview.Clear() end
         root.ResetHover(); root.ClearFocus(); info:Hide()
     end
-    function root.PaintCards()
+    -- Models load only once scrolling rests: passing cards never load one, and
+    -- each load pulls a creature's model and textures into client memory.
+    local loader=CreateFrame("Frame",nil,root)
+    function root.StopLoading() loader:SetScript("OnUpdate",nil) end
+    local function LoadCards()
+        root.StopLoading()
+        for _,card in ipairs(root.cards) do if card.result then card.preview.Set(card.result.group) end end
+    end
+    local function Settle(self,elapsed)
+        self.wait=self.wait-elapsed; if self.wait<=0 then LoadCards() end
+    end
+    function root.Caption(matches)
+        local level,zone=G.AppearanceSummary(matches)
+        return level.."   ·   "..zone
+    end
+    function root.PaintCards(scrolling)
         if panel.view~="appearances" or not root.results or not root.nameHeight then return end
-        local cols,stride=root.columns,root.cardHeight+10
+        local cols,stride,pool=root.columns,root.cardHeight+12,#root.cards
         local offset=gallery:GetVerticalScroll(); local first=math.floor(offset/stride)*cols
-        for i,card in ipairs(root.cards) do
-            local index=first+i; local result=root.results[index]
+        -- A result keeps its card while visible, so crossing a row reloads only that row.
+        local shown={}
+        for index=first+1,first+pool do
+            local result=root.results[index]
             local y=math.floor((index-1)/cols)*stride
-            local visible=result and y<offset+gallery:GetHeight() and y+root.cardHeight>offset
-            card.result=visible and result or nil; card:SetShown(visible~=nil and visible~=false)
-            if visible then
-                Place(card,((index-1)%cols)*(root.cardWidth+10),y,root.cardWidth,root.cardHeight)
-                local labelY=root.cardHeight-root.nameHeight-root.levelHeight-root.zoneHeight-12
-                Place(card.preview,8,8,root.cardWidth-16,labelY-16)
-                Place(card.label,10,labelY,root.cardWidth-30,root.nameHeight); card.label:SetJustifyH("LEFT")
-                card.label:SetJustifyV("TOP"); card.label:SetText(Plain(result.group.label))
-                local level,zone=G.AppearanceSummary(result.matches)
-                Place(card.level,10,labelY+root.nameHeight,root.cardWidth-30,root.levelHeight); card.level:SetText(Plain(level))
-                Place(card.zone,10,labelY+root.nameHeight+root.levelHeight,root.cardWidth-30,root.zoneHeight); card.zone:SetText(Plain(zone))
-                card.preview.Set(result.group)
-            else card.preview.Clear(); card.ResetHover() end
+            if result and y<offset+gallery:GetHeight() and y+root.cardHeight>offset then
+                local card=root.cards[(index-1)%pool+1]; shown[card]=true
+                if card.result~=result or card.layout~=root.layout then
+                    if card.result~=result then card.preview.Clear(); card.ResetHover() end
+                    card.result=result; card.layout=root.layout
+                    local bandHeight=root.nameHeight+root.captionHeight+24
+                    local bandY=root.cardHeight-bandHeight
+                    Place(card.preview,8,8,root.cardWidth-16,bandY-12)
+                    Place(card.band,1,bandY,root.cardWidth-2,bandHeight-1)
+                    Place(card.title,16,bandY+10,root.cardWidth-60,root.nameHeight); card.title:SetText(Plain(result.group.label))
+                    Place(card.level,16,bandY+14+root.nameHeight,root.cardWidth-60,root.captionHeight)
+                    card.level:SetText(Plain(root.Caption(result.matches)))
+                    Place(card.arrow,root.cardWidth-32,bandY+bandHeight/2-12,20,24)
+                end
+                Place(card,((index-1)%cols)*(root.cardWidth+12),y,root.cardWidth,root.cardHeight); card:Show()
+            end
         end
+        for _,card in ipairs(root.cards) do
+            if not shown[card] then card.result=nil; card:Hide(); card.preview.Clear(); card.ResetHover() end
+        end
+        if scrolling then loader.wait=0.15; loader:SetScript("OnUpdate",Settle) else LoadCards() end
         state.scroll=offset; galleryBar.Sync()
     end
-    gallery:SetScript("OnVerticalScroll",function() root.ResetHover(); root.PaintCards() end)
+    gallery:SetScript("OnVerticalScroll",function() root.ResetHover(); root.PaintCards(true) end)
     function root.PaintDetail()
         if not state.result then return end
         local group=state.result.group
         group.seen=false
         if NS.Sightings then
             for _,entry in ipairs(group.entries) do
-                if NS.Sightings.Seen(entry.familyID,group.displayID) then group.seen=true; break end
+                for _,id in ipairs(group.displayIDs or {}) do
+                    if NS.Sightings.Seen(entry.familyID,id) then group.seen=true end
+                end
             end
         end
         local entries=state.showAll and group.entries or state.result.matches
@@ -189,48 +246,87 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
             widget:Show(); if text then widget:SetText(Plain(text)) end
             Place(widget,0,y,width); y=y+math.max(size or 18,widget:GetStringHeight())+12
         end
+        local function Disclosure(button,open,text)
+            Place(button,0,y,width,40); button.label:SetWidth(width-24); button.label:SetJustifyH("LEFT")
+            button.label:SetText(text..(open and "  ‹" or "  ›")); y=y+50
+        end
         TextRow(locationTitle)
         local filtered=#state.result.matches<#group.entries
-        TextRow(matchText,(group.seen and "Seen by you in game. " or "")..(filtered and (state.showAll and "Showing all associated creatures." or "Showing only creatures matching your search and filters.")
-            or "All recorded creatures for this appearance. Locations may be unknown.")..(group.referencePreview and " Website references do not guarantee availability." or ""))
+        local status=group.modelVerified and "Verified in game" or "Listed by references · Awaiting in-game confirmation"
+        if group.seen then status=status.." · Seen by you" end
+        if group.look and group.look.availability~="obtainable" then
+            status=status.."\nPetopia lists this look as "..(group.look.availability=="unused" and "unused in game" or group.look.availability).."."
+        end
+        if filtered then status=status.."\n"..(state.showAll and "Showing all associated creatures." or "Showing creatures matching your search and filters.") end
+        TextRow(matchText,status)
         root.showAll:SetShown(filtered)
         if filtered then
             root.showAll.label:SetText(state.showAll and "Show matching creatures" or "Show all associated creatures")
             Place(root.showAll,0,y,width,28); root.showAll.label:SetWidth(width-12); y=y+40
         end
         -- Column headings share the row widths, including at the minimum window size.
-        Place(columnNames[1],8,y,width*0.42-12,20)
-        Place(columnNames[2],width*0.42,y,width*0.24-8,20)
-        Place(columnNames[3],width*0.66,y,width*0.34-8,20); y=y+28
+        Place(columnNames[1],16,y,width*0.46-20,20)
+        Place(columnNames[2],width*0.46,y,width*0.2-8,20)
+        Place(columnNames[3],width*0.66,y,width*0.34-8,20); y=y+26
         for i,entry in ipairs(entries) do
             local row=rows[i]
             if not row then
                 row=Button(bodyChild,"",function(self)
                     state.selected=self.entry; state.sources=false; state.technical=false; state.copy=false; root.PaintDetail()
                 end)
-                row.name=Label(row,12); row.level=Label(row,12); row.zone=Label(row,12); rows[i]=row
+                row.name=Label(row,13); row.level=Label(row,13); row.zone=Label(row,13); rows[i]=row
+                row.accent=row:CreateTexture(nil,"OVERLAY"); row.accent:SetColorTexture(0.62,0.8,0.5,1)
+                row.accent:SetPoint("TOPLEFT"); row.accent:SetPoint("BOTTOMLEFT"); row.accent:SetWidth(3)
             end
-            row.entry=entry; row:Show(); Place(row,0,y,width,76)
-            Place(row.name,8,8,width*0.42-12,60); row.name:SetText(Plain(entry.label))
-            Place(row.level,width*0.42,8,width*0.24-8,60); row.level:SetText(Plain(G.Level(entry)))
-            Place(row.zone,width*0.66,8,width*0.34-8,60); row.zone:SetText(Plain(G.Zone(entry)))
-            local rowHeight=math.max(76,row.name:GetStringHeight()+16,row.level:GetStringHeight()+16,row.zone:GetStringHeight()+16)
+            row.entry=entry; row:Show(); Place(row,0,y,width,44)
+            Place(row.name,16,12,width*0.46-20,20); row.name:SetText(Plain(entry.label))
+            Place(row.level,width*0.46,12,width*0.2-8,20); row.level:SetText(Plain(G.Level(entry)))
+            Place(row.zone,width*0.66,12,width*0.34-8,20); row.zone:SetText(Plain(G.Zone(entry)))
+            local rowHeight=math.max(44,row.name:GetStringHeight()+24,row.level:GetStringHeight()+24,row.zone:GetStringHeight()+24)
             row:SetHeight(rowHeight)
-            row.name:SetHeight(rowHeight-16); row.level:SetHeight(rowHeight-16); row.zone:SetHeight(rowHeight-16)
-            row.active=state.selected==entry; row.Paint(); y=y+rowHeight+8
+            row.name:SetHeight(rowHeight-24); row.level:SetHeight(rowHeight-24); row.zone:SetHeight(rowHeight-24)
+            y=y+rowHeight+6
         end
         for i=#entries+1,#rows do rows[i].entry=nil; rows[i]:Hide() end
         local selected=G.Select(entries,state.selected and state.selected.key); state.selected=selected
-        for _,row in ipairs(rows) do row.active=row.entry==selected and selected~=nil; row.Paint() end
-        TextRow(selectedTitle,selected and selected.label or "Select a creature")
-        TextRow(specific,selected and selected.details or "No creature records.")
-        TextRow(familyText,(root.family and root.family.displayLabel or "Family").."\nRole: Unknown · Diet: Not verified\nLearnable family abilities: Not verified\nCreature observations are not family ability eligibility.")
-        Place(root.sources,0,y,width,28); root.sources.label:SetWidth(width-12)
-        root.sources.label:SetText(state.sources and "Sources & observations ‹" or "Sources & observations ›"); y=y+40
-        sourceText:SetShown(state.sources==true); root.technical:SetShown(state.sources==true); root.copy:SetShown(state.sources==true)
+        for _,row in ipairs(rows) do
+            row.active=row.entry==selected and selected~=nil; row.accent:SetShown(row.active); row.Paint()
+        end
+        y=y+8; Place(rule,0,y,width,1); y=y+18
+        local spawnText="Exact location not recorded"
+        if selected and selected.spawn then
+            spawnText=string.format("UI map %d (%.1f%%, %.1f%%)",selected.spawn.mapID,selected.spawn.x*100,selected.spawn.y*100)
+        end
+        taming:SetText(Plain("Taming\n"..(selected and selected.taming or "Not recorded")))
+        spawn:SetText(Plain("Spawn\n"..spawnText))
+        Place(taming,0,y,width/2-12); Place(spawn,width/2,y,width/2)
+        y=y+math.max(40,taming:GetStringHeight(),spawn:GetStringHeight())+16
+        zone:SetShown(selected~=nil)
+        if selected then
+            local mapID,mapName,parentName=G.ZoneMap(selected)
+            local extra=selected.zoneNames and #selected.zoneNames>1 and (" +"..(#selected.zoneNames-1).." more") or ""
+            zoneName:SetText(Plain((mapName or (selected.zoneNames and selected.zoneNames[1]) or G.Zone(selected))..extra))
+            zoneParent:SetText(Plain(parentName or (mapID and "" or "No map for this zone in your client")))
+            root.openMap.mapID=mapID; root.openMap:SetShown(mapID~=nil and type(rawget(_G,"OpenWorldMap"))=="function")
+            Place(zone,0,y,width,72); Place(zoneName,16,14,width-200,22); Place(zoneParent,16,40,width-200,18)
+            Place(root.openMap,width-168,20,152,32); root.openMap.label:SetWidth(144); y=y+84
+        end
+        Disclosure(root.familyRow,state.family,"Family abilities & diet")
+        familyText:SetShown(state.family==true)
+        if state.family then
+            TextRow(familyText,(root.family and root.family.displayLabel or "Family").."\nRole: Unknown · Diet: Not verified\nLearnable family abilities: Not verified\nCreature observations are not family ability eligibility.")
+        end
+        Disclosure(root.sources,state.sources,"Sources & observations")
+        -- Facts are set even while collapsed, so reopening never shows stale text.
+        specific:SetText(Plain(selected and selected.details or "No creature records."))
+        selectedTitle:SetText(Plain(selected and selected.label or "Select a creature"))
+        for _,widget in ipairs({selectedTitle,specific,sourceText,root.technical,root.copy}) do widget:SetShown(state.sources==true) end
         technicalText:SetShown(state.sources and state.technical or false); urls:SetShown(state.sources and state.copy or false); urlHelp:SetShown(state.sources and state.copy or false)
         if state.sources then
-            TextRow(sourceText,"Facts below apply individually to "..(selected and selected.label or "this creature")..". They do not certify other fields or the current build.\n\n"..(selected and selected.sourceSummary or "No sources recorded."))
+            TextRow(selectedTitle); TextRow(specific)
+            local skinNote=#(group.displayIDs or {})>1 and ("Same skin at different sizes: displays "..table.concat(group.displayIDs,", ")..".\n\n") or ""
+            local lookNote=group.look and ("Look name from Petopia, matched by the skin texture "..group.look.texture..".\n"..group.look.url.."\n\n") or ""
+            TextRow(sourceText,skinNote..lookNote.."Facts below apply individually to "..(selected and selected.label or "this creature")..". They do not certify other fields or the current build.\n\n"..(selected and selected.sourceSummary or "No sources recorded."))
             Place(root.technical,0,y,width,28); root.technical.label:SetWidth(width-12); y=y+40
             if state.technical then TextRow(technicalText,selected and selected.evidence or "No evidence recorded.") end
             Place(root.copy,0,y,width,28); root.copy.label:SetWidth(width-12); y=y+40
@@ -278,33 +374,38 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
     end
     local function Position(width,height)
         root:SetSize(width,height+40)
-        Place(root.back,0,0,100,24); Place(breadcrumb,114,5,width-260,20); Place(root.all,width-130,0,130,24)
-        Place(icon,0,32,44,44); Place(heading,56,30,width-282)
+        local isDetail=panel.view=="appearance"
+        Place(icon,0,0,44,44); Place(root.back,56,0,96,22); Place(breadcrumb,160,3,width-600,18)
+        Place(heading,56,22,width-420)
         local headingHeight=math.max(28,heading:GetStringHeight()); heading:SetHeight(headingHeight)
-        Place(subtitle,56,34+headingHeight,width-282,20)
-        local controlsY=math.max(86,headingHeight+60)
-        local galleryY=controlsY+42
-        Place(root.familyInfo,width-214,38,214,30); root.familyInfo.label:SetWidth(202)
-        Place(root.backGallery,width-214,38,214,30); root.backGallery.label:SetWidth(202)
-        Place(info,math.max(0,width-420),76,420,164)
+        Place(root.familyInfo,width-214,0,214,30); root.familyInfo.label:SetWidth(202)
+        Place(root.backGallery,width-214,0,214,30); root.backGallery.label:SetWidth(202)
+        Place(root.all,width-344,0,122,30); root.all.label:SetWidth(112)
+        Place(info,math.max(0,width-420),36,420,164)
+        local controlsY=math.max(56,headingHeight+28)
         Place(search,0,controlsY,width-330,32); hint:SetWidth(width-380)
         Place(root.level,width-318,controlsY,154,32); root.level.label:SetWidth(140)
         Place(root.zone,width-154,controlsY,154,32); root.zone.label:SetWidth(140)
-        Place(gallery,0,galleryY,width-22,math.max(120,height+12-galleryY)); Place(galleryBar,width-8,galleryY,6,gallery:GetHeight())
-        root.columns=width>=900 and 3 or 2
-        root.cardWidth=(gallery:GetWidth()-(root.columns-1)*10)/root.columns
-        root.cardHeight=math.max(180,(gallery:GetHeight()-10)/2)
+        if isDetail then Place(subtitle,56,24+headingHeight,width-420,18) else Place(subtitle,0,controlsY+42,width-24,18) end
+        local galleryY=controlsY+66
+        Place(gallery,0,galleryY,width-22,math.max(120,height+6-galleryY)); Place(galleryBar,width-8,galleryY,6,gallery:GetHeight())
+        -- Two wide columns keep models large; a wide window fits a third.
+        root.columns=width>=1300 and 3 or 2
+        root.cardWidth=(gallery:GetWidth()-(root.columns-1)*12)/root.columns
+        root.cardHeight=math.max(200,(gallery:GetHeight()-12)/2)
         canvas:SetWidth(gallery:GetWidth())
-        Place(empty,8,galleryY+14,width-32,70); Place(footer,0,height+18,width,20)
-        local detailY=math.max(94,headingHeight+66)
+        Place(empty,8,galleryY+14,width-32,70)
+        Place(root.more,0,height+12,340,26); root.more.label:SetWidth(330)
+        Place(footer,width-420,height+18,420,20); footer:SetJustifyH("RIGHT")
+        local detailY=headingHeight+54
         Place(detail,0,detailY,width,math.max(160,height+16-detailY))
-        local left=math.floor(width*0.42)
+        local left=math.floor(width*0.48)
         Place(preview,0,0,left,detail:GetHeight()-56)
         Place(previewHelp,8,detail:GetHeight()-50,left-16,16)
         for i,b in ipairs(modelButtons) do
             local w=(left-16)/5; Place(b,(i-1)*(w+4),detail:GetHeight()-30,w,26); b.label:SetWidth(w-4)
         end
-        Place(body,left+20,0,width-left-40,detail:GetHeight()); Place(bodyBar,width-8,0,6,detail:GetHeight())
+        Place(body,left+24,0,width-left-44,detail:GetHeight()); Place(bodyBar,width-8,0,6,detail:GetHeight())
         bodyChild:SetWidth(body:GetWidth()-4)
     end
     function root.Layout(width,height)
@@ -317,12 +418,13 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         icon:SetTexture(root.family and root.family.iconFileID)
         local isDetail=panel.view=="appearance"; root:Show(); detail:SetShown(isDetail); gallery:SetShown(not isDetail)
         for _,widget in ipairs({search,root.level,root.zone,root.familyInfo}) do widget:SetShown(not isDetail) end
-        root.backGallery:SetShown(isDetail); galleryBar:SetShown(not isDetail); empty:Hide()
+        root.backGallery:SetShown(isDetail); galleryBar:SetShown(not isDetail); empty:Hide(); root.more:Hide()
         breadcrumb:SetText(Plain("› "..familyName..(isDetail and (" › "..state.result.group.label) or "")))
         breadcrumb:SetWordWrap(false)
         heading:SetText(Plain(isDetail and state.result.group.label or familyName))
         local reference=isDetail and state.result.group.referencePreview and not state.result.group.modelVerified
-        subtitle:SetText(isDetail and (reference and "Reference appearance · availability unverified" or "Appearance details") or "Browse appearances · includes website references")
+        subtitle:SetText(isDetail and ((state.result.group.family or "Family").." appearance"..(reference and " · reference preview" or ""))
+            or "Choose a look to see where to tame it. Includes website references.")
         Position(root:GetWidth(),root:GetHeight()-40)
         if isDetail then
             for _,card in ipairs(root.cards) do card.preview.Clear() end
@@ -333,28 +435,37 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         state.level=math.min(state.level,#root.levels); state.zone=math.min(state.zone,#root.zones)
         local level,zone=root.levels[state.level],root.zones[state.zone]
         root.level.label:SetText(Plain(level.label.." ›")); root.zone.label:SetText(Plain(zone.label.." ›"))
-        root.results=G.FilterAppearances(root.groups,state.query,level.value,zone.value)
-        root.nameHeight,root.levelHeight,root.zoneHeight=16,16,18
-        measure:SetWidth(root.cardWidth-30)
-        for _,result in ipairs(root.results) do
-            local levelText,zoneText=G.AppearanceSummary(result.matches)
-            for field,value in pairs({nameHeight=result.group.label,levelHeight=levelText,zoneHeight=zoneText}) do
-                measure:SetText(Plain(value)); root[field]=math.max(root[field],measure:GetStringHeight())
-            end
+        -- Creatures without a matched display sit behind a disclosure below the looks,
+        -- unless nothing else matches.
+        local resolved,unresolved={},{}
+        for _,result in ipairs(G.FilterAppearances(root.groups,state.query,level.value,zone.value)) do
+            if result.group.displayID then resolved[#resolved+1]=result else unresolved[#unresolved+1]=result end
         end
-        root.cardHeight=math.max(root.cardHeight,root.nameHeight+root.levelHeight+root.zoneHeight+116)
+        root.results=resolved
+        if state.unresolved or #resolved==0 then for _,result in ipairs(unresolved) do root.results[#root.results+1]=result end end
+        root.more:SetShown(#unresolved>0 and #resolved>0)
+        local plural=#unresolved==1 and " creature" or " creatures"
+        root.more.label:SetText(state.unresolved and ("Hide "..#unresolved..plural.." without a matched look  ‹")
+            or (#unresolved..plural.." without a matched look  ›"))
+        root.nameHeight,root.captionHeight=18,16; root.layout={}
+        measure:SetWidth(root.cardWidth-60); measureName:SetWidth(root.cardWidth-60)
+        for _,result in ipairs(root.results) do
+            measureName:SetText(Plain(result.group.label)); root.nameHeight=math.max(root.nameHeight,measureName:GetStringHeight())
+            measure:SetText(Plain(root.Caption(result.matches))); root.captionHeight=math.max(root.captionHeight,measure:GetStringHeight())
+        end
+        root.cardHeight=math.max(root.cardHeight,root.nameHeight+root.captionHeight+24+110)
         hint:SetShown(state.query==""); root.clear:SetShown(state.query~="")
         local restoreScroll=state.scroll
-        canvas:SetHeight(math.max(gallery:GetHeight(),math.ceil(#root.results/root.columns)*(root.cardHeight+10)-10))
+        canvas:SetHeight(math.max(gallery:GetHeight(),math.ceil(#root.results/root.columns)*(root.cardHeight+12)-12))
         gallery:SetVerticalScroll(math.min(restoreScroll,gallery:GetVerticalScrollRange()))
         empty:SetText(panel.problem or (#root.groups==0 and "No creatures recorded in PetStable yet." or "No matching appearances. Clear search or change the filters."))
         empty:SetShown(#root.results==0)
-        local unresolved,verified=0,0
-        for _,result in ipairs(root.results) do
-            if not result.group.displayID then unresolved=unresolved+1
-            elseif result.group.modelVerified or result.group.portraitVerified then verified=verified+1 end
+        local verified=0
+        for _,result in ipairs(resolved) do
+            if result.group.modelVerified or result.group.portraitVerified then verified=verified+1 end
         end
-        footer:SetText(#root.results.." results · "..verified.." verified · "..(#root.results-unresolved-verified).." reference"..(unresolved>0 and (" · "..unresolved.." unresolved") or ""))
+        footer:SetText(#resolved..(#resolved==1 and " look · " or " looks · ")..verified.." verified · "..(#resolved-verified).." reference"
+            ..(#unresolved>0 and (" · "..#unresolved.." unresolved") or ""))
         root.PaintCards()
     end
     search:SetScript("OnTextChanged",function()

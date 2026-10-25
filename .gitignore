@@ -2,3 +2,4 @@ luac.out
 .test-output/
 Libs/LibGlass-1.0/
 .playwright-mcp/
+__pycache__/

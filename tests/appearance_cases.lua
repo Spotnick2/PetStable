@@ -6,7 +6,7 @@ return function(ns)
         local fn=preview:GetScript("OnUpdate"); if fn then fn(preview,seconds or 0.3) end
     end
     ns.SelectPage("guide"); guide.OpenFamily("family-cat")
-    assert(ui.columns==3 and #ui.results==1 and not guide.browser:IsShown())
+    assert(ui.columns==2 and #ui.results==1 and not guide.browser:IsShown())
     local card=ui.cards[1]; Tick(card.preview)
     assert(card.preview.ready and card.preview.actor.display==1059)
     assert(card.preview:GetWidth()>card.preview:GetHeight()*2,"exercise a wide, shallow gallery preview")
@@ -109,7 +109,24 @@ return function(ns)
     local savedScroll=ui.gallery:GetVerticalScroll()
     for _,c in ipairs(ui.cards) do if not c:IsShown() then assert(not c.preview.actor.display) end end
     assert(#WoW.widgets==widgets,"scrolling must reuse model cards")
-    Click(ui.cards[1])
+    local visible
+    for _,c in ipairs(ui.cards) do
+        if c:IsShown() then visible=visible or c; assert(not c.preview.actor.display,"no model loads mid-scroll") end
+    end
+    WoW.tick(0.1); assert(not visible.preview.actor.display)
+    WoW.tick(0.1); assert(visible.preview.actor.display==visible.result.group.displayID,"models load once scrolling rests")
+    local loaded={}; for _,c in ipairs(ui.cards) do loaded[c]=c.result end
+    ui.galleryBar:SetValue(ui.gallery:GetVerticalScrollRange()-1)
+    for c,result in pairs(loaded) do if c.result then assert(c.result==result,"visible results keep their card") end end
+    ui.galleryBar:SetValue(ui.gallery:GetVerticalScrollRange())
+    local wheel=ui.gallery:GetScript("OnMouseWheel")
+    wheel(ui.gallery,1); local eased=ui.gallery:GetVerticalScroll(); WoW.tick(0.016)
+    local step=ui.gallery:GetVerticalScroll()
+    assert(step<eased and step>eased-90,"the wheel eases instead of jumping")
+    for _=1,60 do WoW.tick(0.016) end
+    assert(ui.gallery:GetVerticalScroll()==eased-90)
+    ui.galleryBar:SetValue(ui.gallery:GetVerticalScrollRange())
+    Click(visible)
     if ns.history then
         assert(ns.history.Move(-1) and ui.gallery:GetVerticalScroll()==savedScroll)
         assert(ns.history.Move(1) and guide.view=="appearance")
@@ -129,9 +146,10 @@ return function(ns)
     ns.frame:SetSize(800,560); assert(ui.columns==2 and ui.cardHeight>=180)
     fixtures[1].label=string.rep("Long creature name ",12)
     ui.search:SetText(""); ui.OpenAppearance(shared)
-    assert(ui.rows[1]:GetHeight()>76,"long creature names must grow their rows instead of clipping")
+    assert(ui.rows[1]:GetHeight()>44,"long creature names must grow their rows instead of clipping")
     Click(ui.backGallery)
-    ns.frame:SetSize(w,h); assert(ui.columns==3)
+    ns.frame:SetSize(1440,900); assert(ui.columns==3,"a wide window fits a third column")
+    ns.frame:SetSize(w,h); assert(ui.columns==2)
     -- Rejected models and bounds timeouts must leave no stale model or inert controls.
     WoW.rejectModel=true; ui.OpenAppearance(shared)
     assert(not ui.preview.ready and not ui.preview.actor.display and not ui.modelButtons[1]:IsShown())

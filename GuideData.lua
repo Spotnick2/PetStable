@@ -13,6 +13,12 @@ function Guide.Build(data)
     local errors=NS.Catalog.Validate(data)
     if #errors>0 then return {},{},"Catalog unavailable: invalid data." end
     local evidence,bySubject={},{}
+    local skins=type(data.displaySkins)=="table" and data.displaySkins.skins or {}
+    local looks=type(data.displaySkins)=="table" and data.displaySkins.names or {}
+    -- A skin's look name comes from its own family only.
+    local function Look(familyKey,id)
+        return familyKey and skins[id] and looks[familyKey.."|"..skins[id]] or nil
+    end
     for _,e in ipairs(data.evidence) do evidence[e.key]=e end
     for _,f in ipairs(data.facts) do
         bySubject[f.subject]=bySubject[f.subject] or {}
@@ -117,7 +123,8 @@ function Guide.Build(data)
                     local id=Field(link.value,"displayID","Reference display ID")
                     if id.value then
                         variantKeys[link.value]=true
-                        variants[#variants+1]={key=link.value,displayID=id.value,referencePreview=true}
+                        variants[#variants+1]={key=link.value,displayID=id.value,skin=skins[id.value],
+                            look=Look(familyKey,id.value),referencePreview=true}
                     end
                 end
             end
@@ -185,6 +192,10 @@ function Guide.Build(data)
             local referenceTame=false
             for _,claim in ipairs(tameable.claims) do if claim.status=="reference" then referenceTame=true end end
             if referenceTame then details[5]="Reference tameability: "..Value(tameable).." (not verified in game)" end
+            local taming="Not recorded"
+            if tameable.state=="conflicting" then taming="Sources disagree"
+            elseif tameable.value==true then taming=referenceTame and "Reported tameable" or "Tameable"
+            elseif tameable.value==false then taming=referenceTame and "Reported not tameable" or "Not tameable" end
             if #variants>0 then details[#details+1]="Website appearance references; a working preview does not confirm a wild spawn or tameability." end
             if conditions.state~="unknown" then details[#details+1]="Conditions: "..Value(conditions) end
             if location then
@@ -213,6 +224,7 @@ function Guide.Build(data)
                 for _,line in ipairs(Sorted(lines)) do sources[#sources+1]=line end
             end
             entries[#entries+1]={key=r.key,label=label,familyKey=familyKey,family=familyName,displayID=displayID,
+                skin=displayID and skins[displayID],look=displayID and Look(familyKey,displayID),taming=taming,
                 creatureID=creatureID,familyID=familyKey and families[familyKey] and families[familyKey].familyID,
                 variants=variants,zoneNames=zoneNames,referenceLevel=referenceLevel,
                 appearanceKey=appearance.value,portraitVerified=VerifiedAppearance(appearance,display,verified),
@@ -258,7 +270,9 @@ function Guide.Select(entries,key)
 end
 
 -- Exact reference IDs may be previewed, but never acquire a verification flag.
--- One creature can occur beneath several skins; geometry/names never merge them.
+-- One creature can occur beneath several skins. Displays merge only when the
+-- datamined client tables give them the same skin (model, textures, effects);
+-- they then differ only in scale. Geometry or names alone never merge them.
 function Guide.Appearances(entries,familyKey)
     local groups,byKey={},{}
     for _,entry in ipairs(entries) do
@@ -269,29 +283,92 @@ function Guide.Appearances(entries,familyKey)
             if verified then
                 local found=false
                 for _,v in ipairs(variants) do if v.displayID==entry.displayID then found=true end end
-                if not found then variants[#variants+1]={displayID=entry.displayID} end
+                if not found then variants[#variants+1]={displayID=entry.displayID,skin=entry.skin,look=entry.look} end
             end
             if #variants==0 then variants[1]={} end
             for _,variant in ipairs(variants) do
             local id=variant.displayID
-            local key=id and (familyKey.."/display/"..id) or ("unresolved/"..entry.key)
+            local key=id and (variant.skin and (familyKey.."/skin/"..variant.skin) or (familyKey.."/display/"..id))
+                or ("unresolved/"..entry.key)
             local group=byKey[key]
             if not group then
-                group={key=key,familyKey=familyKey,displayID=id,
-                    label=id and (entry.family.." appearance · "..id) or (entry.label.." — appearance unresolved"),
+                group={key=key,familyKey=familyKey,family=entry.family,displayIDs={},members={},
                     entries={},modelVerified=false,portraitVerified=false}
+                if not id then group.label=entry.label.." — appearance unresolved" end
                 byKey[key]=group; groups[#groups+1]=group
             end
+            if id and not group.members[id] then group.members[id]=true; group.displayIDs[#group.displayIDs+1]=id end
             group.referencePreview=group.referencePreview or variant.referencePreview
+            group.look=group.look or variant.look
             group.seen=group.seen or (NS.Sightings and NS.Sightings.Seen(entry.familyID,id))
-            group.modelVerified=group.modelVerified or (id==entry.displayID and entry.modelVerified) or false
-            group.portraitVerified=group.portraitVerified or (id==entry.displayID and entry.portraitVerified) or false
-            group.entries[#group.entries+1]=entry
+            if id==entry.displayID and (entry.modelVerified or entry.portraitVerified) then
+                -- Proof applies to its own display, which then represents the skin.
+                group.verifiedID=math.min(group.verifiedID or id,id)
+                group.modelVerified=group.modelVerified or entry.modelVerified or false
+                group.portraitVerified=group.portraitVerified or entry.portraitVerified or false
+            end
+            -- A creature with two displays of one skin is listed once.
+            local listed=false
+            for _,e in ipairs(group.entries) do if e==entry then listed=true end end
+            if not listed then group.entries[#group.entries+1]=entry end
             end
         end
     end
-    table.sort(groups,function(a,b) return a.label==b.label and a.key<b.key or a.label<b.label end)
+    -- Named looks first, then unnamed displays, then creatures without a display.
+    local named={}
+    for _,group in ipairs(groups) do
+        table.sort(group.displayIDs); group.members=nil
+        group.displayID=group.verifiedID or group.displayIDs[1]
+        if group.look then named[group.look.name]=(named[group.look.name] or 0)+1 end
+    end
+    for _,group in ipairs(groups) do
+        if group.look then
+            group.name=group.look.name..(named[group.look.name]>1 and (" · "..group.displayID) or "")
+            group.label=group.name
+        elseif group.displayID then group.label=group.family.." appearance · "..group.displayID end
+        group.rank=group.look and 1 or group.displayID and 2 or 3
+        group.search=(group.label.." "..table.concat(group.displayIDs," ")):lower()
+    end
+    table.sort(groups,function(a,b)
+        if a.rank~=b.rank then return a.rank<b.rank end
+        if a.rank==2 then return a.displayID<b.displayID end
+        return a.label==b.label and a.key<b.key or a.label<b.label
+    end)
     return groups
+end
+
+-- Reference zones are English website names. They resolve through the client's
+-- own map tree, so a renamed or non-English zone simply finds no map.
+local mapIndex
+function Guide.ZoneMap(entry)
+    local maps=rawget(_G,"C_Map")
+    if not (entry and maps and type(maps.GetMapInfo)=="function") then return nil end
+    local id=entry.spawn and entry.spawn.mapID
+    if not id and entry.zoneNames and entry.zoneNames[1] then
+        if not mapIndex then
+            mapIndex={}
+            for _,root in ipairs({946,947}) do
+                local ok,children=false,nil
+                if type(maps.GetMapChildrenInfo)=="function" then ok,children=pcall(maps.GetMapChildrenInfo,root,nil,true) end
+                for _,info in ipairs(ok and type(children)=="table" and children or {}) do
+                    local name=type(info)=="table" and info.name
+                    -- Prefer a zone (map type 3) over a dungeon or micro-map of the same name.
+                    if type(name)=="string" and (not mapIndex[name] or info.mapType==3) then mapIndex[name]=info.mapID end
+                end
+                if next(mapIndex) then break end
+            end
+        end
+        id=mapIndex[entry.zoneNames[1]]
+    end
+    if not id then return nil end
+    local ok,info=pcall(maps.GetMapInfo,id)
+    if not ok or type(info)~="table" or type(info.name)~="string" then return nil end
+    local parent
+    if info.parentMapID then
+        local found,value=pcall(maps.GetMapInfo,info.parentMapID)
+        parent=found and type(value)=="table" and value.name or nil
+    end
+    return id,info.name,parent
 end
 
 function Guide.Zone(entry)
@@ -326,7 +403,7 @@ function Guide.AppearanceSummary(entries)
     end
     local levelList,zoneList=Sorted(levels),Sorted(zones)
     -- Do not collapse observations into a range or hide unknown levels/locations.
-    local level=#levelList==1 and levelList[1] or "Levels vary; see creatures"
+    local level=#levelList==1 and levelList[1] or "Levels vary"
     local zone=table.concat(zoneList,", ",1,math.min(2,#zoneList))
     if #zoneList>2 then zone=zone.." +"..(#zoneList-2).." zones" end
     return level,zone
@@ -363,7 +440,7 @@ function Guide.FilterAppearances(groups,query,level,zone)
             local levelMatch=not level or (level=="unknown" and not low)
                 or (type(level)=="table" and low and low<=level.high and high>=level.low)
             if levelMatch and zoneMatch
-                and (group.label:lower():find(query,1,true) or entry.label:lower():find(query,1,true)) then
+                and (group.search:find(query,1,true) or entry.label:lower():find(query,1,true)) then
                 matches[#matches+1]=entry
             end
         end

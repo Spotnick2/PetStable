@@ -8,15 +8,23 @@ Ability Upgrades and My Pets retain their existing empty states.
 ## Navigation and presentation
 
 Families opens a five-column index at the default size. Selecting a family opens
-an appearance gallery with three columns and two visible rows at the default
-size for ordinary labels. Long labels increase card height; smaller windows use
-two columns and scrolling. Nine reusable slots load only intersecting cards;
-leaving the gallery clears their models and pending work.
+an appearance gallery of looks: two columns and two visible rows (three columns
+from a 1300-unit-wide panel), each card a model over a band with the look's name
+and one "level · zone" caption. Named looks come first, then unnamed displays.
+Creatures without a matched display sit behind a "without a matched look"
+disclosure under the grid, shown directly only when nothing else matches. Long
+labels increase card height. Nine reusable slots keep each visible result on the
+same card; models load only after scrolling rests for 0.15 s, and the wheel eases
+instead of jumping. Leaving the gallery clears their models and pending work.
 
-An appearance opens a dedicated page with a model at left and a scrollable
-creature/location table at right. Selecting a row reveals that creature's own
-facts. Back to appearances restores family, query, level/location filters and
-scroll. Family information is secondary, and Family sources remains accessible.
+An appearance opens a dedicated page with the model across nearly half the width
+and "Where to tame this look" at right: a reference/verified status line, a
+creature · level · location table, the selected creature's taming and spawn
+summary, and its zone with "Open zone map" when the client resolves the zone
+name. Family abilities & diet and Sources & observations are collapsed rows; the
+latter holds the creature's facts, the look's Petopia source and the shared-skin
+display IDs. Back to appearances restores family, query, level/location filters
+and scroll. Family sources remains accessible.
 All Creatures preserves the original searchable list, portraits and evidence pane.
 That view also retains its selection, query, evidence mode and scroll in-session.
 
@@ -58,9 +66,11 @@ to distinguish otherwise unnamed appearances. Ornery Galestrider has observed
 level 9 but no resolved display. It remains accessible in its own unresolved
 appearance card. Sixteen families have no creature coverage yet.
 
-`GuideData.lua` groups by family and an unambiguous verified display ID. Matching
-model-file IDs, names or families alone never merge records. Unknown or competing
-appearance links remain separate unresolved creature cards. Every grouped record
+`GuideData.lua` groups by family and skin. Exact displays sharing a datamined
+skin key (see [REFERENCE-CATALOG.md](REFERENCE-CATALOG.md)) render identically
+apart from scale and share one card; a display without a key keeps its own card.
+Matching model-file IDs, names or families alone never merge records. Unknown or
+competing appearance links remain separate unresolved creature cards. Every grouped record
 retains its original details and field evidence, including its own level,
 tameability, conditions and location. Structurally invalid catalogs fail closed.
 
