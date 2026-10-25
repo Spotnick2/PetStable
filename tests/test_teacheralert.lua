@@ -134,7 +134,7 @@ do
             if row.ability.name=='Bite' and row.rank.ordinal==2 and fits then ids[#ids+1]=id end
         end
     end
-    table.sort(ids); assert(#ids>=2,'two listed Bite 2 teachers for Cats')
+    table.sort(ids); assert(#ids>=3,'three listed Bite 2 teachers for Cats')
     Reset()
     others={ nameplate1={id=ids[1],level=8}, nameplate2={id=ids[2],level=8} }
     watcherPS:GetScript('OnEvent')(watcherPS,'UNIT_PET')
@@ -145,6 +145,26 @@ do
     assert(ns.Toast.IsShown(),'the second nameplate alerts by itself when the first notice is dismissed')
     ns.Toast.Hide()
     assert(not ns.Toast.IsShown() and not TA.Consider('nameplate1') and not TA.Consider('nameplate2'),'both are now spent for the cooldown')
+
+    -- Two refresh batches while a notice is open: the second batch queues behind the first and nothing is lost.
+    Reset()
+    others={ nameplate1={id=ids[1],level=8}, nameplate2={id=ids[2],level=8}, nameplate3={id=ids[3],level=8} }
+    watcherPS:GetScript('OnEvent')(watcherPS,'UNIT_PET')
+    TA.Consider('nameplate1'); TA.Consider('nameplate2')
+    watcherPS:GetScript('OnUpdate')(watcherPS,0.3)
+    assert(ns.Toast.IsShown(),'batch one shows nameplate 1; nameplate 2 waits')
+    watcherPS:GetScript('OnEvent')(watcherPS,'UNIT_PET')
+    TA.Consider('nameplate3')
+    watcherPS:GetScript('OnUpdate')(watcherPS,0.3)
+    assert(ns.Toast.IsShown(),'batch two does not replace the open notice')
+    local shown=0
+    for _=1,3 do if ns.Toast.IsShown() then shown=shown+1; ns.Toast.Hide() end end
+    assert(shown==3 and not ns.Toast.IsShown(),'all three alert, one at a time, as each is dismissed (saw '..shown..')')
+    -- A direct event while a notice is up waits behind it too.
+    Reset(); others={ nameplate1={id=ids[1],level=8}, nameplate2={id=ids[2],level=8} }
+    assert(TA.Consider('nameplate1') and ns.Toast.IsShown())
+    assert(not TA.Consider('nameplate2'),'the open notice is not replaced')
+    ns.Toast.Hide(); assert(ns.Toast.IsShown(),'the waiting unit alerts when the first goes'); ns.Toast.Hide()
     others={}
 end
 

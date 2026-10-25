@@ -102,6 +102,12 @@ local function Eligible(unit)
     return Plain(Call(rawget(_G, "UnitCreatureID"), unit))
 end
 
+local MAX_WAITING = 20
+local function Push(list, unit)
+    for _, other in ipairs(list) do if other == unit then return end end
+    if #list < MAX_WAITING then list[#list + 1] = unit end
+end
+
 -- Evaluate one unit; shows the toast when it qualifies. Returns the candidate.
 function TA.Consider(unit)
     if not TA.Enabled() or not NS.PetState or not NS.Toast then return nil end
@@ -110,13 +116,13 @@ function TA.Consider(unit)
     local creatureID = Eligible(unit)
     if not creatureID or not TA.Index()[creatureID] then return nil end
     if alerted[creatureID] and now - alerted[creatureID] < COOLDOWN then return nil end
+    -- A notice already up is never replaced: this unit waits its turn and is checked again when it goes.
+    if NS.Toast.IsShown() then Push(waiting, unit); return nil end
     -- Pet data from before this session's scan, or about to be replaced by a pending one, is not
     -- current: wait for the refresh and look at this unit again then.
     if NS.PetState.State() ~= "fresh" or NS.PetState.Pending() then
         -- Every unit seen meanwhile is kept, not just the last: nameplates arrive in bursts.
-        local seen = false
-        for _, other in ipairs(deferred) do if other == unit then seen = true end end
-        if not seen and #deferred < 20 then deferred[#deferred + 1] = unit end
+        Push(deferred, unit)
         return nil
     end
     local active = NS.PetState.Active()
@@ -151,8 +157,7 @@ end
 function TA.ShowNext(units)
     for i, unit in ipairs(units) do
         if TA.Consider(unit) then
-            waiting = {}
-            for j = i + 1, #units do waiting[#waiting + 1] = units[j] end
+            for j = i + 1, #units do Push(waiting, units[j]) end
             return true
         end
     end
@@ -171,7 +176,10 @@ if NS.PetState then
     NS.PetState.Subscribe(function()
         local units = deferred
         deferred = {}
-        TA.ShowNext(units)
+        if NS.Toast and NS.Toast.IsShown() then
+            -- Earlier candidates may still be waiting; these join the end of the queue.
+            for _, unit in ipairs(units) do Push(waiting, unit) end
+        else TA.ShowNext(units) end
     end)
 end
 
