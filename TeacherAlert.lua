@@ -11,7 +11,7 @@ local DEFAULT_IGNORE = { Cower = true } -- rarely worth a trip
 local EVENTS = { "PLAYER_TARGET_CHANGED", "UPDATE_MOUSEOVER_UNIT", "NAME_PLATE_UNIT_ADDED" }
 
 local index
-local alerted, snoozedUntil, snoozedPet = {}, 0, nil
+local alerted, snoozedUntil, snoozedPet, retryUnit = {}, 0, nil, nil
 local watcher = CreateFrame("Frame")
 TA.watcher = watcher
 
@@ -53,11 +53,13 @@ function TA.Snooze(now) snoozedUntil = (now or 0) + SNOOZE end
 
 -- A hunter with a pet out may need to stable it before taming another, so alerts can be held for
 -- as long as this same pet stays active. Summoning or swapping to another pet ends the hold.
-local function PetIdentity(pet)
-    if not (pet and pet.present) then return nil end
-    return table.concat({ pet.name or "?", pet.family or "?", pet.familyKey or "?" }, "|")
+-- The identity is the live pet's GUID, never saved. Name and family are not an identity (two pets can
+-- share both). If the client gives no GUID there is nothing to hold on, so no hold is set.
+local function PetIdentity()
+    local guid = Call(rawget(_G, "UnitGUID"), "pet")
+    return type(guid) == "string" and guid or nil
 end
-function TA.SnoozeForPet(pet) snoozedPet = PetIdentity(pet) end
+function TA.SnoozeForPet() snoozedPet = PetIdentity() end
 function TA.ResetSnoozes() snoozedUntil, snoozedPet = 0, nil; alerted = {} end
 
 -- ctx: playerLevel, creatureLevel, active (PetState.Active()), now. Returns a candidate or nil, reason.
@@ -68,6 +70,8 @@ function TA.Find(creatureID, ctx)
     if ctx.creatureLevel and ctx.creatureLevel > ctx.playerLevel then return nil, "above your level" end
     local pet = ctx.active
     if not (pet and pet.present) then return nil, "no active pet" end
+    -- Catalog ability names are English; matching them against a localized spellbook would misreport ranks.
+    if pet.locale ~= "enUS" then return nil, "rank matching needs English ability names" end
     -- A temporary quest pet knows nothing yet; an unreadable spellbook is unknown, not empty.
     if not (pet.abilitiesRead and #pet.abilities > 0) then return nil, "pet abilities unknown" end
     if not pet.familyKey then return nil, "pet family unknown" end
@@ -106,17 +110,19 @@ function TA.Consider(unit)
     local creatureID = Eligible(unit)
     if not creatureID or not TA.Index()[creatureID] then return nil end
     if alerted[creatureID] and now - alerted[creatureID] < COOLDOWN then return nil end
+    -- Pet data from before this session's scan, or about to be replaced by a pending one, is not
+    -- current: wait for the refresh and look at this unit again then.
+    if NS.PetState.State() ~= "fresh" or NS.PetState.Pending() then retryUnit = unit; return nil end
     local active = NS.PetState.Active()
     if snoozedPet then
-        if PetIdentity(active) == snoozedPet then return nil end
+        if PetIdentity() == snoozedPet then return nil end
         snoozedPet = nil -- a different pet is out now
     end
     local found = TA.Find(creatureID, { playerLevel = NS.PlayerLevel(), now = now,
         creatureLevel = Plain(Call(rawget(_G, "UnitLevel"), unit)), active = active })
     if not found then return nil end
-    alerted[creatureID] = now
     local name = Plain(Call(rawget(_G, "UnitName"), unit)) or found.creature.label
-    NS.Toast.Show({
+    local shown = NS.Toast.Show({
         title = "PET ABILITY NEARBY",
         body = string.format("%s is listed as teaching %s rank %d.\n%s (%s) has %s.",
             name, found.ability.name, found.rank.ordinal, found.pet.name or "Your pet", found.pet.family or "pet",
@@ -125,11 +131,22 @@ function TA.Consider(unit)
         target = name,
         buttons = {
             { text = "Snooze 15 min", onClick = function() TA.Snooze(now) end },
-            { text = "Snooze while I keep this pet", onClick = function() TA.SnoozeForPet(found.pet) end },
+            { text = "Snooze while I keep this pet", onClick = function() TA.SnoozeForPet() end },
             { text = "Ignore " .. found.ability.name, onClick = function() TA.Ignore(found.ability.name, true) end },
         },
     })
+    -- The cooldown starts only when a notice really appeared.
+    if not shown then return nil end
+    alerted[creatureID] = now
     return found
+end
+
+if NS.PetState then
+    NS.PetState.Subscribe(function()
+        local unit = retryUnit
+        retryUnit = nil
+        if unit then TA.Consider(unit) end
+    end)
 end
 
 watcher:RegisterEvent("PLAYER_LOGIN")

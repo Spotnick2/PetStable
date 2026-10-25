@@ -13,11 +13,24 @@ GetRealmName=function() return 'Realm' end
 GetBuildInfo=function() return '1.60.1',70450 end
 -- Widgets from the shared stubs lack secure attributes; keep them on the widget.
 local create=CreateFrame
-CreateFrame=function(...)
-    local f=create(...)
+local locale='enUS'
+function GetLocale() return locale end
+local petGuid='Pet-0-1-1'
+local secureCalls=0
+CreateFrame=function(kind,name,...)
+    local f=create(kind,name,...)
     f.attributes={}
     function f:SetAttribute(k,v) self.attributes[k]=v end
     function f:GetAttribute(k) return self.attributes[k] end
+    if name=='PetStableToastTarget' then
+        -- The secure button is protected: these calls are refused in combat.
+        for _,method in ipairs({'Show','Hide','SetPoint','ClearAllPoints','SetWidth'}) do
+            local original=f[method]
+            f[method]=function(self,...) secureCalls=secureCalls+1; assert(not combat,'protected call '..method..' in combat'); return original(self,...) end
+        end
+        local setAttribute=f.SetAttribute
+        f.SetAttribute=function(self,...) assert(not combat,'protected SetAttribute in combat'); return setAttribute(self,...) end
+    end
     return f
 end
 UIParent:SetSize(1920,1080)
@@ -55,7 +68,7 @@ end
 
 unitState={level=biteRow.creature.levelMin or 8,id=biteID,guid='Creature-0-1-2-3-'..biteID..'-1',name='Teacher',player=false,controlled=false,dead=false}
 UnitExists=function() return true end
-UnitGUID=function() return unitState.guid end
+UnitGUID=function(unit) if unit=='pet' then return petGuid end return unitState.guid end
 UnitCreatureID=function() return unitState.id end
 UnitIsPlayer=function() return unitState.player end
 UnitPlayerControlled=function() return unitState.controlled end
@@ -112,25 +125,61 @@ assert(TA.Ignored('Cower') and not TA.Ignored('Bite'),'Cower is ignored by defau
 Reset(); TA.Snooze(now); assert(not TA.Consider('target'),'timed snooze'); now=now+901; assert(TA.Consider('target'),'snooze over'); ns.Toast.Hide()
 
 -- A pet already out may need stabling first: hold alerts while the same pet stays active.
-Reset(); TA.SnoozeForPet(PS.Active()); assert(not TA.Consider('target'),'held for this pet'); now=now+5000
+Reset(); TA.SnoozeForPet(); assert(not TA.Consider('target'),'held for this pet'); now=now+5000
 assert(not TA.Consider('target'),'a time-based wait does not end the hold')
-UnitCreatureFamily=function() return 'Cat',2 end
-local savedName=UnitName; UnitName=function(unit) if unit=='pet' then return 'Another' end return savedName(unit) end
-PS.Refresh('test'); assert(TA.Consider('target'),'a different pet ends the hold'); ns.Toast.Hide(); UnitName=savedName; PS.Refresh('test')
+petGuid='Pet-0-1-2' -- another pet with the same name and family
+assert(TA.Consider('target'),'a different pet ends the hold even with the same name and family'); ns.Toast.Hide(); petGuid='Pet-0-1-1'
+local noGuid=UnitGUID; UnitGUID=function(unit) if unit=='pet' then return nil end return unitState.guid end
+Reset(); TA.SnoozeForPet(); assert(TA.Consider('target'),'with no pet identity there is no hold to apply'); ns.Toast.Hide(); UnitGUID=noGuid
 
--- The toast: buttons act and close it; the Target button is a secure macro and is left out in combat.
+-- Data from before this session's scan, or about to change, is not used: wait and look again.
+Reset()
+local watcherPS=PS.watcher
+watcherPS:GetScript('OnEvent')(watcherPS,'UNIT_PET')
+assert(PS.Pending() and not TA.Consider('target'),'a scan is pending')
+assert(not ns.Toast.IsShown())
+watcherPS:GetScript('OnUpdate')(watcherPS,0.3)
+assert(not PS.Pending() and ns.Toast.IsShown(),'the unit is looked at again after the refresh, without a cooldown being spent')
+ns.Toast.Hide()
+
+-- Catalog ability names are English: a localized spellbook is not matched.
+Reset(); locale='deDE'; PS.Refresh('test'); assert(not Fires(),'no rank matching on a localized client'); locale='enUS'; PS.Refresh('test'); assert(Fires())
+
+-- The toast: buttons act and close it; the Target button is a secure macro.
 Reset()
 local found=TA.Consider('target'); assert(found and ns.Toast.IsShown())
 local target
 for _,f in ipairs(WoW.frames) do if f.attributes and f.attributes.type=='macro' then target=f end end
 assert(target and target.attributes.macrotext=='/targetexact Teacher','the Target button is a macro for the creature')
+assert(target:GetParent()==UIParent,'the secure button is not a child of the notice')
 local function ByLabel(text) for _,f in ipairs(WoW.frames) do if f.label and f.label.GetText and f.label:GetText()==text then return f end end end
 local ignore=ByLabel('Ignore Bite'); assert(ignore and ByLabel('Snooze 15 min') and ByLabel('Snooze while I keep this pet'))
 ignore:GetScript('OnClick')(ignore); assert(TA.Ignored('Bite') and not ns.Toast.IsShown()); TA.Ignore('Bite',false)
-Reset(); combat=true
-for _,f in ipairs(WoW.frames) do if f.attributes then f.attributes.type=nil; f.attributes.macrotext=nil end end
-assert(TA.Consider('target') and ns.Toast.IsShown()); combat=false
-for _,f in ipairs(WoW.frames) do assert(not (f.attributes and f.attributes.type=='macro'),'no Target macro is set in combat') end
+
+-- Shown out of combat, then dismissed and replaced in combat: no protected call may be made in combat.
+Reset()
+assert(TA.Consider('target') and target:IsShown())
+combat=true
+local calls=secureCalls
+ns.Toast.Hide()
+assert(not ns.Toast.IsShown() and secureCalls==calls,'the notice hides in combat without touching the secure button')
+assert(target:GetAlpha()==0,'the secure button is only made transparent in combat')
+now=now+901
+unitState.id=biteID
+local again=TA.Consider('target')
+assert(again and ns.Toast.IsShown(),'an alert can show in combat, without a Target button')
+assert(secureCalls==calls,'still no protected call in combat')
+local pending=ByLabel('Target (after combat)'); assert(pending,'a placeholder holds the Target slot in combat')
+ns.Toast.Hide()
+combat=false
+local frameWithEvents
+for _,f in ipairs(WoW.frames) do if f._events and f._events.PLAYER_REGEN_ENABLED and f:GetScript('OnEvent') then frameWithEvents=f end end
+assert(frameWithEvents,'the notice listens for the end of combat')
+frameWithEvents:GetScript('OnEvent')(frameWithEvents,'PLAYER_REGEN_ENABLED')
+assert(not target:IsShown(),'the secure button is hidden once combat ends')
+Reset(); now=now+901
+assert(TA.Consider('target') and target:IsShown() and target:GetAlpha()==1,'out of combat it works again')
+ns.Toast.Hide()
 
 -- Other classes register nothing at login; hunters register the three unit signals.
 local function Login(kind)

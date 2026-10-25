@@ -2,13 +2,27 @@ local _, NS = ...
 local Toast = {}
 NS.Toast = Toast
 
--- A small dismissible notice. One shows at a time; a new one replaces it. The optional
--- Target button is a secure macro the player clicks, so nothing is targeted automatically.
+-- A small dismissible notice. One shows at a time; a new one replaces it. The optional Target
+-- button is a secure macro the player clicks, so nothing is targeted automatically.
+--
+-- The secure button lives outside the notice: a protected child would make the notice itself
+-- protected, and showing or hiding it would fail in combat. The notice is an ordinary frame.
+-- The secure button is only shown, hidden, moved or re-aimed out of combat; in combat it is made
+-- transparent, a plain "Target" placeholder covers its slot, and it is hidden when combat ends.
 local WIDTH, LIFETIME = 400, 45
-local frame, widgets
+local frame, secure, placeholder, widgets
+local deferredHide = false
+
+local function InCombat() return rawget(_G, "InCombatLockdown") and InCombatLockdown() or false end
 
 local function Clean(text)
     return (tostring(text or ""):gsub("[%c|]", ""):sub(1, 60))
+end
+
+local function Label(button, text)
+    button.label = button:CreateFontString(nil, "OVERLAY")
+    button.label:SetFont("Fonts\\FRIZQT__.TTF", 12, ""); button.label:SetTextColor(0.9, 0.93, 0.95, 1)
+    button.label:SetPoint("CENTER"); button.label:SetText(text or "")
 end
 
 local function Build()
@@ -28,37 +42,61 @@ local function Build()
     widgets.body = Font(13, 0.92, 0.95, 0.93); widgets.body:SetPoint("TOPLEFT", 14, -30); widgets.body:SetWidth(WIDTH - 28)
     widgets.note = Font(11, 0.68, 0.74, 0.79); widgets.note:SetWidth(WIDTH - 28)
     local close = CreateFrame("Button", nil, frame, "BackdropTemplate"); close:SetSize(24, 22); close:SetPoint("TOPRIGHT", -6, -6)
-    close.label = Font(14, 0.9, 0.93, 0.95); close.label:SetParent(close); close.label:SetPoint("CENTER"); close.label:SetText("×")
+    Label(close, "×")
     if NS.StyleButton then NS.StyleButton(close) end
     close:SetScript("OnClick", function() Toast.Hide() end)
-    widgets.close = close
+    -- Registered once: the secure button's deferred hide runs when combat ends.
+    frame:RegisterEvent("PLAYER_REGEN_ENABLED")
+    frame:SetScript("OnEvent", function()
+        if deferredHide and secure then secure:Hide(); deferredHide = false end
+    end)
     frame:Hide()
 end
 
-local function Slot(i, secure)
-    local key = (secure and "s" or "b") .. i
-    local button = widgets.buttons[key]
+local function Slot(i)
+    local button = widgets.buttons[i]
     if button then return button end
-    button = CreateFrame("Button", nil, frame, (secure and "SecureActionButtonTemplate," or "") .. "BackdropTemplate")
-    button:SetHeight(24)
-    button.label = frame:CreateFontString(nil, "OVERLAY")
-    button.label:SetFont("Fonts\\FRIZQT__.TTF", 12, ""); button.label:SetTextColor(0.9, 0.93, 0.95, 1)
-    button.label:SetParent(button); button.label:SetPoint("CENTER")
+    button = CreateFrame("Button", nil, frame, "BackdropTemplate")
+    button:SetHeight(24); Label(button, "")
     if NS.StyleButton then NS.StyleButton(button) end
-    widgets.buttons[key] = button
+    widgets.buttons[i] = button
     return button
+end
+
+-- Out of combat only: create, aim and show the secure button at a slot of the notice.
+local function ShowSecure(name, x, y, width)
+    if not secure then
+        secure = CreateFrame("Button", "PetStableToastTarget", UIParent, "SecureActionButtonTemplate,BackdropTemplate")
+        secure:SetFrameStrata("DIALOG"); secure:SetFrameLevel(frame:GetFrameLevel() + 10); secure:SetHeight(24)
+        Label(secure, "Target")
+        if NS.StyleButton then NS.StyleButton(secure) end
+        secure:SetScript("PostClick", function() Toast.Hide() end)
+    end
+    secure:SetAttribute("type", "macro"); secure:SetAttribute("macrotext", "/targetexact " .. name)
+    secure:ClearAllPoints(); secure:SetPoint("TOPLEFT", frame, "TOPLEFT", x, -y); secure:SetWidth(width)
+    secure:SetAlpha(1); secure:Show(); deferredHide = false
+end
+
+local function HideSecure()
+    if not secure or not secure:IsShown() then return end
+    if InCombat() then secure:SetAlpha(0); deferredHide = true else secure:Hide() end
 end
 
 function Toast.Hide()
     if frame then frame:Hide(); frame:SetScript("OnUpdate", nil) end
+    if placeholder then placeholder:Hide() end
+    HideSecure()
 end
 
 function Toast.IsShown() return frame ~= nil and frame:IsShown() end
 
 -- opts: title, body, note, target (a creature name for the Target button), buttons {{text, onClick}}.
+-- Returns true when the notice is up.
 function Toast.Show(opts)
     if not frame then Build() end
     for _, button in pairs(widgets.buttons) do button:Hide() end
+    if placeholder then placeholder:Hide() end
+    HideSecure()
     widgets.title:SetText(Clean(opts.title))
     widgets.body:SetText((tostring(opts.body or ""):gsub("|", "||")))
     local y = 30 + math.max(16, widgets.body:GetStringHeight()) + 8
@@ -71,18 +109,29 @@ function Toast.Show(opts)
         if x + width > WIDTH - 14 then x, row = 14, row + 1 end
         button:ClearAllPoints(); button:SetPoint("TOPLEFT", x, -(y + row * 28)); button:SetWidth(width)
         button.label:SetText(label); button:Show(); x = x + width + 6
+        return width
     end
-    -- Secure attributes cannot change in combat, so the Target button is simply left out then.
     local name = opts.target and Clean(opts.target)
-    local inCombat = rawget(_G, "InCombatLockdown") and InCombatLockdown()
-    if name and name ~= "" and not inCombat then
-        local button = Slot(1, true)
-        button:SetAttribute("type", "macro"); button:SetAttribute("macrotext", "/targetexact " .. name)
-        button:SetScript("PostClick", nil)
-        Place(button, "Target")
+    if name and name ~= "" then
+        local width = math.max(70, #"Target" * 7 + 20)
+        if InCombat() then
+            -- A plain placeholder holds the slot and absorbs clicks; the secure button cannot be moved now.
+            if not placeholder then
+                placeholder = CreateFrame("Button", nil, frame, "BackdropTemplate"); placeholder:SetHeight(24)
+                Label(placeholder, "Target (after combat)")
+                if NS.StyleButton then NS.StyleButton(placeholder) end
+                placeholder:SetFrameLevel(frame:GetFrameLevel() + 20)
+                placeholder:SetScript("OnClick", function() end)
+            end
+            placeholder:ClearAllPoints(); placeholder:SetPoint("TOPLEFT", x, -y); placeholder:SetWidth(width + 80); placeholder:Show()
+            x = x + width + 86
+        else
+            ShowSecure(name, x, y, width)
+            x = x + width + 6
+        end
     end
     for i, spec in ipairs(opts.buttons or {}) do
-        local button = Slot(i, false)
+        local button = Slot(i)
         button:SetScript("OnClick", function() if spec.onClick then spec.onClick() end; Toast.Hide() end)
         Place(button, spec.text)
     end
@@ -90,4 +139,5 @@ function Toast.Show(opts)
     local age = 0
     frame:SetScript("OnUpdate", function(_, delta) age = age + delta; if age >= LIFETIME then Toast.Hide() end end)
     frame:Show()
+    return true
 end
