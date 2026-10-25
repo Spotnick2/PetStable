@@ -3,7 +3,7 @@
 Pet Guide uses the [19-family index](FAMILY-INDEX.md) and the same three creature
 records shipped in PR #16. The redesigned shell has horizontal tabs, saved grip
 resizing, Settings, embedded search clearing and restrained hover feedback.
-My Pets retains its existing empty state; Ability Upgrades is described in [UPGRADES.md](UPGRADES.md).
+My Pets is described in [MY-PETS.md](MY-PETS.md); Ability Upgrades is described in [UPGRADES.md](UPGRADES.md).
 
 ## Navigation and presentation
 

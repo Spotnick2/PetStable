@@ -23,6 +23,7 @@ function UnitClassification() return 'normal' end
 function GetBuildInfo() return '1.60.1','70450' end
 function GetLocale() return 'enUS' end
 function time() return now end
+assert(loadfile('Util.lua'))('PetStable',ns)
 assert(loadfile('Sightings.lua'))('PetStable',ns)
 local S=ns.Sightings; ns.db.captureSightings=true; S.Initialize(); assert(ns.db.captureSightings==false,'a database saved with capture on is switched off once')
 ns.db.captureSightings=true; S.Initialize(); assert(ns.db.captureSightings==true,'a later deliberate opt-in is kept')

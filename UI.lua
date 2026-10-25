@@ -43,8 +43,8 @@ local pages = {
       text="" },
     { key="upgrades", label="Ability Upgrades", title="Pet ability ranks and who teaches them",
       text="" },
-    { key="pets", label="My Pets", title="Your companions, together",
-      text="Your pet collection is coming soon.\n\nOwned pets and their known abilities will appear here once collection tracking is available." },
+    { key="pets", label="My Pets", title="Your pet and stable",
+      text="" },
 }
 
 local function Surface(host, size, role)
@@ -135,6 +135,7 @@ local function Contents()
     title:SetWidth(w-310); description:SetSize(w-48,h-220); context:SetWidth(w-70)
     NS.guide.Layout(w-48,h-180)
     if NS.upgrades then NS.upgrades.Layout(w-48,h-180) end
+    if NS.pets then NS.pets.Layout(w-48,h-180) end
 end
 
 function NS.Layout()
@@ -168,7 +169,11 @@ function NS.SelectPage(key)
     end
     if NS.guide then
         NS.guide:SetShown(key=="guide")
-        description:SetShown(key~="guide" and key~="upgrades")
+        description:SetShown(key~="guide" and key~="upgrades" and key~="pets")
+        if NS.pets then
+            NS.pets.ResetHover(); NS.pets:SetShown(key=="pets")
+            if key=="pets" then NS.pets.Refresh() end
+        end
         if NS.upgrades then
             NS.upgrades.ResetHover(); NS.upgrades:SetShown(key=="upgrades")
             if key=="upgrades" then NS.upgrades.Refresh() end
@@ -333,6 +338,7 @@ local function Build()
     description:SetJustifyV("TOP"); description:SetSpacing(5)
     NS.guide=NS.CreateGuide(content,frame,Text)
     NS.upgrades=NS.CreateUpgrades(content,frame,Text)
+    NS.pets=NS.CreatePets(content,frame,Text)
     context=Text(content,11,{0.6,0.68,0.64,1}); context:SetPoint("BOTTOMLEFT",24,16); context:SetWidth(810)
     local function Button(host,label,w,h,click)
         local b=CreateFrame("Button",nil,host,"BackdropTemplate"); b:SetSize(w,h)
