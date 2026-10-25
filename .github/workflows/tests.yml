@@ -21,8 +21,10 @@ jobs:
       - name: Reference catalog and local sightings
         run: |
           lua5.1 tests/test_reference.lua
+          lua5.1 tests/test_teachers.lua
           lua5.1 tests/test_sightings.lua
           python3 -m unittest discover -s tests -p "test_import_reference.py"
+          python3 -m unittest discover -s tests -p "test_import_teachers.py"
       - name: Guide data and filters
         run: lua5.1 tests/test_guide.lua
       - name: Player addon and pinned LibGlass
