@@ -61,7 +61,7 @@ function NS.CreatePets(parent, window, Text)
             child:SetHeight(math.max(10, y)); return
         end
         local state, active = PS.State(), PS.Active()
-        local pets, stableTime = PS.Stable()
+        local pets, stableTime, complete = PS.Stable()
         y = Line(y, state == "fresh" and "Checked this session." or state == "stale"
             and ("From an earlier session (" .. Date(active and active.observed or stableTime) .. "). It updates when you log in as this hunter.")
             or "Nothing observed yet. Log in as a hunter and summon your pet.", 13, COLOR.dim)
@@ -104,6 +104,7 @@ function NS.CreatePets(parent, window, Text)
             y = Line(y, stableTime and "No stabled pets were recorded at the last check." or "No stable list has been read yet.", 13, COLOR.dim)
         else y = Line(y + 4, "Pick a pet to open its family in the Pet Guide.", 12, COLOR.dim) end
         if stableTime then y = Line(y, "Stable last read " .. Date(stableTime) .. ".", 12, COLOR.dim) end
+        if stableTime and not complete then y = Line(y, "Only part of the stable list could be read, so some pets may be missing.", 12, COLOR.dim) end
         y = Line(y + 10, "The abilities of stabled pets cannot be read, and what your hunter has learned is not tracked yet, so neither is shown.", 12, COLOR.dim)
         child:SetHeight(math.max(10, y))
     end

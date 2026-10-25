@@ -13,8 +13,10 @@ safe client call (`NS.Call`: tolerates a missing API, an error or a secret value
   recorded as a check, not as missing data.
 - **Stable:** the pets in `C_StableInfo.GetActivePetList` and `GetStabledPetList` (pet number,
   slot, name, level, family, creature and display IDs). Both lists were readable away from the
-  stable master in the 70425 measurements. If neither call answers, the last list is kept with its
-  time; an empty answer is stored as a real answer.
+  stable master in the 70425 measurements. The two lists are separate sections: one that cannot be
+  read keeps its last answer and time, and the page says when only part of the stable could be
+  read. An empty answer is stored as a real answer. Stabled pets' families also resolve by the
+  client's own localized family names, since the stable entries carry a name but no family ID.
 - Everything is stored per character in `PetStableDB.pets`, with the time and build. At most 20
   characters are kept. Non-hunters never scan, register events or store anything.
 

@@ -11,7 +11,7 @@ local MAX_PETS, MAX_SPELLS, MAX_CHARACTERS, DEBOUNCE = 30, 200, 20, 0.25
 local EVENTS = { "UNIT_PET", "PET_BAR_UPDATE", "SPELLS_CHANGED", "PET_STABLE_SHOW", "PET_STABLE_UPDATE", "PLAYER_ENTERING_WORLD" }
 
 local listeners, session = {}, { scanned = false }
-local familyByID, familyByName
+local familyByID, familyByName, localized
 
 local function Number(v) v = Plain(v); return type(v) == "number" and v or nil end
 local function Text(v) v = Plain(v); return type(v) == "string" and v:match("%S") and v:sub(1, 80) or nil end
@@ -27,6 +27,18 @@ local function FamilyKey(name, id)
             if fact.field == "familyID" then familyByID[fact.value] = fact.subject
             elseif fact.field == "name" and fact.subject:match("^family%-") then
                 familyByName[fact.value:lower()] = fact.subject
+            end
+        end
+    end
+    -- The client's own names for the catalog's family IDs make the name fallback work in any locale.
+    if not localized then
+        local info = rawget(_G, "C_CreatureInfo")
+        if type(info) == "table" then
+            localized = true
+            for familyID, key in pairs(familyByID) do
+                local family = Call(info.GetCreatureFamilyInfo, familyID)
+                local text = type(family) == "table" and Text(family.name)
+                if text then familyByName[text:lower()] = key end
             end
         end
     end
@@ -93,9 +105,15 @@ local function ScanStable(record, now)
     local activeList = Call(stable.GetActivePetList)
     local stabledList = Call(stable.GetStabledPetList)
     local pets = {}
-    local a, b = ReadPets(activeList, true, pets), ReadPets(stabledList, false, pets)
-    -- Keep the last list when the client answered neither call.
-    if a or b then record.stable = { observed = now, build = Build(), pets = pets } end
+    local stable = record.stable
+    if type(stable) ~= "table" or stable.version ~= 2 then stable = { version = 2 }; record.stable = stable end
+    -- Each list is its own section: one that cannot be read keeps its last answer and time.
+    for _, section in ipairs({ { "active", activeList, true }, { "stabled", stabledList, false } }) do
+        local pets = {}
+        if ReadPets(section[2], section[3], pets) then
+            stable[section[1]] = { observed = now, build = Build(), pets = pets }
+        end
+    end
 end
 
 local function ScanActive(record, now)
@@ -152,10 +170,19 @@ function PS.Active()
     return record and record.active or nil
 end
 
+-- All stable entries, when the older list was read, and whether both lists have been read.
 function PS.Stable()
     local record = Record(false)
     local stable = record and record.stable
-    return stable and stable.pets or {}, stable and stable.observed or nil
+    local pets, observed = {}, nil
+    for _, name in ipairs({ "active", "stabled" }) do
+        local section = type(stable) == "table" and stable[name]
+        if section then
+            for _, pet in ipairs(section.pets) do pets[#pets + 1] = pet end
+            observed = observed and math.min(observed, section.observed or observed) or section.observed
+        end
+    end
+    return pets, observed, type(stable) == "table" and stable.active ~= nil and stable.stabled ~= nil
 end
 
 -- Pets of one catalog family: the active pet and any stabled ones.

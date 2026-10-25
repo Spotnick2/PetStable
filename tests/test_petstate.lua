@@ -25,9 +25,12 @@ local spells = {
 C_SpellBook = { HasPetSpells = function() return #spells end, GetSpellBookItemInfo = function(i) return spells[i] end }
 local active = { { petNumber = 42, slotID = 1, name = "Whiskers", level = 12, familyName = "Cat", creatureID = 3035, displayID = 1059 } }
 local stabled = { { petNumber = 43, slotID = 3, name = "Grumpy", level = 8, familyName = "Bear", creatureID = 251115, displayID = 136606 },
-    { petNumber = 44, slotID = 4, name = "Skitter", level = 5, familyName = "Spider" } }
+    { petNumber = 44, slotID = 4, name = "Skitter", level = 5, familyName = "Spider" },
+    { petNumber = 45, slotID = 5, name = "Minou", level = 3, familyName = "Chat" } }
 C_StableInfo = { GetActivePetList = function() return active end, GetStabledPetList = function() return stabled end }
 
+-- The client names the catalog's families in its own language.
+C_CreatureInfo = { GetCreatureFamilyInfo = function(id) return ({ [2] = { id = 2, name = "Chat" } })[id] end }
 local ns = {
     db = {},
     CatalogData = { facts = { { subject = "family-cat", field = "familyID", value = 2 }, { subject = "family-cat", field = "name", value = "Cat" },
@@ -56,8 +59,9 @@ assert(#a.abilities == 3 and a.abilitiesRead, "commands without a spell ID are n
 assert(a.abilities[1].name == "Bite" and a.abilities[1].rank == 2 and a.abilities[3].rank == nil)
 assert(PS.ActiveRank("Bite") == 2 and PS.ActiveRank("Claw") == 1 and PS.ActiveRank("Dash") == 1 and PS.ActiveRank("Growl") == 0)
 local pets, observed = PS.Stable()
-assert(#pets == 3 and observed == 100 and pets[1].active and pets[1].petNumber == 42)
+assert(#pets == 4 and observed == 100 and pets[1].active and pets[1].petNumber == 42)
 assert(pets[2].name == "Grumpy" and pets[2].familyKey == "family-bear" and pets[3].familyKey == "family-spider")
+assert(pets[4].familyKey == "family-cat", "a stabled pet resolves by the client's localized family name")
 local owned = PS.Owned()
 assert(owned["family-cat"].active and owned["family-bear"].stabled == 1 and owned["family-spider"].stabled == 1)
 
@@ -65,8 +69,15 @@ assert(owned["family-cat"].active and owned["family-bear"].stabled == 1 and owne
 now = 200; C_StableInfo = nil
 pet.exists = false
 assert(PS.Refresh("test"))
-assert(#PS.Stable() == 3 and select(2, PS.Stable()) == 100, "the last stable list is kept with its time")
+assert(#PS.Stable() == 4 and select(2, PS.Stable()) == 100, "the last stable list is kept with its time")
 assert(PS.Active().present == false and PS.Active().observed == 200 and PS.ActiveRank("Bite") == nil)
+-- One list unreadable: its last answer and time stay; only the readable list is updated.
+now = 250
+C_StableInfo = { GetActivePetList = function() return {} end, GetStabledPetList = function() return nil end }
+PS.Refresh("test")
+local partial, partialTime, complete = PS.Stable()
+assert(#partial == 3 and partialTime == 100 and complete, "stabled pets survive an unreadable stabled list")
+for _, pet in ipairs(partial) do assert(not pet.active) end
 C_StableInfo = { GetActivePetList = function() return {} end, GetStabledPetList = function() return {} end }
 now = 300; PS.Refresh("test")
 assert(#PS.Stable() == 0 and select(2, PS.Stable()) == 300, "an empty answer is a real answer")
