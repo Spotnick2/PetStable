@@ -14,6 +14,8 @@ local function loadAddon()
     assert(loadfile("GuideModels.lua"))("PetStable",ns)
     assert(loadfile("GuideAppearances.lua"))("PetStable",ns)
     assert(loadfile("GuideUI.lua"))("PetStable",ns)
+    assert(loadfile("UpgradesData.lua"))("PetStable",ns)
+    assert(loadfile("UpgradesUI.lua"))("PetStable",ns)
     assert(loadfile("UI.lua"))("PetStable",ns)
     return ns
 end

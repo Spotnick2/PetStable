@@ -6,7 +6,7 @@ reference evidence; the original observations and their build stamps are intact.
 
 This is a static, provenance-aware foundation for Pet Guide, delivered as partial
 work on issue #7. The [browser](PET-GUIDE.md) now includes a [19-family index](FAMILY-INDEX.md)
-without expanding creature coverage. Ability Upgrades and My Pets retain their empty states. The catalog
+without expanding creature coverage. My Pets retains its empty state; Ability Upgrades is a [reference listing](UPGRADES.md). The catalog
 does not provide recommendations, collection capture, data import, network access,
 or SavedVariables changes.
 
