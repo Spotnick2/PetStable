@@ -133,6 +133,10 @@ function NS.CreateGuide(parent, window, Text)
         card.icon=card:CreateTexture(nil,"ARTWORK"); card.icon:SetPoint("LEFT",8,0); card.icon:SetSize(64,64)
         card.placeholder=Text(card,24,{0.65,0.72,0.75,1}); card.placeholder:SetPoint("LEFT",32,0); card.placeholder:SetText("?")
         card.arrow=Text(card,18,{0.74,0.9,0.64,1}); card.arrow:SetPoint("RIGHT",-5,0); card.arrow:SetText("›"); card.arrow:Hide()
+        -- "Your pet" / "In stable": text plus a thin accent, never colour alone.
+        card.mark=Text(card,11,{0.74,0.9,0.64,1}); card.mark:SetPoint("BOTTOMLEFT",82,7); card.mark:SetJustifyH("LEFT"); card.mark:Hide()
+        card.accent=card:CreateTexture(nil,"OVERLAY"); card.accent:SetPoint("TOPLEFT",1,-8); card.accent:SetPoint("BOTTOMLEFT",1,8)
+        card.accent:SetWidth(3); card.accent:SetColorTexture(1,1,1,1); card.accent:Hide()
         card:EnableMouseWheel(true); card:SetScript("OnMouseWheel",ScrollGallery)
         panel.cards[i]=card
     end
@@ -273,7 +277,7 @@ function NS.CreateGuide(parent, window, Text)
         galleryChild:SetWidth(gallery:GetWidth())
         for i,card in ipairs(panel.cards) do
             Place(card,((i-1)%columns)*(cardWidth+10),math.floor((i-1)/columns)*94,cardWidth,84)
-            card.label:SetSize(cardWidth-100,68)
+            card.label:SetSize(cardWidth-100,card.mark:IsShown() and 50 or 68)
         end
         local rows=math.ceil(#(panel.familyResults or panel.families)/columns)
         galleryChild:SetHeight(math.max(gallery:GetHeight(),rows*94-10))
@@ -320,9 +324,17 @@ function NS.CreateGuide(parent, window, Text)
             breadcrumb:Hide()
             panel.familyQuery=search:GetText()
             panel.familyResults=NS.GuideData.Filter(panel.families,search:GetText())
+            local owned=NS.PetState and NS.PetState.Owned() or {}
             for i,card in ipairs(panel.cards) do
                 local family=panel.familyResults[i]; card.family=family; card:SetShown(family~=nil)
                 card.icon:SetTexture(nil); card.icon:Hide(); card.placeholder:Show()
+                local mine=family and owned[family.key]
+                card.mark:SetShown(mine~=nil); card.accent:SetShown(mine~=nil)
+                if mine then
+                    card.mark:SetText(mine.active and ("Your pet"..(mine.stabled>0 and " · "..mine.stabled.." in stable" or ""))
+                        or ("In stable"..(mine.stabled>1 and " ("..mine.stabled..")" or "")))
+                    if mine.active then card.accent:SetColorTexture(0.55,0.85,0.5,0.9) else card.accent:SetColorTexture(0.5,0.7,0.9,0.9) end
+                end
                 if family then
                     card.label:SetText(Plain(family.displayLabel))
                     if family.iconFileID then
@@ -392,5 +404,9 @@ function NS.CreateGuide(parent, window, Text)
     panel:SetScript("OnHide",function() panel.ClearFocus(); panel.ResetHover(); panel.appearances.Stop() end)
     panel.Layout(992,502)
     panel.Refresh(true)
+    -- Marks follow the observed pets whenever they are re-read.
+    if NS.PetState then
+        NS.PetState.Subscribe(function() if panel.view=="families" and panel:IsShown() then panel.Refresh(false) end end)
+    end
     return panel
 end

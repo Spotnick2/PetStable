@@ -22,6 +22,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Pet state tests failed.' }
     & $Lua tests/test_sightings.lua
     if ($LASTEXITCODE -ne 0) { throw 'Sighting tests failed.' }
+    & $Lua tests/test_markers.lua
+    if ($LASTEXITCODE -ne 0) { throw 'Family marker tests failed.' }
     & $Lua tests/test_reference_ui.lua
     if ($LASTEXITCODE -ne 0) { throw 'Reference UI tests failed.' }
     & $Lua tests/test_addon.lua

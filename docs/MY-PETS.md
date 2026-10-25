@@ -44,9 +44,19 @@ session's data exists, and `unknown` otherwise. The page says which, with the da
 Active pet with its observed abilities, then the stable (name, level, family, slot). Clicking a
 stabled pet opens its family in the Pet Guide. A hunter-only message is shown to other classes.
 
+## In the Pet Guide
+
+- Family cards on the index show "Your pet" for the active pet's family (with "· n in stable"
+  when stabled pets share it) and "In stable" or "In stable (n)" otherwise. It is text plus a thin
+  accent, never colour alone, and updates when the pets are re-read.
+- On the first open of a session the guide may open on the active pet's family. This needs
+  data from a scan this session and a pet that is present, applies only when the saved page is
+  the guide, and never replaces restored history. Settings has "Open on your pet's family"
+  (on by default).
+
 ## Validation
 
-`tests/test_petstate.lua` covers the scan, the delay, missing APIs, secrets, freshness, class
+`tests/test_markers.lua` covers the card marks, live updates and the opening rule. `tests/test_petstate.lua` covers the scan, the delay, missing APIs, secrets, freshness, class
 gating, subscriptions and saved data. `tests/pets_cases.lua` (run from `tests/test_reference_ui.lua`)
 drives the page. Nothing here has run in the live client, which is unavailable before November 4.
 To check there: the stable lists on a fresh login before visiting the stable master, that the
