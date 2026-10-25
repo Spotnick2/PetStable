@@ -15,7 +15,8 @@ as teachers (an index of creature ID to ability ranks, built once). It shows whe
 - The active pet's abilities were read by this session's scan and it knows at least one, so a
   temporary quest pet is left alone, and an unreadable spellbook is treated as unknown, never as
   empty. While a scan is pending, or before the first one, the unit is looked at again once it
-  finishes, and no cooldown is spent meanwhile.
+  finishes, and no cooldown is spent meanwhile. Every unit seen while a scan is pending is kept, so a burst
+  of nameplates loses none; one notice shows at a time and the rest can still alert on their next event.
 - The client is English. Catalog ability names are English, so on other locales the alert stays
   quiet rather than misreport a rank.
 - The ability is not a trainer ability, fits the active pet's family, is not ignored, and the listed
@@ -26,11 +27,10 @@ this is reference data. It never says the hunter has or lacks a rank: that is no
 
 ## Controls
 
-- **Target** is a secure macro button the player clicks (`/targetexact`); nothing is targeted
-  automatically. It is a separate frame, not a child of the notice, so the notice can show and hide
-  in combat. The secure button is only moved, shown, hidden or re-aimed out of combat: in combat it
-  is made transparent, a plain "Target (after combat)" placeholder holds its slot, and it is hidden
-  when combat ends.
+- There is no Target button yet. A secure button is protected in combat, and how it must be anchored and
+  hidden cannot be checked before the client is back, so it is left for a follow-up once it can be
+  verified in game. The notice itself contains nothing secure, so it shows, is replaced and hides at
+  any time, including in combat.
 - **Snooze 15 min** holds all alerts for fifteen minutes.
 - **Snooze while I keep this pet** holds alerts for as long as the same pet stays active, for when
   the hunter needs to stable it before taming another. The pet is identified by its live GUID, never
@@ -48,6 +48,6 @@ not detect that a creature was just tamed (a tamed creature is controlled, so it
 ## Validation
 
 `tests/test_teacheralert.lua` covers each condition above, the cooldown, both snoozes, the ignore
-list, the toast buttons, the combat case and class gating. Not yet run in the live client
+list, the toast buttons, showing and hiding in combat, a nameplate burst and class gating. Not yet run in the live client
 (unavailable before November 4). To check there: the three unit signals, `UnitCreatureID` for
-wild units, the secure Target button in and out of combat, and how the toast looks.
+wild units, and how the toast looks.

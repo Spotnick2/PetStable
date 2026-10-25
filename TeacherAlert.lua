@@ -11,7 +11,7 @@ local DEFAULT_IGNORE = { Cower = true } -- rarely worth a trip
 local EVENTS = { "PLAYER_TARGET_CHANGED", "UPDATE_MOUSEOVER_UNIT", "NAME_PLATE_UNIT_ADDED" }
 
 local index
-local alerted, snoozedUntil, snoozedPet, retryUnit = {}, 0, nil, nil
+local alerted, snoozedUntil, snoozedPet, deferred = {}, 0, nil, {}
 local watcher = CreateFrame("Frame")
 TA.watcher = watcher
 
@@ -112,7 +112,13 @@ function TA.Consider(unit)
     if alerted[creatureID] and now - alerted[creatureID] < COOLDOWN then return nil end
     -- Pet data from before this session's scan, or about to be replaced by a pending one, is not
     -- current: wait for the refresh and look at this unit again then.
-    if NS.PetState.State() ~= "fresh" or NS.PetState.Pending() then retryUnit = unit; return nil end
+    if NS.PetState.State() ~= "fresh" or NS.PetState.Pending() then
+        -- Every unit seen meanwhile is kept, not just the last: nameplates arrive in bursts.
+        local seen = false
+        for _, other in ipairs(deferred) do if other == unit then seen = true end end
+        if not seen and #deferred < 20 then deferred[#deferred + 1] = unit end
+        return nil
+    end
     local active = NS.PetState.Active()
     if snoozedPet then
         if PetIdentity() == snoozedPet then return nil end
@@ -128,7 +134,6 @@ function TA.Consider(unit)
             name, found.ability.name, found.rank.ordinal, found.pet.name or "Your pet", found.pet.family or "pet",
             found.current > 0 and ("rank " .. found.current) or "none"),
         note = "Listed by references, not confirmed in game. Your hunter's learned ranks are not tracked.",
-        target = name,
         buttons = {
             { text = "Snooze 15 min", onClick = function() TA.Snooze(now) end },
             { text = "Snooze while I keep this pet", onClick = function() TA.SnoozeForPet() end },
@@ -143,9 +148,10 @@ end
 
 if NS.PetState then
     NS.PetState.Subscribe(function()
-        local unit = retryUnit
-        retryUnit = nil
-        if unit then TA.Consider(unit) end
+        local units = deferred
+        deferred = {}
+        -- One notice at a time: stop at the first that shows; the rest are not spent and can alert later.
+        for _, unit in ipairs(units) do if TA.Consider(unit) then break end end
     end)
 end
 
