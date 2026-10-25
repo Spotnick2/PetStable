@@ -35,6 +35,7 @@ jobs:
           PETSTABLE_LIBGLASS: .test-output/LibGlass
         run: |
           lua5.1 tests/test_addon.lua
+          lua5.1 tests/test_levelfilter.lua
           lua5.1 tests/test_markers.lua
           lua5.1 tests/test_reference_ui.lua
       - name: Probe integration (optional private host)

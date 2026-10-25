@@ -239,7 +239,10 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
                 end
             end
         end
-        local entries=state.showAll and group.entries or state.result.matches
+        local entries=G.ByLevel(state.showAll and group.entries or state.result.matches)
+        local hunterLevel,cap=NS.PlayerLevel(),NS.LevelCap()
+        local hiddenAbove=0
+        if cap then for _,entry in ipairs(group.entries) do if G.AboveLevel(entry,cap) then hiddenAbove=hiddenAbove+1 end end end
         root.detailEntries=entries
         local width=body:GetWidth()-4; local y=0
         local function TextRow(widget,text,size)
@@ -260,6 +263,9 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         if group.seen then status=status.." · Seen by you" end
         if group.look and group.look.availability~="obtainable" then
             status=status.."\nPetopia lists this look as "..(group.look.availability=="unused" and "unused in game" or group.look.availability).."."
+        end
+        if hiddenAbove>0 and not state.showAll then
+            status=status.."\n"..hiddenAbove..(hiddenAbove==1 and " creature is" or " creatures are").." above your level "..cap.." and hidden. Settings can turn the level filter off."
         end
         if filtered then status=status.."\n"..(state.showAll and "Showing all associated creatures." or "Showing creatures matching your search and filters.") end
         TextRow(matchText,status)
@@ -284,7 +290,7 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
             end
             row.entry=entry; row:Show(); Place(row,0,y,width,44)
             Place(row.name,16,12,width*0.46-20,20); row.name:SetText(Plain(entry.label))
-            Place(row.level,width*0.46,12,width*0.2-8,20); row.level:SetText(Plain(G.Level(entry)))
+            Place(row.level,width*0.46,12,width*0.2-8,20); row.level:SetText(Plain(G.Level(entry)..(G.AboveLevel(entry,hunterLevel) and "\nAbove your level" or "")))
             Place(row.zone,width*0.66,12,width*0.34-8,20); row.zone:SetText(Plain(G.Zone(entry)))
             local rowHeight=math.max(44,row.name:GetStringHeight()+24,row.level:GetStringHeight()+24,row.zone:GetStringHeight()+24)
             row:SetHeight(rowHeight)
@@ -444,7 +450,7 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         -- Creatures without a matched display sit behind a disclosure below the looks,
         -- unless nothing else matches.
         local resolved,unresolved={},{}
-        for _,result in ipairs(G.FilterAppearances(root.groups,state.query,level.value,zone.value)) do
+        for _,result in ipairs(G.FilterAppearances(root.groups,state.query,level.value,zone.value,NS.LevelCap())) do
             if result.group.displayID then resolved[#resolved+1]=result else unresolved[#unresolved+1]=result end
         end
         root.results=resolved
@@ -464,7 +470,11 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         local restoreScroll=state.scroll
         canvas:SetHeight(math.max(gallery:GetHeight(),math.ceil(#root.results/root.columns)*(root.cardHeight+12)-12))
         gallery:SetVerticalScroll(math.min(restoreScroll,gallery:GetVerticalScrollRange()))
-        empty:SetText(panel.problem or (#root.groups==0 and "No creatures recorded in PetStable yet." or "No matching appearances. Clear search or change the filters."))
+        local cap=NS.LevelCap()
+        local belowCap=cap and #G.FilterAppearances(root.groups,state.query,level.value,zone.value)>0
+        empty:SetText(panel.problem or (#root.groups==0 and "No creatures recorded in PetStable yet."
+            or (belowCap and ("Every matching creature is above your level "..cap..". Settings can turn the level filter off.")
+            or "No matching appearances. Clear search or change the filters.")))
         empty:SetShown(#root.results==0)
         local verified=0
         for _,result in ipairs(resolved) do

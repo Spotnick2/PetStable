@@ -98,21 +98,27 @@ function Upgrades.Fits(rank, familyKey)
     return false
 end
 
-function Upgrades.Filter(abilities, familyKey)
+-- A pet cannot be above its hunter's level, so a rank whose pet level is higher is hidden by the level filter.
+function Upgrades.Visible(rank, cap)
+    return not cap or not rank.petLevel or rank.petLevel <= cap
+end
+
+function Upgrades.Filter(abilities, familyKey, cap)
     local out = {}
     for _, ability in ipairs(abilities) do
         for _, rank in ipairs(ability.ranks) do
-            if Upgrades.Fits(rank, familyKey) then out[#out + 1] = ability; break end
+            if Upgrades.Fits(rank, familyKey) and Upgrades.Visible(rank, cap) then out[#out + 1] = ability; break end
         end
     end
     return out
 end
 
 -- Teachers of one rank, optionally only the beasts of the chosen family.
-function Upgrades.Teachers(rank, familyKey)
-    if not familyKey then return rank.teachers end
-    local out = {}
-    for _, entry in ipairs(rank.teachers) do if entry.familyKey == familyKey then out[#out + 1] = entry end end
+function Upgrades.Teachers(rank, familyKey, cap)
+    local out, above = {}, NS.GuideData and NS.GuideData.AboveLevel
+    for _, entry in ipairs(rank.teachers) do
+        if (not familyKey or entry.familyKey == familyKey) and not (cap and above and above(entry, cap)) then out[#out + 1] = entry end
+    end
     return out
 end
 

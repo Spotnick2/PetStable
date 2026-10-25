@@ -227,7 +227,9 @@ function NS.CreateGuide(parent, window, Text)
         end
         local total=#panel.results
         count:SetText(total==0 and "0 results" or ((panel.offset+1).."–"..math.min(total,panel.offset+panel.visibleRows).." / "..total))
-        footer:SetText(total..(total==1 and " recorded creature" or " recorded creatures")..(panel.familyKey and " in this family" or ""))
+        local hiddenAbove=NS.LevelCap() and #NS.GuideData.Filter(panel.entries,search:GetText(),panel.familyKey)-total or 0
+        footer:SetText(total..(total==1 and " recorded creature" or " recorded creatures")..(panel.familyKey and " in this family" or "")
+            ..(hiddenAbove>0 and (" · "..hiddenAbove.." above your level hidden") or ""))
         panel.previous.disabled=panel.offset==0; panel.next.disabled=panel.offset>=math.max(0,total-panel.visibleRows)
         for _,b in ipairs({panel.previous,panel.next}) do b:SetEnabled(not b.disabled); b.Paint() end
     end
@@ -371,7 +373,7 @@ function NS.CreateGuide(parent, window, Text)
         end
         local choice=NS.GuideData.Select(panel.families,panel.familyKey)
         breadcrumb:SetText(Plain("/ "..(panel.familyKey and choice and choice.displayLabel or "All Creatures")))
-        panel.results=NS.GuideData.Filter(panel.entries,search:GetText(),panel.familyKey)
+        panel.results=NS.GuideData.Filter(panel.entries,search:GetText(),panel.familyKey,NS.LevelCap())
         local oldKey=panel.selected and panel.selected.key
         panel.selected=NS.GuideData.Select(panel.results,oldKey)
         if resetOffset then panel.offset=0 end
@@ -384,8 +386,12 @@ function NS.CreateGuide(parent, window, Text)
         end
         if not panel.selected or panel.selected.key~=oldKey then panel.showEvidence=false end
         local familyEmpty=panel.familyKey and #NS.GuideData.Filter(panel.entries,"",panel.familyKey)==0
+        local cap=NS.LevelCap()
+        local belowCap=cap and #NS.GuideData.Filter(panel.entries,search:GetText(),panel.familyKey)>0
         empty:SetText(panel.problem or (familyEmpty and "No creatures recorded in PetStable yet."
-            or (#panel.entries==0 and "No creatures are recorded in this catalog yet." or "No matching creatures.\nTry another search or clear it.")))
+            or (#panel.entries==0 and "No creatures are recorded in this catalog yet."
+            or (belowCap and ("Every matching creature is above your level "..cap..".\nSettings can turn the level filter off.")
+            or "No matching creatures.\nTry another search or clear it."))))
         empty:SetShown(#panel.results==0)
         placeholder:SetShown(search:GetText()=="")
         PaintRows(); Details()

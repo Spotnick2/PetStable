@@ -138,6 +138,12 @@ local function Contents()
     if NS.pets then NS.pets.Layout(w-48,h-180) end
 end
 
+-- The level filter or the hunter's level changed: repaint what depends on it.
+function NS.RefreshFilters()
+    if NS.guide then NS.guide.Refresh(false) end
+    if NS.upgrades and NS.upgrades:IsShown() then NS.upgrades.Refresh() end
+end
+
 function NS.Layout()
     if not frame then return end
     local availableW,availableH=UIParent:GetWidth()-32,UIParent:GetHeight()-32
@@ -346,7 +352,7 @@ local function Build()
         NS.StyleButton(b); b:SetScript("OnClick",click); return b
     end
     local settings=CreateFrame("Frame",nil,content,"BackdropTemplate"); NS.settings=settings
-    settings:SetSize(320,304); settings:SetPoint("TOPRIGHT",-16,-58); settings:SetFrameLevel(content:GetFrameLevel()+50); settings:EnableMouse(true)
+    settings:SetSize(320,342); settings:SetPoint("TOPRIGHT",-16,-58); settings:SetFrameLevel(content:GetFrameLevel()+50); settings:EnableMouse(true)
     settings:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
     settings:SetBackdropColor(0.045,0.065,0.055,1); settings:SetBackdropBorderColor(0.4,0.5,0.42,1)
     local help=Text(settings,13); help:SetPoint("TOPLEFT",16,-14); help:SetWidth(288)
@@ -375,6 +381,17 @@ local function Build()
         settings.Sync=function()
             sync(); capture.label:SetText("Record beast sightings: "..(NS.db.captureSightings and "On" or "Off"))
         end
+    end
+    local levelFilter
+    levelFilter=Button(settings,"",288,28,function()
+        NS.db.filterToLevel=not NS.db.filterToLevel
+        levelFilter.label:SetText("Filter to your level: "..(NS.db.filterToLevel and "On" or "Off"))
+        NS.RefreshFilters()
+    end)
+    levelFilter:SetPoint("TOPLEFT",16,-284)
+    local syncLevel=settings.Sync
+    settings.Sync=function()
+        syncLevel(); levelFilter.label:SetText("Filter to your level: "..(NS.db.filterToLevel and "On" or "Off"))
     end
     local start
     start=Button(settings,"",288,28,function()
@@ -405,7 +422,10 @@ local function Build()
     frame:SetScript("OnSizeChanged",Contents)
     frame:RegisterEvent("DISPLAY_SIZE_CHANGED")
     frame:RegisterEvent("UI_SCALE_CHANGED")
-    frame:SetScript("OnEvent", NS.Layout)
+    frame:RegisterEvent("PLAYER_LEVEL_UP")
+    frame:SetScript("OnEvent", function(_,event,level)
+        if event=="PLAYER_LEVEL_UP" then NS.levelHint=tonumber(level); NS.RefreshFilters() else NS.Layout() end
+    end)
     NS.Layout()
     NS.SelectPage(NS.db.page)
     NS.buttons=buttons
