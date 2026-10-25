@@ -185,17 +185,23 @@ function PS.Stable()
     return pets, observed, type(stable) == "table" and stable.activeRead == true and stable.stabledRead == true
 end
 
--- Pets of one catalog family: the active pet and any stabled ones.
+-- Pets of one catalog family. "active" and "stabled" are current: read by this
+-- session's latest scan. "earlier" counts stabled pets from saved data or from a
+-- list the latest scan could not read, so callers can say they may be out of date.
 function PS.Owned()
     local owned = {}
     local active = PS.Active()
-    if active and active.present and active.familyKey then
-        owned[active.familyKey] = { active = true, stabled = 0 }
+    if session.scanned and active and active.present and active.familyKey then
+        owned[active.familyKey] = { active = true, stabled = 0, earlier = 0 }
     end
-    for _, pet in ipairs(PS.Stable()) do
+    local record = Record(false)
+    local section = record and type(record.stable) == "table" and record.stable.stabled
+    local current = session.scanned and record.stable.stabledRead == true
+    for _, pet in ipairs(section and section.pets or {}) do
         if pet.familyKey and not pet.active then
-            local row = owned[pet.familyKey] or { active = false, stabled = 0 }
-            row.stabled = row.stabled + 1; owned[pet.familyKey] = row
+            local row = owned[pet.familyKey]
+            if not row then row = { active = false, stabled = 0, earlier = 0 }; owned[pet.familyKey] = row end
+            if current then row.stabled = row.stabled + 1 else row.earlier = row.earlier + 1 end
         end
     end
     return owned

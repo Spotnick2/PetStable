@@ -48,7 +48,10 @@ stabled pet opens its family in the Pet Guide. A hunter-only message is shown to
 
 - Family cards on the index show "Your pet" for the active pet's family (with "· n in stable"
   when stabled pets share it) and "In stable" or "In stable (n)" otherwise. It is text plus a thin
-  accent, never colour alone, and updates when the pets are re-read.
+  accent, never colour alone, and updates when the pets are re-read. Only what this session's latest
+  scan read is stated in the present tense. Before the first scan, or when the stabled list could not
+  be read, saved stable pets are marked "Was in stable (earlier visit)" with a dimmer accent, and a
+  saved active pet is not marked at all.
 - On the first open of a session the guide may open on the active pet's family. This needs
   data from a scan this session and a pet that is present, applies only when the saved page is
   the guide, and never replaces restored history. Settings has "Open on your pet's family"

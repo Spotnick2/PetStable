@@ -331,9 +331,12 @@ function NS.CreateGuide(parent, window, Text)
                 local mine=family and owned[family.key]
                 card.mark:SetShown(mine~=nil); card.accent:SetShown(mine~=nil)
                 if mine then
-                    card.mark:SetText(mine.active and ("Your pet"..(mine.stabled>0 and " · "..mine.stabled.." in stable" or ""))
-                        or ("In stable"..(mine.stabled>1 and " ("..mine.stabled..")" or "")))
-                    if mine.active then card.accent:SetColorTexture(0.55,0.85,0.5,0.9) else card.accent:SetColorTexture(0.5,0.7,0.9,0.9) end
+                    local text
+                    if mine.active then text="Your pet"..(mine.stabled>0 and " · "..mine.stabled.." in stable" or "")
+                    elseif mine.stabled>0 then text="In stable"..(mine.stabled>1 and " ("..mine.stabled..")" or "")
+                    else text="Was in stable (earlier visit)" end
+                    card.mark:SetText(text)
+                    if mine.active then card.accent:SetColorTexture(0.55,0.85,0.5,0.9) else card.accent:SetColorTexture(0.5,0.7,0.9,mine.stabled>0 and 0.9 or 0.35) end
                 end
                 if family then
                     card.label:SetText(Plain(family.displayLabel))

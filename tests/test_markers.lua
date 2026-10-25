@@ -17,14 +17,14 @@ local stabled={{petNumber=2,slotID=3,name='Grumpy',level=8,familyName='Bear'},
 C_StableInfo={GetActivePetList=function() return {{petNumber=1,slotID=1,name='Whiskers',level=12,familyName='Cat'}} end,
     GetStabledPetList=function() return stabled end}
 
-local function Start(setting)
+local function Start(setting,saved,noScan)
     local ns={}
-    PetStableDB=setting~=nil and {startOnActivePet=setting} or nil
+    PetStableDB=saved or (setting~=nil and {startOnActivePet=setting} or nil)
     for line in io.lines('PetStable.toc') do
         if line:match('^[%a]+%.lua$') then assert(loadfile(line))('PetStable',ns) end
     end
     WoW.fire('ADDON_LOADED','PetStable')
-    ns.PetState.Refresh('test')
+    if not noScan then ns.PetState.Refresh('test') end
     return ns
 end
 local function Marks(ns)
@@ -52,6 +52,25 @@ assert(plain==17,'other families carry no mark')
 for i=#stabled,1,-1 do stabled[i]=nil end
 ns.PetState.Refresh('test')
 marks=Marks(ns); assert(marks['family-cat']=='Your pet' and marks['family-bear']==nil)
+
+-- Saved data from an earlier session is not current: no "Your pet", and stable pets are labelled as earlier.
+stabled[1]={petNumber=2,slotID=3,name='Grumpy',level=8,familyName='Bear'}
+ns.PetState.Refresh('test')
+local earlier=Start(nil,ns.db,true); earlier.Toggle()
+assert(earlier.PetState.State()=='stale' and earlier.guide.view=='families',"stale data does not open the guide on a family")
+marks=Marks(earlier)
+assert(marks['family-cat']==nil and marks['family-bear']=='Was in stable (earlier visit)',
+    'before the first scan: '..tostring(marks['family-cat'])..' / '..tostring(marks['family-bear']))
+earlier.PetState.Refresh('test')
+earlier.guide.Refresh(false)
+marks=Marks(earlier); assert(marks['family-cat']=='Your pet' and marks['family-bear']=='In stable')
+
+-- A later scan that cannot read the stabled list keeps its entries but no longer calls them current.
+C_StableInfo.GetStabledPetList=function() return nil end
+earlier.PetState.Refresh('test')
+marks=Marks(earlier)
+assert(marks['family-bear']=='Was in stable (earlier visit)' and marks['family-cat']=='Your pet')
+C_StableInfo.GetStabledPetList=function() return stabled end
 
 -- The setting turns the start off; a restored non-guide page is never replaced.
 local off=Start(false); off.Toggle()
