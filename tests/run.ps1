@@ -4,7 +4,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $luac = Join-Path (Split-Path -Parent $Lua) 'luac.exe'
 Push-Location $root
 try {
-    foreach ($file in (Get-ChildItem -Path Util.lua,Core.lua,Catalog.lua,CatalogData.lua,CatalogReference.lua,CatalogTeachers.lua,Sightings.lua,PetState.lua,GuideData.lua,GuideModels.lua,GuideAppearances.lua,GuideUI.lua,UpgradesData.lua,UpgradesUI.lua,PetsUI.lua,UI.lua,Tools,tests -Filter '*.lua' -Recurse -File)) {
+    foreach ($file in (Get-ChildItem -Path Util.lua,Core.lua,Catalog.lua,CatalogData.lua,CatalogReference.lua,CatalogTeachers.lua,Sightings.lua,PetState.lua,GuideData.lua,GuideModels.lua,GuideAppearances.lua,GuideUI.lua,UpgradesData.lua,UpgradesUI.lua,PetsUI.lua,Toast.lua,TeacherAlert.lua,UI.lua,Tools,tests -Filter '*.lua' -Recurse -File)) {
         & $luac -p $file.FullName
         if ($LASTEXITCODE -ne 0) { throw "Syntax check failed: $($file.Name)" }
     }
@@ -24,6 +24,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Sighting tests failed.' }
     & $Lua tests/test_levelfilter.lua
     if ($LASTEXITCODE -ne 0) { throw 'Level filter tests failed.' }
+    & $Lua tests/test_teacheralert.lua
+    if ($LASTEXITCODE -ne 0) { throw 'Teacher alert tests failed.' }
     & $Lua tests/test_markers.lua
     if ($LASTEXITCODE -ne 0) { throw 'Family marker tests failed.' }
     & $Lua tests/test_reference_ui.lua

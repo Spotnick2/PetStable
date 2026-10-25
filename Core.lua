@@ -12,6 +12,7 @@ function NS.Initialize()
     db.scale = math.max(0.65, math.min(1.3, db.scale))
     if type(db.startOnActivePet) ~= "boolean" then db.startOnActivePet = true end
     if type(db.filterToLevel) ~= "boolean" then db.filterToLevel = true end
+    if type(db.teacherAlerts) ~= "boolean" then db.teacherAlerts = false end
     db.width = Number(db.width) and math.max(800, math.min(1440, db.width)) or 1040
     db.height = Number(db.height) and math.max(560, math.min(1000, db.height)) or 700
     if not pages[db.page] then db.page = "guide" end
@@ -39,6 +40,12 @@ SlashCmdList.PETSTABLE = function(message)
     local command, value = message:match("^%s*(%S*)%s*(.-)%s*$")
     command = command:lower()
     if command == "sightings" and NS.Sightings then NS.Sightings.Command(value:lower())
+    elseif command == "teachers" then
+        if (value:lower() == "on" or value:lower() == "off") and NS.TeacherAlert then
+            NS.TeacherAlert.SetEnabled(value:lower() == "on")
+            if NS.settings then NS.settings.Sync() end
+        end
+        print("PetStable: nearby teacher alerts " .. (NS.db.teacherAlerts and "on" or "off") .. ". /petstable teachers on|off")
     elseif command == "levelfilter" then
         if value:lower() == "on" or value:lower() == "off" then
             NS.db.filterToLevel = value:lower() == "on"

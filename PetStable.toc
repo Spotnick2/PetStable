@@ -22,4 +22,6 @@ GuideUI.lua
 UpgradesData.lua
 UpgradesUI.lua
 PetsUI.lua
+Toast.lua
+TeacherAlert.lua
 UI.lua
