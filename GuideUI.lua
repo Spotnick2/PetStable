@@ -134,7 +134,8 @@ function NS.CreateGuide(parent, window, Text)
         card.placeholder=Text(card,24,{0.65,0.72,0.75,1}); card.placeholder:SetPoint("LEFT",32,0); card.placeholder:SetText("?")
         card.arrow=Text(card,18,{0.74,0.9,0.64,1}); card.arrow:SetPoint("RIGHT",-5,0); card.arrow:SetText("›"); card.arrow:Hide()
         -- "Your pet" / "In stable": text plus a thin accent, never colour alone.
-        card.mark=Text(card,11,{0.74,0.9,0.64,1}); card.mark:SetPoint("BOTTOMLEFT",82,7); card.mark:SetJustifyH("LEFT"); card.mark:Hide()
+        card.mark=Text(card,11,{0.74,0.9,0.64,1}); card.mark:SetPoint("BOTTOMLEFT",82,6); card.mark:SetJustifyH("LEFT"); card.mark:SetJustifyV("BOTTOM")
+        card.mark:SetWordWrap(true); card.mark:SetSize(86,28); card.mark:Hide()
         card.accent=card:CreateTexture(nil,"OVERLAY"); card.accent:SetPoint("TOPLEFT",1,-8); card.accent:SetPoint("BOTTOMLEFT",1,8)
         card.accent:SetWidth(3); card.accent:SetColorTexture(1,1,1,1); card.accent:Hide()
         card:EnableMouseWheel(true); card:SetScript("OnMouseWheel",ScrollGallery)
@@ -277,7 +278,14 @@ function NS.CreateGuide(parent, window, Text)
         galleryChild:SetWidth(gallery:GetWidth())
         for i,card in ipairs(panel.cards) do
             Place(card,((i-1)%columns)*(cardWidth+10),math.floor((i-1)/columns)*94,cardWidth,84)
-            card.label:SetSize(cardWidth-100,card.mark:IsShown() and 50 or 68)
+            -- A mark takes the lower part of the card, bounded to the width beside the icon.
+            card.mark:SetSize(math.max(40,cardWidth-90),28)
+            card.label:ClearAllPoints()
+            if card.mark:IsShown() then
+                card.label:SetPoint("TOPLEFT",82,-8); card.label:SetSize(cardWidth-100,40); card.label:SetJustifyV("TOP")
+            else
+                card.label:SetPoint("LEFT",82,0); card.label:SetSize(cardWidth-100,68); card.label:SetJustifyV("MIDDLE")
+            end
         end
         local rows=math.ceil(#(panel.familyResults or panel.families)/columns)
         galleryChild:SetHeight(math.max(gallery:GetHeight(),rows*94-10))
@@ -334,7 +342,7 @@ function NS.CreateGuide(parent, window, Text)
                     local text
                     if mine.active then text="Your pet"..(mine.stabled>0 and " · "..mine.stabled.." in stable" or "")
                     elseif mine.stabled>0 then text="In stable"..(mine.stabled>1 and " ("..mine.stabled..")" or "")
-                    else text="Was in stable (earlier visit)" end
+                    else text="Earlier: in stable" end
                     card.mark:SetText(text)
                     if mine.active then card.accent:SetColorTexture(0.55,0.85,0.5,0.9) else card.accent:SetColorTexture(0.5,0.7,0.9,mine.stabled>0 and 0.9 or 0.35) end
                 end

@@ -53,13 +53,24 @@ for i=#stabled,1,-1 do stabled[i]=nil end
 ns.PetState.Refresh('test')
 marks=Marks(ns); assert(marks['family-cat']=='Your pet' and marks['family-bear']==nil)
 
+-- A mark never runs past its card: it is bounded to the width beside the icon, at any layout width.
+for _,width in ipairs({1040,900,800}) do
+    ns.frame:SetSize(width,700)
+    ns.guide.Layout(width-48,520)
+    for _,card in ipairs(ns.guide.cards) do
+        if card:IsShown() and card.mark:IsShown() then
+            assert(card.mark:GetWidth()<=card:GetWidth()-82+0.01 and card.mark:GetHeight()<=28,'mark fits its card at '..width)
+        end
+    end
+end
+
 -- Saved data from an earlier session is not current: no "Your pet", and stable pets are labelled as earlier.
 stabled[1]={petNumber=2,slotID=3,name='Grumpy',level=8,familyName='Bear'}
 ns.PetState.Refresh('test')
 local earlier=Start(nil,ns.db,true); earlier.Toggle()
 assert(earlier.PetState.State()=='stale' and earlier.guide.view=='families',"stale data does not open the guide on a family")
 marks=Marks(earlier)
-assert(marks['family-cat']==nil and marks['family-bear']=='Was in stable (earlier visit)',
+assert(marks['family-cat']==nil and marks['family-bear']=='Earlier: in stable',
     'before the first scan: '..tostring(marks['family-cat'])..' / '..tostring(marks['family-bear']))
 earlier.PetState.Refresh('test')
 earlier.guide.Refresh(false)
@@ -69,7 +80,7 @@ marks=Marks(earlier); assert(marks['family-cat']=='Your pet' and marks['family-b
 C_StableInfo.GetStabledPetList=function() return nil end
 earlier.PetState.Refresh('test')
 marks=Marks(earlier)
-assert(marks['family-bear']=='Was in stable (earlier visit)' and marks['family-cat']=='Your pet')
+assert(marks['family-bear']=='Earlier: in stable' and marks['family-cat']=='Your pet')
 C_StableInfo.GetStabledPetList=function() return stabled end
 
 -- The setting turns the start off; a restored non-guide page is never replaced.
