@@ -14,14 +14,16 @@ local function Index(row)
     if row.familyID then seen[row.familyID..":"..row.displayID]=true end
     if row.name and row.locale==Locale() then
         local old=names[row.creatureID]
-        names[row.creatureID]=(old~=nil and old~=row.name) and false or row.name
+        -- `cond and false or x` can never yield false, so spell the conflict out.
+        if row.nameConflict or old==false or (old~=nil and old~=row.name) then names[row.creatureID]=false
+        else names[row.creatureID]=row.name end
     end
 end
 function S.Initialize()
     local db=NS.db
     if type(db.sightings)~="table" or db.sightings.version~=1 then db.sightings={version=1,records={}} end
     if type(db.sightings.records)~="table" then db.sightings.records={} end
-    if type(db.captureSightings)~="boolean" then db.captureSightings=true end
+    if type(db.captureSightings)~="boolean" then db.captureSightings=false end
     names,seen={},{}
     S.keys={}; S.count=0
     for key,row in pairs(db.sightings.records) do
@@ -43,11 +45,12 @@ function S.Record(row)
         for _,field in ipairs({"level","classification","modelFileID"}) do
             if prior[field]==nil then prior[field]=row[field] end
         end
-        if row.name and prior.name~=row.name then
-            prior.name=row.name
-            names[row.creatureID]=nil
-            for _,other in pairs(NS.db.sightings.records) do
-                if type(other)=="table" and other.creatureID==row.creatureID then Index(other) end
+        -- Two names for one build/locale/creature/display are conflicting evidence:
+        -- keep the first and persist the conflict so it survives re-initialization.
+        if row.name then
+            if prior.name==nil then prior.name=row.name; Index(prior)
+            elseif prior.name~=row.name and not prior.nameConflict then
+                prior.nameConflict=true; Index(prior)
             end
         end
         return false

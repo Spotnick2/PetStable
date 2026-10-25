@@ -24,7 +24,7 @@ function GetBuildInfo() return '1.60.1','70450' end
 function GetLocale() return 'enUS' end
 function time() return now end
 assert(loadfile('Sightings.lua'))('PetStable',ns)
-local S=ns.Sightings; S.Initialize(); assert(ns.db.captureSightings)
+local S=ns.Sightings; S.Initialize(); assert(ns.db.captureSightings==false,'capture stays off until the binding path is measured'); ns.db.captureSightings=true
 S.Capture('target'); assert(S.count==1 and S.Seen(2,200) and S.Name(100)=='Cat')
 now=11; S.Capture('target'); assert(S.count==1)
 for _,row in pairs(ns.db.sightings.records) do
@@ -51,7 +51,8 @@ do
     assert(S.Record(Row(nil)) and S.Name(500)==nil)
     assert(not S.Record(Row('Late Name')) and S.Name(500)=='Late Name','a later capture supplies the missing name')
     S.Initialize(); assert(S.Name(500)=='Late Name','the merged name survives re-initialization')
-    assert(not S.Record(Row('Renamed')) and S.Name(500)=='Renamed','a changed name replaces the first one')
+    assert(not S.Record(Row('Renamed')) and S.Name(500)==nil,'a different name is conflicting evidence, not a replacement')
+    S.Initialize(); assert(S.Name(500)==nil,'the conflict survives re-initialization')
     assert(S.count==before+1,'duplicates do not add rows')
     S.Initialize()
 end
