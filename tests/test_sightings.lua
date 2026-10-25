@@ -24,7 +24,8 @@ function GetBuildInfo() return '1.60.1','70450' end
 function GetLocale() return 'enUS' end
 function time() return now end
 assert(loadfile('Sightings.lua'))('PetStable',ns)
-local S=ns.Sightings; S.Initialize(); assert(ns.db.captureSightings==false,'capture stays off until the binding path is measured'); ns.db.captureSightings=true
+local S=ns.Sightings; ns.db.captureSightings=true; S.Initialize(); assert(ns.db.captureSightings==false,'a database saved with capture on is switched off once')
+ns.db.captureSightings=true; S.Initialize(); assert(ns.db.captureSightings==true,'a later deliberate opt-in is kept')
 S.Capture('target'); assert(S.count==1 and S.Seen(2,200) and S.Name(100)=='Cat')
 now=11; S.Capture('target'); assert(S.count==1)
 for _,row in pairs(ns.db.sightings.records) do

@@ -24,6 +24,9 @@ function S.Initialize()
     if type(db.sightings)~="table" or db.sightings.version~=1 then db.sightings={version=1,records={}} end
     if type(db.sightings.records)~="table" then db.sightings.records={} end
     if type(db.captureSightings)~="boolean" then db.captureSightings=false end
+    -- Capture shipped on before its model binding was measured. Turn it off once
+    -- for databases saved by that version; a later deliberate opt-in is kept.
+    if db.captureDefaultRev~=2 then db.captureSightings=false; db.captureDefaultRev=2 end
     names,seen={},{}
     S.keys={}; S.count=0
     for key,row in pairs(db.sightings.records) do
