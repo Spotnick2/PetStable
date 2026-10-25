@@ -440,6 +440,13 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         Position(root:GetWidth(),root:GetHeight()-40)
         if isDetail then
             for _,card in ipairs(root.cards) do card.preview.Clear() end
+            -- The matches were captured when the look opened; the level, the level filter and the
+            -- search may have changed since, so recompute them for this look before painting.
+            local group=state.result.group
+            local level=root.levels and root.levels[state.level]
+            local zone=root.zones and root.zones[state.zone]
+            local again=G.FilterAppearances({group},state.query,level and level.value,zone and zone.value,NS.LevelCap())
+            state.result={group=group,matches=again[1] and again[1].matches or {}}
             galleryBar:Hide(); footer:SetText(Plain(familyName)); root.PaintDetail(); return
         end
         root.groups=G.Appearances(panel.entries,panel.familyKey)

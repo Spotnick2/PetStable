@@ -140,6 +140,7 @@ end
 
 -- The level filter or the hunter's level changed: repaint what depends on it.
 function NS.RefreshFilters()
+    if NS.settings then NS.settings.Sync() end
     if NS.guide then NS.guide.Refresh(false) end
     if NS.upgrades and NS.upgrades:IsShown() then NS.upgrades.Refresh() end
 end

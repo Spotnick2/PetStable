@@ -57,6 +57,35 @@ for _,result in ipairs(ui.results) do
     for _,entry in ipairs(result.matches) do assert(not G.AboveLevel(entry,12)) end
 end
 
+-- An open look follows the filter and the hunter's level without going back to the gallery.
+do
+    local mixed
+    for _,family in ipairs(guide.families) do
+        ns.db.filterToLevel=true; guide.OpenFamily(family.key)
+        for _,result in ipairs(ui.results) do
+            local above,below=0,0
+            for _,entry in ipairs(result.group.entries) do
+                if G.AboveLevel(entry,12) then above=above+1 elseif entry.levelMin or entry.observedLevel then below=below+1 end
+            end
+            if above>0 and below>0 then mixed=result; break end
+        end
+        if mixed then break end
+    end
+    assert(mixed,'the catalog has a look with creatures both above and within level 12')
+    ui.OpenAppearance(mixed)
+    local function Shown() local n=0; for _,e in ipairs(ui.detailEntries) do n=n+1 end; return n end
+    local within=Shown()
+    assert(within==#mixed.matches and within<#mixed.group.entries)
+    ns.db.filterToLevel=false; ns.RefreshFilters()
+    assert(Shown()==#mixed.group.entries,'turning the filter off reveals the hidden creatures in the open look')
+    ns.db.filterToLevel=true; ns.RefreshFilters()
+    assert(Shown()==within,'turning it back on hides them again without leaving the look')
+    level=60; ns.levelHint=nil; ns.RefreshFilters()
+    assert(Shown()>within,'a level-up reveals newly eligible creatures')
+    level=12; ns.RefreshFilters(); assert(Shown()==within)
+    ui.Back()
+end
+
 -- Ability Upgrades hides ranks above the level and teachers above it.
 local abilities=U.Build(ns.CatalogData,guide.entries,guide.families)
 local cap=12
@@ -83,4 +112,8 @@ assert(button,'Settings has the level filter button')
 button:GetScript('OnClick')(button)
 assert(ns.db.filterToLevel==false and button.label:GetText()=='Filter to your level: Off')
 button:GetScript('OnClick')(button); assert(ns.db.filterToLevel==true)
+SlashCmdList.PETSTABLE('levelfilter off')
+assert(button.label:GetText()=='Filter to your level: Off','the slash command updates an open Settings panel')
+SlashCmdList.PETSTABLE('levelfilter on')
+assert(button.label:GetText()=='Filter to your level: On')
 io.write('PASS: level filter hides creatures and ranks above the hunter, keeps unknown levels, other classes, and turns off\n')
