@@ -11,6 +11,7 @@ function NS.Initialize()
     if not Number(db.scale) then db.scale = 1 end
     db.scale = math.max(0.65, math.min(1.3, db.scale))
     if type(db.startOnActivePet) ~= "boolean" then db.startOnActivePet = true end
+    if type(db.filterToLevel) ~= "boolean" then db.filterToLevel = true end
     db.width = Number(db.width) and math.max(800, math.min(1440, db.width)) or 1040
     db.height = Number(db.height) and math.max(560, math.min(1000, db.height)) or 700
     if not pages[db.page] then db.page = "guide" end
@@ -38,6 +39,12 @@ SlashCmdList.PETSTABLE = function(message)
     local command, value = message:match("^%s*(%S*)%s*(.-)%s*$")
     command = command:lower()
     if command == "sightings" and NS.Sightings then NS.Sightings.Command(value:lower())
+    elseif command == "levelfilter" then
+        if value:lower() == "on" or value:lower() == "off" then
+            NS.db.filterToLevel = value:lower() == "on"
+            if NS.RefreshFilters then NS.RefreshFilters() end
+        end
+        print("PetStable: level filter " .. (NS.db.filterToLevel and "on" or "off") .. ". /petstable levelfilter on|off")
     elseif command == "material" then
         if not NS.SetMaterial(value) then print("PetStable: /petstable material reflective|flat") end
     elseif command == "scale" then

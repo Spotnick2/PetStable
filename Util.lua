@@ -16,3 +16,18 @@ function NS.Plain(value)
     if type(value) == "string" then return value end
     if type(value) == "number" and value == value and math.abs(value) < math.huge then return value end
 end
+
+-- The hunter's own level, or nil for other classes and when the client gives none.
+function NS.PlayerLevel()
+    local _, class = NS.Call(rawget(_G, "UnitClass"), "player")
+    if class ~= "HUNTER" then return nil end
+    local level = NS.Plain(NS.Call(rawget(_G, "UnitLevel"), "player"))
+    if NS.levelHint and (not level or NS.levelHint > level) then level = NS.levelHint end
+    return type(level) == "number" and level > 0 and level or nil
+end
+
+-- The level the guide filters to: the hunter's level while the filter is on.
+function NS.LevelCap()
+    if NS.db and NS.db.filterToLevel == false then return nil end
+    return NS.PlayerLevel()
+end

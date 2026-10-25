@@ -253,11 +253,35 @@ function Guide.Build(data)
     return entries,choices,nil,table.concat(sources,"\n\n")
 end
 
-function Guide.Filter(entries,query,familyKey)
+-- Level handling relative to the hunter. A creature is hidden by the level filter only when
+-- the lowest level its listing gives is above the hunter's; unknown levels are never hidden.
+-- Verified and observed levels are used alike, only for ordering and this hint.
+local function LowLevel(entry) return entry.levelMin or entry.observedLevel end
+function Guide.AboveLevel(entry,level)
+    local low=LowLevel(entry)
+    return type(level)=="number" and low~=nil and low>level
+end
+
+-- The creatures in level order, unknown levels last.
+function Guide.ByLevel(entries)
+    local list={}
+    for _,entry in ipairs(entries) do list[#list+1]=entry end
+    local function Mid(entry) local low=LowLevel(entry); return low and (low+(entry.levelMax or low))/2 end
+    table.sort(list,function(a,b)
+        local la,lb=Mid(a),Mid(b)
+        if (la==nil)~=(lb==nil) then return la~=nil end
+        if la~=lb then return la<lb end
+        return a.label==b.label and a.key<b.key or a.label<b.label
+    end)
+    return list
+end
+
+function Guide.Filter(entries,query,familyKey,cap)
     query=(query or ""):match("^%s*(.-)%s*$"):lower()
     local result={}
     for _,entry in ipairs(entries) do
-        if (not familyKey or entry.familyKey==familyKey) and entry.search:find(query,1,true) then
+        if (not familyKey or entry.familyKey==familyKey) and entry.search:find(query,1,true)
+            and not Guide.AboveLevel(entry,cap) then
             result[#result+1]=entry
         end
     end
@@ -427,7 +451,7 @@ function Guide.AppearanceFilters(groups)
     return levelChoices,zoneChoices
 end
 
-function Guide.FilterAppearances(groups,query,level,zone)
+function Guide.FilterAppearances(groups,query,level,zone,cap)
     query=(query or ""):match("^%s*(.-)%s*$"):lower()
     local results={}
     for _,group in ipairs(groups) do
@@ -439,7 +463,7 @@ function Guide.FilterAppearances(groups,query,level,zone)
             local low,high=entry.levelMin or entry.observedLevel,entry.levelMax or entry.observedLevel
             local levelMatch=not level or (level=="unknown" and not low)
                 or (type(level)=="table" and low and low<=level.high and high>=level.low)
-            if levelMatch and zoneMatch
+            if levelMatch and zoneMatch and not Guide.AboveLevel(entry,cap)
                 and (group.search:find(query,1,true) or entry.label:lower():find(query,1,true)) then
                 matches[#matches+1]=entry
             end

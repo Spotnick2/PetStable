@@ -98,6 +98,7 @@ function NS.CreateUpgrades(parent, window, Text)
         Reset()
         local width = detailChild:GetWidth()
         local ability, y = Selected(), 0
+        local cap = NS.LevelCap()
         if not ability then
             local text = Take("line", function() local t = Text(detailChild, 14, COLOR.dim); t:SetWordWrap(true); return t end)
             text:ClearAllPoints(); text:SetPoint("TOPLEFT", 0, 0); text:SetWidth(width)
@@ -115,10 +116,10 @@ function NS.CreateUpgrades(parent, window, Text)
         y = y + math.max(46, summary:GetStringHeight() + 8)
         panel.summary, panel.firstRankY = summary, y
         for _, rank in ipairs(ability.ranks) do
-            if U.Fits(rank, panel.state.familyKey) then
+            if U.Fits(rank, panel.state.familyKey) and U.Visible(rank, cap) then
                 local heading = Take("heading", function() return Text(detailChild, 15, COLOR.text) end)
                 heading:ClearAllPoints(); heading:SetPoint("TOPLEFT", 0, -y); heading:SetText(U.RankLabel(rank)); y = y + 26
-                local teachers = U.Teachers(rank, panel.state.familyKey)
+                local teachers = U.Teachers(rank, panel.state.familyKey, cap)
                 if rank.trainer then
                     local line = Take("line", function() local t = Text(detailChild, 12, COLOR.dim); t:SetWordWrap(true); return t end)
                     line:ClearAllPoints(); line:SetPoint("TOPLEFT", 12, -y); line:SetWidth(width - 12)
@@ -126,7 +127,9 @@ function NS.CreateUpgrades(parent, window, Text)
                 elseif #teachers == 0 then
                     local line = Take("line", function() local t = Text(detailChild, 12, COLOR.dim); t:SetWordWrap(true); return t end)
                     line:ClearAllPoints(); line:SetPoint("TOPLEFT", 12, -y); line:SetWidth(width - 12)
-                    line:SetText(panel.state.familyKey and "No listed teacher of this family." or "No teaching beast is listed."); y = y + 22
+                    line:SetText(#rank.teachers == 0 and "No teaching beast is listed."
+                        or (cap and "No listed teacher at or below your level " .. cap .. " fits this view.")
+                        or "No listed teacher of this family."); y = y + 22
                 end
                 for _, entry in ipairs(not rank.trainer and teachers or {}) do
                     local button = Take("teacher", function()
@@ -146,7 +149,7 @@ function NS.CreateUpgrades(parent, window, Text)
     end
 
     function panel.PaintList()
-        panel.visible = U.Filter(panel.abilities, panel.state.familyKey)
+        panel.visible = U.Filter(panel.abilities, panel.state.familyKey, NS.LevelCap())
         local keep = false
         for _, ability in ipairs(panel.visible) do if ability.key == panel.state.selected then keep = true end end
         if not keep then panel.state.selected = panel.visible[1] and panel.visible[1].key or nil end
