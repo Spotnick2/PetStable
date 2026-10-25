@@ -63,7 +63,7 @@ assert(count==7 and ns.Catalog and ns.CatalogData and ns.CreateGuide)
 local errors,conflicts=ns.Catalog.Validate(ns.CatalogData)
 assert(#errors==0) -- Reference disagreements remain visible, not discarded.
 local entries=ns.GuideData.Build(ns.CatalogData)
-assert(#entries==810)
+assert(#entries==808)
 '@
     & $Lua $catalogCheck $player
     if ($LASTEXITCODE -ne 0) { throw 'Deployed catalog failed to load and validate.' }

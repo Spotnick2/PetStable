@@ -11,10 +11,10 @@ unconfirmed website looks with no supplied exact NPC/display mapping.
 
 The raw research stays outside this repository and addon package:
 
-- `../References/petstable-forever-research.md`
-- `../References/petstable-forever-inventory.json`
+- `../References/Forever/petstable/petstable-forever-research.md`
+- `../References/Forever/petstable/petstable-forever-inventory.json`
 
-Run `python Tools/import-reference.py ../References/petstable-forever-inventory.json`
+Run `python Tools/import-reference.py ../References/Forever/petstable/petstable-forever-inventory.json`
 to regenerate, or add `--check` to compare without writing. The generated file
 includes the input SHA-256 as `referenceRevision`. Python uses only its standard
 library; neither Python nor the raw JSON is needed by the player addon.

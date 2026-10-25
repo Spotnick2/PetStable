@@ -120,7 +120,7 @@ through. Local regression checks cover closing and reopening with and without
 LibGlass. The owner confirmed the deployed Escape fix works on 2026-10-16.
 
 The reflective shell follows the shared
-[window styling recipe](../References/LIBGLASS-WINDOW-STYLING.md): smoked outer
+[window styling recipe](../References/Docs/LIBGLASS-WINDOW-STYLING.md): smoked outer
 tint/backing, sliced directional silver rim, fine top highlight, and a masked
 header reflection fading within 70 UI units. A single masked reading region
 starts at y=70 and protects the horizontal navigation, content, and footer.

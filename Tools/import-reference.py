@@ -1,6 +1,6 @@
 """Build the shipped reference subset; raw research stays outside the addon.
 
-Usage: python Tools/import-reference.py ../References/petstable-forever-inventory.json
+Usage: python Tools/import-reference.py ../References/Forever/petstable/petstable-forever-inventory.json
 Only explicit IDs/relationships are imported. Candidate skin mappings, coordinates,
 availability conclusions, and model-file guesses are never used.
 """

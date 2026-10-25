@@ -10,7 +10,7 @@ Training, appearance, and creature experiments belong to issues #3, #4, and #5.
 ## Issue #5: creature discovery and taming evidence
 
 Implemented in `Tools/PetStableProbe/Discovery.lua`; first live results are below.
-The inspected local API dump is `../References/forever-api-1.60.1.70425.md`.
+The inspected local API dump is `../References/Forever/api/forever-api-1.60.1.70425.md`.
 It exposes family IDs/metadata through C_CreatureInfo, unit creature identity
 and family/type tuples, C_TooltipInfo.GetUnit, unit casting/channel information,
 indexed auras, C_Spell queries, UnitPosition, and C_Map context. PlayerModel
@@ -488,7 +488,7 @@ us compare the counts without requiring the tester to remember them.
 
 ## Development workflow
 
-Read `../ForeverProbe/docs/GUIDE.md` and `../References/PROBES.md` before changing
+Read `../ForeverProbe/docs/GUIDE.md` and `../References/Docs/PROBES.md` before changing
 the probe. It lives in `Tools/PetStableProbe`; never modify the sibling host here.
 Diagnostics use the shared console and saved log. No character-specific facts
 are registered in the account-wide facts cache.
