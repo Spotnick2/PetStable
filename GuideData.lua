@@ -296,7 +296,7 @@ end
 
 function Guide.Zone(entry)
     if not entry.spawn then
-        if entry.zoneNames and #entry.zoneNames>0 then return table.concat(entry.zoneNames,", "), "reference:"..entry.zoneNames[1] end
+        if entry.zoneNames and #entry.zoneNames>0 then return table.concat(entry.zoneNames," (reference), ").." (reference)", "reference:"..entry.zoneNames[1] end
         return "Location unknown", "unknown"
     end
     local id=entry.spawn.mapID
@@ -321,7 +321,7 @@ function Guide.AppearanceSummary(entries)
     for _,entry in ipairs(entries) do
         levels[Guide.Level(entry)]=true
         if not entry.spawn and entry.zoneNames and #entry.zoneNames>0 then
-            for _,name in ipairs(entry.zoneNames) do zones[name]=true end
+            for _,name in ipairs(entry.zoneNames) do zones[name.." (reference)"]=true end
         else zones[Guide.Zone(entry)]=true end
     end
     local levelList,zoneList=Sorted(levels),Sorted(zones)
@@ -336,7 +336,7 @@ function Guide.AppearanceFilters(groups)
     local levels,zones={},{}
     for _,group in ipairs(groups) do for _,entry in ipairs(group.entries) do
         local low,high=entry.levelMin or entry.observedLevel,entry.levelMax or entry.observedLevel
-        local label=low and (low==high and ("Level "..low) or ("Levels "..low.."–"..high)) or "Level unknown"
+        local label=Guide.Level(entry)
         levels[label]=low and {low=low,high=high} or "unknown"
         if not entry.spawn and entry.zoneNames and #entry.zoneNames>0 then
             for _,name in ipairs(entry.zoneNames) do zones["reference:"..name]=name.." (reference)" end

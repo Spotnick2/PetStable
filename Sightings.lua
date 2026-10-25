@@ -37,7 +37,21 @@ function S.Record(row)
         or row.kind~="world-creature" or type(row.build)~="string" or type(row.locale)~="string" then return false end
     local key=table.concat({row.build,row.locale,row.creatureID,row.displayID,row.familyID or 0},":")
     local prior=NS.db.sightings.records[key]
-    if prior then prior.lastSeen=row.lastSeen; return false end
+    if prior then
+        prior.lastSeen=row.lastSeen
+        -- A later capture may supply data the first one lacked, or a changed name.
+        for _,field in ipairs({"level","classification","modelFileID"}) do
+            if prior[field]==nil then prior[field]=row[field] end
+        end
+        if row.name and prior.name~=row.name then
+            prior.name=row.name
+            names[row.creatureID]=nil
+            for _,other in pairs(NS.db.sightings.records) do
+                if type(other)=="table" and other.creatureID==row.creatureID then Index(other) end
+            end
+        end
+        return false
+    end
     if S.count>=LIMIT then
         if not S.warned then print("PetStable: sighting journal is full. Save PetStableDB before clearing it."); S.warned=true end
         return false

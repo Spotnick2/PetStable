@@ -44,6 +44,17 @@ S.watcher.scripts.OnUpdate(nil,0.2); assert(S.count==3,'delayed model accepted f
 S.Capture('target'); S.watcher.scripts.OnUpdate(nil,2.1)
 assert(not S.watcher.scripts.OnUpdate and S.count==3,'missing models time out')
 S.Initialize(); assert(S.count==3 and S.Seen(2,201),'journal persists across initialization')
-ns.db.captureSightings=false; pendingLoad=false; unit.display=203; S.Capture('target'); assert(S.count==3)
+do
+    local function Row(name) return {kind='world-creature',creatureID=500,displayID=600,modelFileID=700,familyID=2,
+        build='1.60.1.70450',locale='enUS',name=name,firstSeen=1,lastSeen=1} end
+    local before=S.count
+    assert(S.Record(Row(nil)) and S.Name(500)==nil)
+    assert(not S.Record(Row('Late Name')) and S.Name(500)=='Late Name','a later capture supplies the missing name')
+    S.Initialize(); assert(S.Name(500)=='Late Name','the merged name survives re-initialization')
+    assert(not S.Record(Row('Renamed')) and S.Name(500)=='Renamed','a changed name replaces the first one')
+    assert(S.count==before+1,'duplicates do not add rows')
+    S.Initialize()
+end
+ns.db.captureSightings=false; pendingLoad=false; unit.display=203; S.Capture('target'); assert(S.count==4)
 ns.db.captureSightings=true; S.count=10000; S.Capture('target'); assert(S.count==10000,'bounded journal')
 io.write('PASS: sightings identity, deduplication, delayed loads, stale targets, player control, persistence and limits\n')

@@ -11,3 +11,4 @@ PetStableProbe.lua
 Training.lua
 Models.lua
 Discovery.lua
+Binding.lua

@@ -155,6 +155,14 @@ assert(lv=="Levels vary; see creatures" and z:find("UI map 10",1,true) and z:fin
 local long={}
 for i=1,5 do long[i]=Copy(records[1]); long[i].spawn.mapID=i end
 lv,z=G.AppearanceSummary(long); assert(z:find("+3 zones",1,true))
+do
+    local label,key=G.Zone({zoneNames={"Tanaris","Un'Goro Crater"}})
+    assert(label=="Tanaris (reference), Un'Goro Crater (reference)" and key=="reference:Tanaris","reference zones are labelled as references")
+    local _,summary=G.AppearanceSummary({{zoneNames={"Tanaris"}}})
+    assert(summary=="Tanaris (reference)","summaries label reference zones")
+    local levels=G.AppearanceFilters({{entries={{levelMin=5,levelMax=6,referenceLevel=true,zoneNames={"Tanaris"}}}}})
+    assert(levels[2].label=="Levels 5–6 (reference)","level choices keep the reference label")
+end
 assert(#G.FilterAppearances(groups,"%",nil,nil)==0)
 local range=Copy(seed)
 Claim(range,cat.key,"levelMin",1,"cat-models","confirmed"); Claim(range,cat.key,"levelMax",2,"cat-models","confirmed")
