@@ -110,7 +110,10 @@ function NS.CreateUpgrades(parent, window, Text)
         summary:ClearAllPoints(); summary:SetPoint("TOPLEFT", 0, -y); summary:SetWidth(width)
         local taught = ability.trainer and "Taught by any Pet Trainer."
             or (ability.teachers == 0 and "No teaching beast is listed yet." or ("Listed teachers: " .. ability.teachers .. " creatures."))
-        summary:SetText("Families: " .. ability.familyLabel .. "\n" .. taught); y = y + 46
+        summary:SetText("Families: " .. ability.familyLabel .. "\n" .. taught)
+        -- A long family list wraps; the first rank starts below the rendered text.
+        y = y + math.max(46, summary:GetStringHeight() + 8)
+        panel.summary, panel.firstRankY = summary, y
         for _, rank in ipairs(ability.ranks) do
             if U.Fits(rank, panel.state.familyKey) then
                 local heading = Take("heading", function() return Text(detailChild, 15, COLOR.text) end)

@@ -19,6 +19,13 @@ return function(ns)
     assert(#teachers>0,"teaching creatures are listed under each rank")
     assert(teachers[1].label:GetText():find(" · ",1,true) and teachers[1].label:GetText():find("(reference)",1,true),
         "creature rows keep the reference qualifier")
+    -- A long family list wraps at the minimum width; ranks start below it.
+    local wide=up.firstRankY
+    up.Layout(800-48,560-180); up.Select("ability-bite")
+    assert(up.summary:GetStringHeight()>16*2 and up.firstRankY>=34+up.summary:GetStringHeight(),
+        "the first rank starts below the wrapped family summary")
+    assert(up.firstRankY>=wide,"a narrower column never packs the summary tighter")
+    up.Layout(1040-48,700-180); up.Select("ability-bite")
     -- The family filter narrows the list and the teachers, and cycles back to all.
     local seen={}
     for _=1,#up.abilities do
