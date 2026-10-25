@@ -122,7 +122,7 @@ local function ScanActive(record, now)
         return
     end
     local familyName, familyID = Call(rawget(_G, "UnitCreatureFamily"), "pet")
-    local active = { observed = now, present = true, build = Build(), name = Text(Call(rawget(_G, "UnitName"), "pet")),
+    local active = { observed = now, present = true, build = Build(), locale = Text(Call(rawget(_G, "GetLocale"))), name = Text(Call(rawget(_G, "UnitName"), "pet")),
         level = Number(Call(rawget(_G, "UnitLevel"), "pet")), family = Text(familyName), abilities = {} }
     active.familyKey = FamilyKey(active.family, Number(familyID))
     local book = rawget(_G, "C_SpellBook")
@@ -228,6 +228,8 @@ end
 local watcher = CreateFrame("Frame")
 PS.watcher = watcher
 local pending
+-- True while an event has asked for a scan that has not run yet: the state may be about to change.
+function PS.Pending() return pending ~= nil end
 local function Tick(_, delta)
     pending = pending - delta
     if pending > 0 then return end
