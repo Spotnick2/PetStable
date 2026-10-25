@@ -41,8 +41,8 @@ end
 local pages = {
     { key="guide", label="Pet Guide", title="Find your next companion",
       text="" },
-    { key="upgrades", label="Ability Upgrades", title="Plan your pet's next ability",
-      text="Ability recommendations are coming soon.\n\nThis page will help you find new ranks and the creatures or trainers that teach them." },
+    { key="upgrades", label="Ability Upgrades", title="Pet ability ranks and who teaches them",
+      text="" },
     { key="pets", label="My Pets", title="Your companions, together",
       text="Your pet collection is coming soon.\n\nOwned pets and their known abilities will appear here once collection tracking is available." },
 }
@@ -134,6 +134,7 @@ local function Contents()
     local w,h=frame:GetWidth(),frame:GetHeight()
     title:SetWidth(w-310); description:SetSize(w-48,h-220); context:SetWidth(w-70)
     NS.guide.Layout(w-48,h-180)
+    if NS.upgrades then NS.upgrades.Layout(w-48,h-180) end
 end
 
 function NS.Layout()
@@ -167,7 +168,11 @@ function NS.SelectPage(key)
     end
     if NS.guide then
         NS.guide:SetShown(key=="guide")
-        description:SetShown(key~="guide")
+        description:SetShown(key~="guide" and key~="upgrades")
+        if NS.upgrades then
+            NS.upgrades.ResetHover(); NS.upgrades:SetShown(key=="upgrades")
+            if key=="upgrades" then NS.upgrades.Refresh() end
+        end
         if key=="guide" then NS.guide.Refresh(false) end
     end
     local _, class = UnitClass("player")
@@ -327,6 +332,7 @@ local function Build()
     description:SetSize(580,220); description:SetWordWrap(true)
     description:SetJustifyV("TOP"); description:SetSpacing(5)
     NS.guide=NS.CreateGuide(content,frame,Text)
+    NS.upgrades=NS.CreateUpgrades(content,frame,Text)
     context=Text(content,11,{0.6,0.68,0.64,1}); context:SetPoint("BOTTOMLEFT",24,16); context:SetWidth(810)
     local function Button(host,label,w,h,click)
         local b=CreateFrame("Button",nil,host,"BackdropTemplate"); b:SetSize(w,h)

@@ -17,4 +17,6 @@ GuideData.lua
 GuideModels.lua
 GuideAppearances.lua
 GuideUI.lua
+UpgradesData.lua
+UpgradesUI.lua
 UI.lua
