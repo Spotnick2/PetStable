@@ -95,8 +95,9 @@ The browser now includes an attributed [Forever reference expansion](docs/REFERE
 the 19-family index. Core Hound availability remains unconfirmed. Website model
 previews are labeled as references and do not establish tameability.
 
-Targeting or mousing over a world beast records its exact appearance locally when
-the client supplies its IDs. Toggle this in Settings or with `/petstable sightings on|off`;
+When turned on, targeting or mousing over a world beast records its exact appearance
+locally if the client supplies its IDs. Capture is off by default until its model
+binding is measured on the live client. Toggle this in Settings or with `/petstable sightings on|off`;
 `/petstable sightings` reports the journal size. Nothing is uploaded automatically.
 See the reference guide for export, limits, and required in-game checks.
 

@@ -7,7 +7,7 @@ for line in io.lines('PetStable.toc') do
     if line:match('^[%a]+%.lua$') then assert(loadfile(line))('PetStable',ns) end
 end
 WoW.fire('ADDON_LOADED','PetStable'); ns.Toggle()
-assert(#ns.guide.entries==808 and ns.db.captureSightings)
+assert(#ns.guide.entries==808 and ns.db.captureSightings==false)
 ns.settingsButton:GetScript('OnClick')(); ns.settings.Sync()
 local guide=ns.guide; guide.OpenFamily('family-cat')
 local ui=guide.appearances

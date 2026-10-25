@@ -18,7 +18,8 @@ same card; models load only after scrolling rests for 0.15 s, and the wheel ease
 instead of jumping. Leaving the gallery clears their models and pending work.
 
 An appearance opens a dedicated page with the model across nearly half the width
-and "Where to tame this look" at right: a reference/verified status line, a
+and "Where to tame this look" at right (titled "Reported locations for this look"
+when no creature has a recorded spawn, with website zones marked "(reference)"): a reference/verified status line, a
 creature · level · location table, the selected creature's taming and spawn
 summary, and its zone with "Open zone map" when the client resolves the zone
 name. Family abilities & diet and Sources & observations are collapsed rows; the

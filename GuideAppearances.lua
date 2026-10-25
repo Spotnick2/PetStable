@@ -250,6 +250,10 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
             Place(button,0,y,width,40); button.label:SetWidth(width-24); button.label:SetJustifyH("LEFT")
             button.label:SetText(text..(open and "  ‹" or "  ›")); y=y+50
         end
+        -- Only a recorded spawn makes this a place to tame; website zones are reports.
+        local located=false
+        for _,entry in ipairs(group.entries) do if entry.spawn then located=true end end
+        locationTitle:SetText(located and "Where to tame this look" or "Reported locations for this look")
         TextRow(locationTitle)
         local filtered=#state.result.matches<#group.entries
         local status=group.modelVerified and "Verified in game" or "Listed by references · Awaiting in-game confirmation"
@@ -305,7 +309,9 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         if selected then
             local mapID,mapName,parentName=G.ZoneMap(selected)
             local extra=selected.zoneNames and #selected.zoneNames>1 and (" +"..(#selected.zoneNames-1).." more") or ""
-            zoneName:SetText(Plain((mapName or (selected.zoneNames and selected.zoneNames[1]) or G.Zone(selected))..extra))
+            local zoneLabel=(mapName or (selected.zoneNames and selected.zoneNames[1]) or G.Zone(selected))..extra
+            if not selected.spawn and (selected.zoneNames and #selected.zoneNames>0) then zoneLabel=zoneLabel.." (reference)" end
+            zoneName:SetText(Plain(zoneLabel))
             zoneParent:SetText(Plain(parentName or (mapID and "" or "No map for this zone in your client")))
             root.openMap.mapID=mapID; root.openMap:SetShown(mapID~=nil and type(rawget(_G,"OpenWorldMap"))=="function")
             Place(zone,0,y,width,72); Place(zoneName,16,14,width-200,22); Place(zoneParent,16,40,width-200,18)

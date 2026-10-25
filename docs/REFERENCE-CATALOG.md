@@ -128,10 +128,13 @@ file, family, localized name, observed level/classification, locale, build, and
 first/last-seen timestamps. It does not store GUIDs, player names, inferred spawn
 coordinates, or tameability conclusions. A new NPC/display/family/build/locale
 combination is a new record, including displays absent from the shipped catalog.
-Repeated observations update last-seen time without adding duplicates.
+Repeated observations update last-seen time and fill missing fields without adding
+duplicates.
 
-Capture defaults on and can be disabled in Settings or with
-`/petstable sightings off`; `on` re-enables it. `/petstable sightings` reports the
+Capture defaults off until its model binding is measured on the live client
+(`/fp steps ps bind`). Turn it on in Settings or with `/petstable sightings on`;
+`off` disables it again. Two different names for one build, locale, creature and
+display are kept as a conflict, not overwritten. `/petstable sightings` reports the
 count. The journal retains at most 10,000 combinations; reaching that limit warns
 once per session and preserves existing records. Save a copy before using
 `/petstable sightings clear`, which clears the local journal only.
