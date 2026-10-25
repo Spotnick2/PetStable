@@ -88,6 +88,20 @@ pet.family = "SECRET"; PS.Refresh("test")
 assert(PS.Active().family == nil and PS.Active().familyKey == nil, "a secret answer is dropped whole, never partly trusted")
 issecretvalue = nil; pet.family = "Cat"
 
+-- A first scan with the stable API absent still reports the active pet and does not error.
+do
+    local saved = C_StableInfo
+    C_StableInfo = nil
+    local first = { db = {}, CatalogData = ns.CatalogData }
+    assert(loadfile("Util.lua"))("PetStable", first); assert(loadfile("PetState.lua"))("PetStable", first)
+    first.PetState.Initialize()
+    assert(first.PetState.Refresh("test") and first.PetState.State() == "fresh")
+    local owned = first.PetState.Owned()
+    assert(owned["family-cat"] and owned["family-cat"].active and owned["family-cat"].stabled == 0)
+    assert(#first.PetState.Stable() == 0 and select(3, first.PetState.Stable()) == false)
+    C_StableInfo = saved
+end
+
 -- Saved data from an earlier session is stale until the first scan; unsubscribing works.
 local saved = ns.db
 local fresh = { db = saved, CatalogData = ns.CatalogData }

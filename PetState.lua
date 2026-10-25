@@ -195,8 +195,9 @@ function PS.Owned()
         owned[active.familyKey] = { active = true, stabled = 0, earlier = 0 }
     end
     local record = Record(false)
-    local section = record and type(record.stable) == "table" and record.stable.stabled
-    local current = session.scanned and record.stable.stabledRead == true
+    local stable = record and type(record.stable) == "table" and record.stable or nil
+    local section = stable and stable.stabled
+    local current = session.scanned and stable ~= nil and stable.stabledRead == true
     for _, pet in ipairs(section and section.pets or {}) do
         if pet.familyKey and not pet.active then
             local row = owned[pet.familyKey]

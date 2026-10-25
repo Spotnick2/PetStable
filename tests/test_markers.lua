@@ -77,4 +77,10 @@ local off=Start(false); off.Toggle()
 assert(off.guide.view=='families','the setting keeps the index')
 local on=Start(true); on.db.page='pets'; on.Toggle()
 assert(on.db.page=='pets','a restored page is kept')
+-- With the stable API absent on the first scan, the active pet is still marked and nothing errors.
+local savedApi=C_StableInfo
+C_StableInfo=nil
+local bare=Start(true); bare.Toggle(); bare.guide.ShowFamilies()
+assert(Marks(bare)['family-cat']=='Your pet')
+C_StableInfo=savedApi
 io.write('PASS: family markers follow observed pets, and the guide opens on the active family only when enabled\n')
