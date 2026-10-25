@@ -142,7 +142,9 @@ do
     watcherPS:GetScript('OnUpdate')(watcherPS,0.3)
     assert(ns.Toast.IsShown(),'the first nameplate alerts after the refresh')
     ns.Toast.Hide()
-    assert(TA.Consider('nameplate2'),'the second was not spent and alerts on its next event'); ns.Toast.Hide()
+    assert(ns.Toast.IsShown(),'the second nameplate alerts by itself when the first notice is dismissed')
+    ns.Toast.Hide()
+    assert(not ns.Toast.IsShown() and not TA.Consider('nameplate1') and not TA.Consider('nameplate2'),'both are now spent for the cooldown')
     others={}
 end
 

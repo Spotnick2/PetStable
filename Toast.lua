@@ -50,8 +50,11 @@ local function Slot(i)
     return button
 end
 
+-- Callers may set Toast.onHide to learn when a notice that was up has gone, to show the next one.
 function Toast.Hide()
+    local wasShown = frame ~= nil and frame:IsShown()
     if frame then frame:Hide(); frame:SetScript("OnUpdate", nil) end
+    if wasShown and Toast.onHide then Toast.onHide() end
 end
 
 function Toast.IsShown() return frame ~= nil and frame:IsShown() end

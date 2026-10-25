@@ -16,7 +16,7 @@ as teachers (an index of creature ID to ability ranks, built once). It shows whe
   temporary quest pet is left alone, and an unreadable spellbook is treated as unknown, never as
   empty. While a scan is pending, or before the first one, the unit is looked at again once it
   finishes, and no cooldown is spent meanwhile. Every unit seen while a scan is pending is kept, so a burst
-  of nameplates loses none; one notice shows at a time and the rest can still alert on their next event.
+  of nameplates loses none; one notice shows at a time, and the rest wait and are looked at again, one by one, when that notice is dismissed or expires.
 - The client is English. Catalog ability names are English, so on other locales the alert stays
   quiet rather than misreport a rank.
 - The ability is not a trainer ability, fits the active pet's family, is not ignored, and the listed

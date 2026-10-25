@@ -11,7 +11,7 @@ local DEFAULT_IGNORE = { Cower = true } -- rarely worth a trip
 local EVENTS = { "PLAYER_TARGET_CHANGED", "UPDATE_MOUSEOVER_UNIT", "NAME_PLATE_UNIT_ADDED" }
 
 local index
-local alerted, snoozedUntil, snoozedPet, deferred = {}, 0, nil, {}
+local alerted, snoozedUntil, snoozedPet, deferred, waiting = {}, 0, nil, {}, {}
 local watcher = CreateFrame("Frame")
 TA.watcher = watcher
 
@@ -146,12 +146,32 @@ function TA.Consider(unit)
     return found
 end
 
+-- One notice at a time. The first unit that qualifies shows; the units after it wait, and are looked at
+-- again (their level, family, cooldown and the pet may have changed) when that notice is dismissed or expires.
+function TA.ShowNext(units)
+    for i, unit in ipairs(units) do
+        if TA.Consider(unit) then
+            waiting = {}
+            for j = i + 1, #units do waiting[#waiting + 1] = units[j] end
+            return true
+        end
+    end
+    return false
+end
+
+if NS.Toast then
+    NS.Toast.onHide = function()
+        local units = waiting
+        waiting = {}
+        TA.ShowNext(units)
+    end
+end
+
 if NS.PetState then
     NS.PetState.Subscribe(function()
         local units = deferred
         deferred = {}
-        -- One notice at a time: stop at the first that shows; the rest are not spent and can alert later.
-        for _, unit in ipairs(units) do if TA.Consider(unit) then break end end
+        TA.ShowNext(units)
     end)
 end
 
