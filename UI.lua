@@ -133,7 +133,7 @@ local function Contents()
     if not NS.guide then return end
     local w,h=frame:GetWidth(),frame:GetHeight()
     title:SetWidth(w-310); description:SetSize(w-48,h-220); context:SetWidth(w-70)
-    NS.guide.Layout(w-48,h-198)
+    NS.guide.Layout(w-48,h-180)
 end
 
 function NS.Layout()
@@ -271,7 +271,7 @@ local function Build()
         -- One continuous reading area follows PetStable's navigation, page,
         -- help and footer; no extra input frames or per-paragraph cards.
         local pane = content:CreateTexture(nil, "BACKGROUND", nil, -7)
-        pane:SetPoint("TOPLEFT",content,"TOPLEFT",12,-70)
+        pane:SetPoint("TOPLEFT",content,"TOPLEFT",12,-52)
         pane:SetPoint("BOTTOMRIGHT",content,"BOTTOMRIGHT",-12,12)
         pane:SetColorTexture(0.045,0.06,0.055,0.96)
         local S = glass.SIZES.thin_small
@@ -280,10 +280,11 @@ local function Build()
     end
     local heading = Text(content, 24, {0.78,0.94,0.65,1})
     heading:SetPoint("TOPLEFT", 24, -16); heading:SetText("PetStable")
+    -- One compact header line leaves the space to the guide.
     local subtitle = Text(content, 12, {0.68,0.74,0.79,1})
-    subtitle:SetPoint("TOPLEFT", 25, -45); subtitle:SetText("A hunter's field guide to Forever")
+    subtitle:SetPoint("BOTTOMLEFT", heading, "BOTTOMRIGHT", 14, 3); subtitle:SetText("A hunter's field guide to Forever")
     local drag = CreateFrame("Frame", nil, content)
-    drag:SetPoint("TOPLEFT"); drag:SetPoint("TOPRIGHT", -160, 0); drag:SetHeight(64)
+    drag:SetPoint("TOPLEFT"); drag:SetPoint("TOPRIGHT", -160, 0); drag:SetHeight(50)
     drag:EnableMouse(true); drag:RegisterForDrag("LeftButton")
     drag:SetScript("OnDragStart", function() NS.guide.ClearFocus(); frame:StartMoving() end)
     local resizing=false
@@ -308,7 +309,7 @@ local function Build()
     NS.close=close
     for i,page in ipairs(pages) do
         local b = CreateFrame("Button",nil,content,"BackdropTemplate")
-        b:SetSize(152,34); b:SetPoint("TOPLEFT",24+(i-1)*160,-70)
+        b:SetSize(152,34); b:SetPoint("TOPLEFT",24+(i-1)*160,-52)
         b.label=Text(b,14); b.label:SetPoint("CENTER"); b.label:SetText(page.label)
         b.marker=b:CreateTexture(nil,"OVERLAY")
         b.marker:SetColorTexture(0.62,0.8,0.5,1); b.marker:SetHeight(2)
@@ -319,10 +320,10 @@ local function Build()
         buttons[key]=b
     end
     local rule=content:CreateTexture(nil,"BACKGROUND"); rule:SetColorTexture(0.35,0.43,0.39,0.4)
-    rule:SetPoint("TOPLEFT",16,-105); rule:SetPoint("TOPRIGHT",-16,-105); rule:SetHeight(1)
-    title=Text(content,23); title:SetPoint("TOPLEFT",24,-116); title:SetWidth(700)
+    rule:SetPoint("TOPLEFT",16,-87); rule:SetPoint("TOPRIGHT",-16,-87); rule:SetHeight(1)
+    title=Text(content,23); title:SetPoint("TOPLEFT",24,-98); title:SetWidth(700)
     NS.guideTitle=title
-    description=Text(content,16); description:SetPoint("TOPLEFT",24,-170)
+    description=Text(content,16); description:SetPoint("TOPLEFT",24,-152)
     description:SetSize(580,220); description:SetWordWrap(true)
     description:SetJustifyV("TOP"); description:SetSpacing(5)
     NS.guide=NS.CreateGuide(content,frame,Text)
@@ -333,7 +334,7 @@ local function Build()
         NS.StyleButton(b); b:SetScript("OnClick",click); return b
     end
     local settings=CreateFrame("Frame",nil,content,"BackdropTemplate"); NS.settings=settings
-    settings:SetSize(320,228); settings:SetPoint("TOPRIGHT",-16,-58); settings:SetFrameLevel(content:GetFrameLevel()+50); settings:EnableMouse(true)
+    settings:SetSize(320,266); settings:SetPoint("TOPRIGHT",-16,-58); settings:SetFrameLevel(content:GetFrameLevel()+50); settings:EnableMouse(true)
     settings:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
     settings:SetBackdropColor(0.045,0.065,0.055,1); settings:SetBackdropBorderColor(0.4,0.5,0.42,1)
     local help=Text(settings,13); help:SetPoint("TOPLEFT",16,-14); help:SetWidth(288)
@@ -351,6 +352,18 @@ local function Build()
     scale:SetScript("OnValueChanged",function(_,value) if not syncing then NS.db.scale=value; NS.Layout() end end)
     local reset=Button(settings,"Reset window",136,28,function() SlashCmdList.PETSTABLE("reset") end); reset:SetPoint("TOPLEFT",16,-170); settings.reset=reset
     local done=Button(settings,"Done",136,28,function() settings:Hide() end); done:SetPoint("TOPRIGHT",-16,-170)
+    if NS.Sightings then
+        local capture
+        capture=Button(settings,"",288,28,function()
+            NS.Sightings.Command(NS.db.captureSightings and "off" or "on")
+            capture.label:SetText("Record beast sightings: "..(NS.db.captureSightings and "On" or "Off"))
+        end)
+        capture:SetPoint("TOPLEFT",16,-208)
+        local sync=settings.Sync
+        settings.Sync=function()
+            sync(); capture.label:SetText("Record beast sightings: "..(NS.db.captureSightings and "On" or "Off"))
+        end
+    end
     settings:Hide()
     local settingsButton=Button(content,"Settings",80,28,function() NS.guide.ClearFocus(); settings:SetShown(not settings:IsShown()); settings.Sync() end)
     settingsButton:SetPoint("TOPRIGHT",-54,-18); NS.settingsButton=settingsButton

@@ -1,5 +1,9 @@
 # Catalog v1: bounded issue #7 seed
 
+The original seed below is now supplemented by the generated
+[Forever reference catalog](REFERENCE-CATALOG.md). Its website claims remain
+reference evidence; the original observations and their build stamps are intact.
+
 This is a static, provenance-aware foundation for Pet Guide, delivered as partial
 work on issue #7. The [browser](PET-GUIDE.md) now includes a [19-family index](FAMILY-INDEX.md)
 without expanding creature coverage. Ability Upgrades and My Pets retain their empty states. The catalog

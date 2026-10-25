@@ -7,7 +7,8 @@ NS.Catalog = Catalog
 local fields = {
     creature = { creatureID="id", name="text", family="ref:family", appearance="many:appearance",
         observedLevel="id", levelMin="id", levelMax="id", tameable="boolean",
-        observerArea="text", observerMapID="id", spawn="position", conditions="text" },
+        observerArea="text", observerMapID="id", spawn="position", conditions="text",
+        sourceIdentity="text", rarity="text", zoneName="manytext", referenceNote="manytext" },
     appearance = { displayID="id", modelFileID="id", portraitVerified="boolean", modelVerified="boolean" },
     family = { familyID="id", name="text", iconFileID="id" },
     ability = { name="text" },
@@ -109,7 +110,7 @@ function Catalog.Validate(data)
                     local linked=records[v]
                     valid=linked and linked.kind==target and linked.game==r.game
                 elseif spec=="id" then valid=ID(v)
-                elseif spec=="text" then valid=Text(v)
+                elseif spec=="text" or spec=="manytext" then valid=Text(v)
                 elseif spec=="boolean" then valid=type(v)=="boolean"
                 elseif spec=="nonnegative" then valid=Number(v) and v>=0
                 elseif spec=="sourceType" then valid=v=="trainer" or v=="tame" or v=="trainer-observation"
@@ -127,7 +128,7 @@ function Catalog.Validate(data)
                 if valid and e then
                     -- Build-scoped contradictions are reported separately, never overwritten.
                     local scope=r.key..":"..f.field..":"..(e.build or "unknown")..":"..(e.locale or "unknown")
-                    if not spec:match("^many:") then
+                    if not spec:match("^many") then
                         for _,prior in ipairs(seen[scope] or {}) do
                             if not Equal(prior.value,v) then conflicts[#conflicts+1]={first=prior,second=f} end
                         end
@@ -145,9 +146,16 @@ function Catalog.Validate(data)
     -- Corroborating claims are unambiguous within their evidence scope.
     -- Keep all original claims, including conflicts, available to reviewers.
     if #errors==0 then
+        local indexed={}
+        for _,f in ipairs(data.facts) do
+            indexed[f.subject]=indexed[f.subject] or {}
+            local subject=indexed[f.subject]; subject[f.field]=subject[f.field] or {}
+            table.insert(subject[f.field],f)
+        end
+        local function Facts(key,field) return indexed[key] and indexed[key][field] or {} end
         local function Agreed(key,field,context)
             local first
-            for _,fact in ipairs(Catalog.GetFacts(data,key,field)) do
+            for _,fact in ipairs(Facts(key,field)) do
                 local e=evidence[fact.evidence]
                 if e.game==context.game and e.build==context.build and e.locale==context.locale then
                     if first and not Equal(first.value,fact.value) then return nil end
@@ -159,10 +167,10 @@ function Catalog.Validate(data)
         for key,r in pairs(records) do
             if r.kind=="creature" or r.kind=="appearance" then
                 local field=r.kind=="creature" and "creatureID" or "displayID"
-                if #Catalog.GetFacts(data,key,field)==0 then Error(key..": missing "..field) end
+                if #Facts(key,field)==0 and not (r.kind=="creature" and #Facts(key,"sourceIdentity")>0) then Error(key..": missing "..field) end
             end
             if r.kind=="creature" then
-                for _,fact in ipairs(Catalog.GetFacts(data,key,"levelMin")) do
+                for _,fact in ipairs(Facts(key,"levelMin")) do
                     local context=evidence[fact.evidence]
                     local low,high=Agreed(key,"levelMin",context),Agreed(key,"levelMax",context)
                     if low and high and low>high then Error(key..": inverted level range") end

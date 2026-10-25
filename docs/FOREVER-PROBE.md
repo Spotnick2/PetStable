@@ -10,7 +10,7 @@ Training, appearance, and creature experiments belong to issues #3, #4, and #5.
 ## Issue #5: creature discovery and taming evidence
 
 Implemented in `Tools/PetStableProbe/Discovery.lua`; first live results are below.
-The inspected local API dump is `../References/forever-api-1.60.1.70425.md`.
+The inspected local API dump is `../References/Forever/api/forever-api-1.60.1.70425.md`.
 It exposes family IDs/metadata through C_CreatureInfo, unit creature identity
 and family/type tuples, C_TooltipInfo.GetUnit, unit casting/channel information,
 indexed auras, C_Spell queries, UnitPosition, and C_Map context. PlayerModel
@@ -488,7 +488,7 @@ us compare the counts without requiring the tester to remember them.
 
 ## Development workflow
 
-Read `../ForeverProbe/docs/GUIDE.md` and `../References/PROBES.md` before changing
+Read `../ForeverProbe/docs/GUIDE.md` and `../References/Docs/PROBES.md` before changing
 the probe. It lives in `Tools/PetStableProbe`; never modify the sibling host here.
 Diagnostics use the shared console and saved log. No character-specific facts
 are registered in the account-wide facts cache.
@@ -539,3 +539,15 @@ dispatch, log clearing, missing APIs, and guided result recording. No second stu
 environment is loaded. CI has no access to the private host and explicitly sets
 `FOREVERPROBE_OPTIONAL=1`; only host-dependent tests skip when it is absent.
 Locally a missing host is an error. Run local tests before every probe PR.
+
+## Model binding variants (pending, issue: sighting capture review)
+
+The first discovery capture saw a hidden `PlayerModel:SetUnit("target")` return
+false with no display or model file ID on build 1.60.1.70425. Sighting capture
+binds the same way (hidden model, `blend=false`), and neither the argument nor
+build 70450 has been measured. `/fp steps ps bind` targets a wild beast and, for
+two seconds, tries hidden and shown models with `SetUnit(unit)`,
+`SetUnit(unit, false)` and `SetUnit(unit, true)`. It records each call's return,
+and the first time display and model file ID both resolve, then repeats on
+mouseover. Results are in `PetStableProbeDB.binding.runs` and the module log.
+Until it is run, sighting capture is unverified on 70450.

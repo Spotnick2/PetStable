@@ -90,6 +90,16 @@ are excluded from player packaging.
 
 ## Scaffold validation
 
+The browser now includes an attributed [Forever reference expansion](docs/REFERENCE-CATALOG.md):
+808 creatures and 499 distinct numeric display IDs across 18 families, alongside
+the 19-family index. Core Hound availability remains unconfirmed. Website model
+previews are labeled as references and do not establish tameability.
+
+Targeting or mousing over a world beast records its exact appearance locally when
+the client supplies its IDs. Toggle this in Settings or with `/petstable sightings on|off`;
+`/petstable sightings` reports the journal size. Nothing is uploaded automatically.
+See the reference guide for export, limits, and required in-game checks.
+
 Local tests cover initialization, missing-library fallback, non-hunter navigation
 without pet APIs, settings restoration, invalid settings, screen fitting, isolated
 glass styling, and deployed Lua/media files. Live feedback and the successful
@@ -110,10 +120,10 @@ through. Local regression checks cover closing and reopening with and without
 LibGlass. The owner confirmed the deployed Escape fix works on 2026-10-16.
 
 The reflective shell follows the shared
-[window styling recipe](../References/LIBGLASS-WINDOW-STYLING.md): smoked outer
+[window styling recipe](../References/Docs/LIBGLASS-WINDOW-STYLING.md): smoked outer
 tint/backing, sliced directional silver rim, fine top highlight, and a masked
 header reflection fading within 70 UI units. A single masked reading region
-starts at y=70 and protects the horizontal navigation, content, and footer.
+starts at y=52 and protects the horizontal navigation, content, and footer.
 Sage accents mark active controls and hover states. The shell uses r9's
 `Reflect` and `SetSurfaceAlpha` APIs with the same material settings.
 

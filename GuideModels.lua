@@ -93,7 +93,9 @@ function NS.CreateAppearancePreview(parent,Text,interactive)
             elapsed=elapsed+delta; since=since+delta
             if since>=0.2 then
                 since=0
-                if Fit() then self.ready=true; fallback:Hide(); if self.OnReady then self.OnReady(true) end
+                if Fit() then
+                    self.ready=true; Call(actor,"SetAlpha",1); fallback:Hide()
+                    if self.OnReady then self.OnReady(true) end
                 elseif elapsed>=4 then Fallback(); return end
             end
         end
@@ -114,9 +116,10 @@ function NS.CreateAppearancePreview(parent,Text,interactive)
         preview.Clear(); group=value; if not value then return end
         preview.key=value.key; preview.yaw=0.5; preview.zoom=1
         fallback:ClearAllPoints(); fallback:SetPoint("CENTER"); fallback:SetText("Loading appearance..."); fallback:Show()
-        if not (value.displayID and value.modelVerified and actor) then Fallback(); return end
+        if not (value.displayID and (value.modelVerified or value.referencePreview) and actor) then Fallback(); return end
         Viewport(); scene:Show(); Camera()
-        Call(actor,"SetScale",1); Call(actor,"SetUseCenterForOrigin",true,true,true)
+        -- Bounds are measured at unit scale; keep that unfitted pose invisible.
+        Call(actor,"SetAlpha",0); Call(actor,"SetScale",1); Call(actor,"SetUseCenterForOrigin",true,true,true)
         Call(actor,"SetPosition",0,0,0); Call(actor,"SetYaw",preview.yaw)
         local success,accepted=Call(actor,"SetModelByCreatureDisplayID",value.displayID,false)
         if not success or accepted~=true then Fallback(); return end

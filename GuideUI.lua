@@ -4,7 +4,7 @@ local function Plain(text) return (text or ""):gsub("|","||") end
 
 function NS.CreateGuide(parent, window, Text)
     local panel=CreateFrame("Frame",nil,parent)
-    panel:SetPoint("TOPLEFT",24,-154); panel:SetSize(992,502)
+    panel:SetPoint("TOPLEFT",24,-136); panel:SetSize(992,502)
     panel.visibleRows=ROWS; panel.listWidth=320
     panel.entries,panel.families,panel.problem,panel.familySources=NS.GuideData.Build(NS.CatalogData)
     panel.rows={}; panel.offset=0; panel.showEvidence=false; panel.view="families"; panel.familyQuery=""
