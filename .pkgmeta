@@ -16,3 +16,8 @@ ignore:
   - .github
   - README.md
   - AGENTS.md
+  - CHANGELOG.md
+  - README.curseforge.md
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
