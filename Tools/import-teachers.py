@@ -18,6 +18,15 @@ EVIDENCE = dict(key='teachers-reference', game='forever', kind='reference', date
                 locator='Secondary compilation of pet ability ranks, training points and teaching beasts; '
                         'attributed upstream to this site, not re-fetched. Row-level cross-check pending')
 
+# Reviewed listing abilities that are not ranks anyone teaches. Client spell data is the evidence
+# (issue #43); the measured spell observations in CatalogData.lua are kept.
+EXCLUDED_ABILITIES = {
+    'Faster Attack': "the beast's own attack speed: one MOD_ATTACKSPEED aura per speed (+17 to +100%), "
+                     'no training cost or rank chain in SkillLineAbility',
+    'Slower Attack': "the beast's own attack speed: one MOD_ATTACKSPEED aura per speed (-17 to -26%), "
+                     'no training cost or rank chain in SkillLineAbility',
+}
+
 
 def slug(text):
     return re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
@@ -83,6 +92,8 @@ def generate(raw, inventory_raw):
 
     for ability in data['abilities']:
         name = ability['name']
+        if name in EXCLUDED_ABILITIES:
+            continue
         akey = 'ability-' + slug(name)
         if akey in records:
             raise ValueError('Duplicate ability: ' + name)

@@ -191,9 +191,13 @@ python Tools/import-teachers.py ../References/Forever/petstable/petstable-foreve
 
 `--check` compares without writing and `--report` prints the cross-check.
 
-- 33 abilities, 159 ranks (ordinal, pet level, training points, `previous` chain,
+- 31 abilities, 150 ranks (ordinal, pet level, training points, `previous` chain,
   all-families or eligible families) and 342 teaching-beast sources, each linked to a
   creature already in the catalog. Trainer-taught abilities link one shared trainer source.
+- The listing's Faster Attack and Slower Attack are left out (`EXCLUDED_ABILITIES`, #43). In the
+  client's spell tables each rank is one attack speed aura that turns the 2.0 s pet base into one of
+  the fixed creature speeds, with no training cost or rank chain: the beast's own speed, not
+  something a trainer teaches.
 - Every claim is `reference` status under one evidence record with no build, so none of it
   certifies a rank, a teacher or tameability in game, and the Pet Guide shows no new entries.
 - Positions are not imported: a position claim would read as a recorded spawn.

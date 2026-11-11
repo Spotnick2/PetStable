@@ -1,6 +1,6 @@
 # Ability Upgrades: reference listing
 
-The Ability Upgrades page browses the 33 pet abilities in the catalog (see
+The Ability Upgrades page browses the 31 pet abilities in the catalog (see
 [REFERENCE-CATALOG.md](REFERENCE-CATALOG.md#pet-ability-teachers)): every rank with its pet level and
 training points, and the creatures a listing reports as teaching it. It is built by
 `UpgradesData.lua` (a projection of the catalog) and `UpgradesUI.lua`.

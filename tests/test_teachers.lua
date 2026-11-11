@@ -12,7 +12,7 @@ for _,r in ipairs(data.records) do
     if r.key:match("%-rank%-%d+$") then kinds.rank=kinds.rank+1 end
     if r.key:match("^source%-tame%-") then kinds.source=kinds.source+1 end
 end
-assert(kinds.ability==33 and kinds.rank==159 and kinds.source==342,"ability, rank and teaching-beast counts")
+assert(kinds.ability==31 and kinds.rank==150 and kinds.source==342,"ability, rank and teaching-beast counts")
 for _,f in ipairs(data.facts) do
     if f.evidence=="teachers-reference" then
         assert(f.status=="reference","teacher claims are never verified")

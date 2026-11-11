@@ -59,6 +59,16 @@ class TeacherImportTests(unittest.TestCase):
         self.assertEqual(missing, [('Bite', 2, 999, 'Prowler')])
         self.assertNotIn('creature-999', result)
 
+    def test_attack_speed_abilities_are_not_imported(self):
+        t = teachers()
+        for name in ['Faster Attack', 'Slower Attack']:
+            t['abilities'].append(dict(name=name, source='trainer', families=['All families'], ranks=[
+                dict(rank=2, petLevel=1, trainingPoints=0, learnFrom=[])]))
+        result, _, _ = generate(t)
+        self.assertNotIn('faster-attack', result)
+        self.assertNotIn('slower-attack', result)
+        self.assertIn('{"ability-arcane-resistance-rank-1","source","source-pet-trainer"}', result)
+
     def test_output_is_deterministic(self):
         self.assertEqual(generate(teachers())[0], generate(teachers())[0])
 

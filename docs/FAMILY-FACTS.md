@@ -7,7 +7,7 @@ was decided on its own.
 |---|---|---|
 | **Diet** | The client's `CreatureFamily` table (`PetFoodMask`), datamined from wago.tools through the shared tool. | **Shipped** for the 19 hunter pet families (`CatalogFamilies.lua`, `Tools/import-families.py`). |
 | Family scale range | Same table (`MinScale`, `MaxScale`). | Stored with the diet; not shown yet. |
-| **Attack speed** | Not in any client table: it is per creature, on the server. The client reports it for a unit (`UnitAttackSpeed`). | Measure in game with `/fp steps ps facts` (queued for November 4). Not shipped. |
+| **Attack speed** | Not in any client table: it is per creature, on the server. The client reports it for a unit (`UnitAttackSpeed`). An owned pet's spellbook also names it: Faster Attack I-VII and Slower Attack I-III are attack speed auras (see below). | Measure in game with `/fp steps ps facts` (queued for November 4). Not shipped. |
 | **Stat modifiers** (health, armor, damage) | Not in any client table. The only source is a website listing, which would be one reference claim at most. | Not shipped: no verifiable source. Revisit if a measurement path appears. |
 | **Role** | Sites disagree (Petopia calls Fox General, Beastmaster calls it Offense), and the client has no role. | Still deferred, as in FAMILY-INDEX.md. |
 
@@ -39,3 +39,17 @@ a diet.
 `/fp steps ps facts` records `UnitAttackSpeed` for the target (a wild beast) and the pet, and the
 food lists, in `PetStableProbeDB.facts`. Read two beasts of one family and a fast rare to see
 whether speed varies inside a family. Until that is read, attack speed is not recorded anywhere.
+
+## Attack speed spells (#43)
+
+A pet that is not at the 2.0 s base carries one passive spell for its speed. The client's
+`SpellEffect` table (1.60.1.70862) gives each a single `MOD_ATTACKSPEED` aura:
+
+| Spell | IDs | Aura | Speed on a 2.0 s base |
+|---|---|---|---|
+| Faster Attack I-VII | 1263099, 1263100, 1263102, 1263104, 1263107, 1263109, 1263110 | +17, +25, +33, +43, +54, +67, +100% | 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.0 s |
+| Slower Attack I-III | 1263111, 1263113, 1263114 | -17, -20, -26% | 2.4, 2.5, 2.7 s |
+
+A Bear captured on 70425 carried Slower Attack II (2.5 s). So an owned pet's speed can be read from
+its spellbook. That reading is ours and is not confirmed in game: compare it with `UnitAttackSpeed`
+from the probe before showing it. A wild beast still needs `UnitAttackSpeed`.
