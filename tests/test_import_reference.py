@@ -81,6 +81,29 @@ class ReferenceImportTests(unittest.TestCase):
         self.assertIn('sourceIdentity', text)
         self.assertNotIn('creature-123', text)
 
+    def test_database_npc_id_resolves_source_only_creature(self):
+        self.data['creatures'][0] = dict(key='source-only:fox-123', npc_id=None,
+                                       field_claims={'family_key': ['family']})
+        self.data['creature_appearance_relationships'] = []
+        saved = importer.DATABASE_NPC_IDS
+        importer.DATABASE_NPC_IDS = {'source-only:fox-123': 4567}
+        try:
+            text = self.generate()
+        finally:
+            importer.DATABASE_NPC_IDS = saved
+        self.assertIn('{"creature-4567","creatureID",4567,"database-npc-4567"}', text)
+        self.assertIn('https://www.wowhead.com/forever/npc=4567', text)
+        self.assertNotIn('sourceIdentity', text)
+        self.assertNotIn('research-source-only', text)
+
+    def test_database_npc_id_already_listed_fails(self):
+        saved = importer.DATABASE_NPC_IDS
+        importer.DATABASE_NPC_IDS = {'elsewhere': self.data['creatures'][0]['npc_id']}
+        try:
+            with self.assertRaises(ValueError): self.generate()
+        finally:
+            importer.DATABASE_NPC_IDS = saved
+
     def test_bad_links_and_ids_fail(self):
         original = copy.deepcopy(self.data)
         self.data['creature_appearance_relationships'][0]['creature_key'] = 'missing'

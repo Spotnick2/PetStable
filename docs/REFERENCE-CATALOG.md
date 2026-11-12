@@ -2,8 +2,8 @@
 
 The 2026-10-16 research inventory expands the original observed seed without
 changing its verification evidence. `CatalogReference.lua` contains generated
-reference facts for 808 creatures (804 numeric NPC identities and four unresolved
-source identities) and 499 distinct display IDs. All 19 family metadata records
+reference facts for 808 creatures, each with a numeric NPC identity, and 499 distinct
+display IDs. All 19 family metadata records
 remain available. Eighteen families have creature records; Core Hounds have only
 unconfirmed website looks with no supplied exact NPC/display mapping.
 
@@ -37,7 +37,13 @@ The target build 70450 is deliberately not attached as verification of website d
 
 The importer includes explicit NPC and display identities, creature-family and
 exact creature-display relationships, names, reported levels, zone names, creature
-classification, tameability statements, and acquisition/location notes. It keeps
+classification, tameability statements, and acquisition/location notes. A creature the
+website lists without an NPC ID is kept under its source identity; the digits of its URL
+are never read as an ID. `DATABASE_NPC_IDS` gives four Fox records (Juvenile Vuldren,
+Vuldren Alpha, Slydris, Gray Fox) the ID of a Wowhead Forever record with the same name,
+family and zone, under that record's own evidence (#44). Only the ID is taken from it:
+Slydris is level 6 Rare Elite there and level 10 Rare on the website, and stays as the website
+reports it until seen in game. It keeps
 disagreeing claims rather than choosing a source winner. The catalog validator
 reports these disagreements separately from structural errors; the guide leaves
 disputed single-valued fields unresolved. Multiple zone names and display links
@@ -153,7 +159,7 @@ review/acceptance tooling, and a richer gallery badge remain follow-up work.
 ## Validation and live checklist
 
 Automated checks cover deterministic import, invalid input references, exact ID
-namespaces, retained source-only creatures and conflicts, reference/observed proof
+namespaces, source-only creatures and database NPC IDs, conflicts, reference/observed proof
 separation, multiple skins, filters, family localization, full shipped TOC loading,
 bounded preview pooling, model fallback, navigation, and journal deduplication,
 delayed loads, target changes, player control, persistence initialization and limits.

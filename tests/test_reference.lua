@@ -8,7 +8,15 @@ local sourceOnly=0
 for _,r in ipairs(data.records) do
     if r.kind=="creature" and #ns.Catalog.GetFacts(data,r.key,"creatureID")==0 then sourceOnly=sourceOnly+1 end
 end
-assert(sourceOnly==4,"unresolved Fox identities must remain accessible")
+assert(sourceOnly==0,"every creature has an NPC ID")
+-- The four Fox records the website gave no ID take it from a cited database record (#44).
+for _,id in ipairs({250873,250874,255887,277645}) do
+    local ids=ns.Catalog.GetFacts(data,"creature-"..id,"creatureID")
+    assert(#ids==1 and ids[1].value==id and ids[1].status=="reference","database NPC ID for "..id)
+    local e=evidence[ids[1].evidence]
+    assert(e.kind=="reference" and not e.build and e.url=="https://www.wowhead.com/forever/npc="..id)
+    assert(#ns.Catalog.GetFacts(data,"creature-"..id,"name")==1,"website name kept for "..id)
+end
 for _,f in ipairs(data.facts) do
     if f.evidence:match("^research%-") then
         assert(f.status=="reference" and evidence[f.evidence].kind=="reference")
