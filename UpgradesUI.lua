@@ -64,7 +64,10 @@ function NS.CreateUpgrades(parent, window, Text)
     local function Row(i)
         if rows[i] then return rows[i] end
         local row = Button(listChild, "", LIST_WIDTH - 12, function(self) panel.Select(self.ability.key) end, 13)
-        row.label:ClearAllPoints(); row.label:SetPoint("LEFT", 10, 0); row.label:SetJustifyH("LEFT")
+        -- The ability's own spell icon (client data); the name shifts right to make room.
+        row.icon = row:CreateTexture(nil, "ARTWORK"); row.icon:SetSize(20, 20); row.icon:SetPoint("LEFT", 6, 0)
+        row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        row.label:ClearAllPoints(); row.label:SetPoint("LEFT", 32, 0); row.label:SetJustifyH("LEFT")
         row.count = Text(row, 11, COLOR.dim); row.count:SetPoint("RIGHT", -10, 0); row.count:SetJustifyH("RIGHT")
         row:EnableMouseWheel(true); row:SetScript("OnMouseWheel", listWheel)
         rows[i] = row
@@ -94,8 +97,11 @@ function NS.CreateUpgrades(parent, window, Text)
         return table.concat({ entry.label, G.Level(entry), (G.Zone(entry)) }, " · ")
     end
 
+    local titleIcon = detailChild:CreateTexture(nil, "ARTWORK"); titleIcon:SetSize(30, 30)
+    titleIcon:SetPoint("TOPLEFT", 0, 0); titleIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92); titleIcon:Hide()
+    panel.titleIcon = titleIcon
     function panel.PaintDetails()
-        Reset()
+        Reset(); titleIcon:Hide()
         local width = detailChild:GetWidth()
         local ability, y = Selected(), 0
         local cap = NS.LevelCap()
@@ -106,7 +112,8 @@ function NS.CreateUpgrades(parent, window, Text)
             detailChild:SetHeight(40); detailSync(); return
         end
         local title = Take("heading", function() return Text(detailChild, 22, COLOR.gold) end)
-        title:ClearAllPoints(); title:SetPoint("TOPLEFT", 0, 0); title:SetText(ability.name); y = 34
+        titleIcon:SetTexture(ability.icon); titleIcon:SetShown(ability.icon ~= nil)
+        title:ClearAllPoints(); title:SetPoint("TOPLEFT", ability.icon and 38 or 0, -2); title:SetText(ability.name); y = 34
         local summary = Take("line", function() local t = Text(detailChild, 13, COLOR.dim); t:SetWordWrap(true); return t end)
         summary:ClearAllPoints(); summary:SetPoint("TOPLEFT", 0, -y); summary:SetWidth(width)
         local taught = ability.trainer and "Taught by any Pet Trainer."
@@ -157,6 +164,7 @@ function NS.CreateUpgrades(parent, window, Text)
             local row = Row(i)
             row:ClearAllPoints(); row:SetPoint("TOPLEFT", 0, -(i - 1) * ROW_HEIGHT); row:SetSize(LIST_WIDTH - 12, ROW_HEIGHT - 4)
             row.ability = ability; row.label:SetText(ability.name)
+            row.icon:SetTexture(ability.icon); row.icon:SetShown(ability.icon ~= nil)
             row.count:SetText(ability.trainer and "Trainer" or (#ability.ranks .. " ranks"))
             row.active = ability.key == panel.state.selected; row.Paint(); row:Show()
         end

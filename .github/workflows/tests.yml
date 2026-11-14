@@ -15,7 +15,7 @@ jobs:
         run: |
           while IFS= read -r -d '' file; do
             luac5.1 -p "$file" || exit 1
-          done < <(find Util.lua Core.lua Catalog.lua CatalogData.lua CatalogReference.lua CatalogTeachers.lua CatalogFamilies.lua Sightings.lua PetState.lua GuideData.lua GuideModels.lua GuideAppearances.lua GuideUI.lua UpgradesData.lua UpgradesUI.lua PetsUI.lua Toast.lua TeacherAlert.lua UI.lua Tools tests -name '*.lua' -print0)
+          done < <(find Util.lua Core.lua Catalog.lua CatalogData.lua CatalogReference.lua CatalogTeachers.lua CatalogFamilies.lua CatalogSpells.lua Sightings.lua PetState.lua GuideData.lua GuideModels.lua GuideAppearances.lua GuideUI.lua UpgradesData.lua UpgradesUI.lua PetsUI.lua Toast.lua TeacherAlert.lua UI.lua Tools tests -name '*.lua' -print0)
       - name: Catalog validation (no client or probe required)
         run: lua5.1 tests/test_catalog.lua
       - name: Reference catalog and local sightings
@@ -29,6 +29,7 @@ jobs:
           python3 -m unittest discover -s tests -p "test_import_reference.py"
           python3 -m unittest discover -s tests -p "test_import_teachers.py"
           python3 -m unittest discover -s tests -p "test_import_families.py"
+          python3 -m unittest discover -s tests -p "test_import_spells.py"
       - name: Guide data and filters
         run: lua5.1 tests/test_guide.lua
       - name: Player addon and pinned LibGlass
