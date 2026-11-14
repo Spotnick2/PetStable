@@ -440,6 +440,22 @@ into a complete known/unknown rank list or match localized names as stable IDs.
 The retained event buffer includes TRAINER_SHOW, TRAINER_UPDATE and TRAINER_CLOSED.
 No successful acquisition or teaching change was observed in this trainer run.
 
+### Live trainer results: 2026-11-14, build 1.60.1.70938
+
+Evidence: trainer procedure, runs #288 (before/after opening) and #289 (reopened after reload).
+Level-16 Hunter, level-14 Cat whose spellbook has Faster Attack IV (1263104, passive). Filters
+available/unavailable/used were true/true/false, so ranks already known are hidden.
+
+| Service | Ranks listed (required level) |
+| --- | --- |
+| Arcane, Fire, Frost, Nature, Shadow Resistance | 1-4 (20, 30, 40, 50) each |
+| Great Stamina, Natural Armor | 3-10 (18, 24, 30, 36, 42, 48, 54, 60) each |
+| Growl | 3-7 (20, 30, 40, 50, 60) |
+
+41 services, all unavailable at this level, same list after reload. No Faster Attack or Slower
+Attack rank appears. Since the Cat knows only Faster Attack IV, ranks I-III and V-VII would have
+to be listed if a trainer sold them: they are not trainer services (#43).
+
 ### Teaching attempt: 2026-10-16, build 1.60.1.70425
 
 Evidence: captures 8 (`teach-before`) and 9 (`teach-after`) in run 69, and capture
