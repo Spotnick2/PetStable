@@ -7,7 +7,7 @@ was decided on its own.
 |---|---|---|
 | **Diet** | The client's `CreatureFamily` table (`PetFoodMask`), datamined from wago.tools through the shared tool. | **Shipped** for the 19 hunter pet families (`CatalogFamilies.lua`, `Tools/import-families.py`). |
 | Family scale range | Same table (`MinScale`, `MaxScale`). | Stored with the diet; not shown yet. |
-| **Attack speed** | Not in any client table: it is per creature, on the server. The client reports it for a unit (`UnitAttackSpeed`). An owned pet's spellbook also names it: Faster Attack I-VII and Slower Attack I-III are attack speed auras (see below). | Measured once in game (2026-11-14, below); the spell reading is close but not exact. Not shipped. |
+| **Attack speed** | Not in any client table: it is per creature, on the server. The client reports it for a unit (`UnitAttackSpeed`). An owned pet's spellbook also names it: Faster Attack I-VII and Slower Attack I-III are attack speed auras (see below). | Measured once in game (2026-11-14, below); it matches the spell reading. Not shipped. |
 | **Stat modifiers** (health, armor, damage) | Not in any client table. The only source is a website listing, which would be one reference claim at most. | Not shipped: no verifiable source. Revisit if a measurement path appears. |
 | **Role** | Sites disagree (Petopia calls Fox General, Beastmaster calls it Offense), and the client has no role. | Still deferred, as in FAMILY-INDEX.md. |
 
@@ -60,8 +60,10 @@ A Bear captured on 70425 carried Slower Attack II (2.5 s), so an owned pet's spe
 its spellbook. A wild beast still needs `UnitAttackSpeed`.
 
 First check in game (2026-11-14, build 1.60.1.70938, `/fp steps ps facts` run #290): a level-14 Cat
-with Faster Attack IV (+43%) read **1.371 s** from `UnitAttackSpeed`, twice. The table predicts
-2.0 / 1.43 = 1.399 s. The direction is right but the pet is about 2% faster than predicted
-(1.371 s matches +43% on a 1.96 s base, or a further 2% haste). The cause is unknown: no pet auras were
-captured. So the table is a close reading, not a confirmed one. Don't show a speed computed from the
-spell until more pets (another Faster rank, a Slower one, one with neither) are read with their auras.
+with Faster Attack IV (+43%) read **1.371 s** from `UnitAttackSpeed`, twice. The hunter is Skyborne,
+whose racial Wind Blessed (1259710, skill line 2980 "Skyborne Racial") gives +2% melee and ranged
+attack speed (aura 342). With it, 2.0 / (1.43 x 1.02) = 1.3712 s, the measured value to the
+millisecond; without it the table alone gives 1.399 s. So the pet's reading includes its owner's
+haste, and the table holds for this one rank. Before showing a speed computed from the spell, read
+a Slower rank and a pet with neither spell, ideally with a hunter of a race without haste, and
+decide whether to show the pet's own speed (the table) or what `UnitAttackSpeed` reports.

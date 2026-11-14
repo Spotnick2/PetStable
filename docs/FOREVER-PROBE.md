@@ -443,7 +443,7 @@ No successful acquisition or teaching change was observed in this trainer run.
 ### Live trainer results: 2026-11-14, build 1.60.1.70938
 
 Evidence: trainer procedure, runs #288 (before/after opening) and #289 (reopened after reload).
-Level-16 Hunter, level-14 Cat whose spellbook has Faster Attack IV (1263104, passive). Filters
+Level-16 Skyborne Hunter, level-14 Cat whose spellbook has Faster Attack IV (1263104, passive). Filters
 available/unavailable/used were true/true/false, so ranks already known are hidden.
 
 | Service | Ranks listed (required level) |
