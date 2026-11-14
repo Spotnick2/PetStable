@@ -15,12 +15,32 @@ training points, and the creatures a listing reports as teaching it. It is built
   the family can learn, and only that family's teachers.
 - A teacher opens its family in the Pet Guide.
 
+## Markers for the active pet
+
+When this session has read the active pet's spellbook (`PetState`), ranks are marked for that pet
+(#10, the measurable part):
+
+- **Learned:** the pet has this rank or a higher one. Ranks are matched by the client spell IDs in
+  `CatalogSpells.lua`, so this works in any client language. An English client falls back to the
+  ability name and "Rank n" text for a rank the client tables don't cover.
+- **Can learn now:** not learned, the pet's family can use it, and the pet's level reaches the rank.
+- **Needs pet level N:** not learned, and the pet is still below the rank's level.
+
+The list shows the same per ability ("2/8 · Can learn", "Learned 8/8", "Can learn"). The note at
+the top names the pet. Abilities for another family get no marker.
+
+Nothing is marked when the pet's knowledge is unknown: no pet out, a spellbook that couldn't be
+read, or only an earlier session's record. Unknown never shows as "not learned". The page repaints
+when the pet is summoned, dismissed or swapped.
+
 ## What it does not do
 
-It does not know which ranks your hunter or pets have learned (#9), so nothing is marked
-learned, missing or ready, and it recommends nothing (#10). It shows no coordinates, spawn
-timers or tameability. Every teacher is a reference claim, not confirmed in game, and an
-empty teacher list means none is listed, not that none exists.
+It does not know what your hunter can teach: Forever has no Beast Training list in the API (the
+legacy craft functions are absent), so markers are about the active pet only. "Can learn now" means
+the pet's level allows the rank. Training points and where to learn it are still for the player to
+check. It recommends no route (#10). It shows no coordinates, spawn timers or tameability (#11).
+Every teacher is a reference claim, not confirmed in game, and an empty teacher list means none is
+listed, not that none exists.
 
 ## Validation
 
