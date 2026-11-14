@@ -33,5 +33,13 @@ return function(ns)
     assert(#db.target.captures==math.min(before+1,40))
     SlashCmdList={}; assert(not pcall(ns._test.Target.Show("missing")),"without PetStable the step fails")
     SlashCmdList=savedSlash
+    -- A combat end records the lockdown, the latch condition and the button.
+    local parse=rawget(_G,"SecureCmdOptionParse"); SecureCmdOptionParse=function() return "1" end
+    ns._test.Target.RegenSample("event")
+    local sample=db.target.regen[#db.target.regen]
+    assert(sample.when=="event" and sample.condition[2]=="1" and sample.lockdown[2]==false and sample.shown[2]==true and sample.latch[2]==0)
+    SecureCmdOptionParse=nil; ns._test.Target.RegenSample("missing")
+    assert(db.target.regen[#db.target.regen].condition[1]~=true,"a missing API is recorded, not an error")
+    SecureCmdOptionParse=parse
     for name,value in pairs(saved) do rawset(_G,name,value) end
 end

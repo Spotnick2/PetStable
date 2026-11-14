@@ -48,6 +48,12 @@ this is reference data. It never says the hunter has or lacks a rank: that is no
     itself. In the brief window before that update, the button still targets the beast it was armed for.
   - **A notice that appears in combat** says "Target button after combat", and the button comes at
     combat end if the notice is still up.
+  - **Combat end, measured (run #320, build 70938):** a button armed in the `PLAYER_REGEN_ENABLED`
+    handler for a notice shown in combat was latched off at once, as if the latch's `[combat]` still
+    read 1 (the lockdown was off). The secure manager writes the state only when it changes, so arming
+    then either latches at once or leaves the latch stuck at 1. So the button is armed only once
+    `SecureCmdOptionParse("[combat] 1; 0")` reads 0, retried every 0.2 s for up to five seconds (also
+    when the lockdown itself is still on at the event). The probe samples both at each combat end.
   - The design was reviewed with Codex to consensus. It is on issue #39.
 - **Snooze 15 min** holds all alerts for fifteen minutes.
 - **Snooze while I keep this pet** holds alerts for as long as the same pet stays active, for when

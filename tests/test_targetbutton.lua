@@ -35,10 +35,18 @@ CreateFrame=function(kind,name,parent,template)
     return f
 end
 local drivers={}
+-- What [combat] reads for the secure side. It follows the lockdown unless a test makes it lag: in game
+-- (run #320) it still read combat for a moment after PLAYER_REGEN_ENABLED.
+local lag=nil
+local function DriverCombat() if lag~=nil then return lag end return combat end
+function SecureCmdOptionParse(s) assert(s=='[combat] 1; 0'); return DriverCombat() and '1' or '0' end
+local timers={}
+C_Timer={After=function(_,fn) timers[#timers+1]=fn end}
+local function RunTimers() local due=timers; timers={}; for _,fn in ipairs(due) do fn() end; return #due end
 local function Evaluate(f)
     local d=drivers[f]; if not d then return end
     assert(d.cond=='[combat] 1; 0','the latch condition')
-    local value=combat and 1 or 0
+    local value=DriverCombat() and 1 or 0
     if f.attributes['state-'..d.state]~=value then
         f.attributes['state-'..d.state]=value
         local snippet=f.attributes['_onstate-'..d.state]
@@ -152,6 +160,29 @@ combat=false; Event(ns,'PLAYER_REGEN_ENABLED'); assert(Armed(b,'Prowler')); Toas
 combat=true; Toast.Show(Notice('Prowler'))
 assert(not b:IsShown() and w.band:GetText()=='Target button after combat','hint in the band')
 combat=false; Event(ns,'PLAYER_REGEN_ENABLED'); assert(Armed(b,'Prowler'),'armed at regen'); Toast.Hide()
+
+-- Combat ends but [combat] still reads 1 for a moment (measured, run #320): a notice shown in combat
+-- is armed only once it reads 0, never latched off as it is armed.
+combat=true; Toast.Show(Notice('Prowler')); combat=false; lag=true
+Event(ns,'PLAYER_REGEN_ENABLED'); assert(Disarmed(b),'not armed while [combat] still reads 1')
+assert(RunTimers()==1 and Disarmed(b) and #timers==1,'retried, still waiting')
+lag=nil; RunTimers(); assert(Armed(b,'Prowler') and b:GetAttribute('state-petstablecombat')==0,'armed once it reads 0')
+assert(#timers==0,'no more retries once armed')
+combat=true; DriverUpdate(); assert(not b:IsShown() and b:GetAttribute('type')==nil,'the next fight still latches it'); combat=false
+-- Latched in a fight that ends with the lag: the latch is never left stuck at 1 on an armed button.
+lag=true; Event(ns,'PLAYER_REGEN_ENABLED'); assert(Disarmed(b) and drivers[b]==nil)
+lag=nil; RunTimers(); assert(Armed(b,'Prowler') and b:GetAttribute('state-petstablecombat')==0,'re-armed with the latch at 0')
+combat=true; DriverUpdate(); assert(not b:IsShown(),'and it latches in the next fight'); combat=false; Event(ns,'PLAYER_REGEN_ENABLED')
+Toast.Hide()
+-- The lockdown itself still on as the event fires: retried until it lifts.
+combat=true; Toast.Show(Notice('Prowler')); Event(ns,'PLAYER_REGEN_ENABLED'); assert(not b:IsShown() and #timers==1)
+combat=false; RunTimers(); assert(Armed(b,'Prowler'),'armed when the lockdown lifts'); Toast.Hide()
+-- A notice closed while waiting: the retry disarms. A lag that never ends: the retries stop.
+combat=true; Toast.Show(Notice('Prowler')); combat=false; lag=true; Event(ns,'PLAYER_REGEN_ENABLED')
+Toast.Hide(); lag=nil; RunTimers(); assert(Disarmed(b) and #timers==0)
+combat=true; Toast.Show(Notice('Prowler')); combat=false; lag=true; Event(ns,'PLAYER_REGEN_ENABLED')
+local runs=0; while RunTimers()>0 do runs=runs+1; assert(runs<100) end
+assert(runs==25 and Disarmed(b),'retries stop after five seconds ('..runs..')'); lag=nil; Toast.Hide(); timers={}
 
 -- A closes and B opens through onHide, out of combat and in combat.
 local queue={}
