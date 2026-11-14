@@ -27,10 +27,25 @@ this is reference data. It never says the hunter has or lacks a rank: that is no
 
 ## Controls
 
-- There is no Target button yet. A secure button is protected in combat, and how it must be anchored and
-  hidden cannot be checked before the client is back, so it is left for a follow-up once it can be
-  verified in game. The notice itself contains nothing secure, so it shows, is replaced and hides at
-  any time, including in combat.
+- **Target <name>** (#39) targets the beast in one click: `/cleartarget`, `/targetexact <name>`,
+  `/cleartarget [dead]`, the macro Stakeout ships on Forever. It is offered only with the name read from
+  the unit itself, checked as Stakeout does (plain, at most 100 bytes, no control character). The
+  player clicks; nothing targets automatically. With several beasts of the same name it targets one of
+  them, and with only corpses it clears the target.
+  - **A separate secure frame** (`TargetButton.lua`), parented and anchored to `UIParent` only. It sits
+    over a fixed band under the notice's title. The notice never parents or anchors it, so the notice
+    itself stays unprotected: it shows, is replaced and hides at any time, including in combat.
+  - **The notice is no longer clamped to the screen.** Its top and width never move and its height is
+    capped at 300, so the band and the button always line up.
+  - **Only out of combat:** PetStable arms, moves or hides the button only out of combat. At combat end
+    it applies the notice that is up then, unconditionally.
+  - **A one-way combat latch:** a secure state driver clears the button's action and hides it when
+    combat starts, on the secure manager's next update, and does nothing when combat ends. So there is
+    no targeting from the notice during combat, and a button whose notice has gone never comes back by
+    itself. In the brief window before that update, the button still targets the beast it was armed for.
+  - **A notice that appears in combat** says "Target button after combat", and the button comes at
+    combat end if the notice is still up.
+  - The design was reviewed with Codex to consensus. It is on issue #39.
 - **Snooze 15 min** holds all alerts for fifteen minutes.
 - **Snooze while I keep this pet** holds alerts for as long as the same pet stays active, for when
   the hunter needs to stable it before taming another. The pet is identified by its live GUID, never
@@ -48,6 +63,14 @@ not detect that a creature was just tamed (a tamed creature is controlled, so it
 ## Validation
 
 `tests/test_teacheralert.lua` covers each condition above, the cooldown, both snoozes, the ignore
-list, the toast buttons, showing and hiding in combat, a nameplate burst and class gating. Not yet run in the live client
+list, the toast buttons, showing and hiding in combat, a nameplate burst and class gating.
+`tests/test_targetbutton.lua` models the secure rules: insecure combat calls are errors, and the
+state driver runs the button's real latch snippet on a separate update. It covers the structure,
+the latch, the combat-end re-arm in either order, A→B through the queue, expiry, unsafe names,
+long text under the height cap, a client without the state driver, and initialising under
+lockdown. Eleven deliberate mutations (latch removed, notice clamped, the button anchored to the
+notice, one click edge, a cached re-arm, and others) each turn it red.
+In game: `/fp steps ps target` (PetStableProbe) walks through the combat transitions and records the
+button and the notice at each step. Not yet run in the live client
 (unavailable before November 4). To check there: the three unit signals, `UnitCreatureID` for
 wild units, and how the toast looks.

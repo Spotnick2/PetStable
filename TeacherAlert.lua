@@ -133,8 +133,11 @@ function TA.Consider(unit)
     local found = TA.Find(creatureID, { playerLevel = NS.PlayerLevel(), now = now,
         creatureLevel = Plain(Call(rawget(_G, "UnitLevel"), unit)), active = active })
     if not found then return nil end
-    local name = Plain(Call(rawget(_G, "UnitName"), unit)) or found.creature.label
+    local unitName = Plain(Call(rawget(_G, "UnitName"), unit))
+    local name = unitName or found.creature.label
     local shown = NS.Toast.Show({
+        -- Only the unit's own name goes into /targetexact; a catalog label may not be a unit's name.
+        target = unitName and { id = creatureID, name = unitName } or nil,
         title = "PET ABILITY NEARBY",
         body = string.format("%s is listed as teaching %s rank %d.\n%s (%s) has %s.",
             name, found.ability.name, found.rank.ordinal, found.pet.name or "Your pet", found.pet.family or "pet",

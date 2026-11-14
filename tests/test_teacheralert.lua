@@ -171,13 +171,22 @@ end
 -- Catalog ability names are English: a localized spellbook is not matched.
 Reset(); locale='deDE'; PS.Refresh('test'); assert(not Fires(),'no rank matching on a localized client'); locale='enUS'; PS.Refresh('test'); assert(Fires())
 
--- The toast: buttons act and close it, and it is fully insecure so it works in combat.
+-- The toast: buttons act and close it, and it is fully insecure so it works in combat. The Target
+-- button is a separate secure frame (TargetButton.lua, tests/test_targetbutton.lua); the alert asks
+-- for it with the unit's own name only, never a catalog label.
+RegisterStateDriver=function() end; UnregisterStateDriver=function() end
 Reset()
 local found=TA.Consider('target'); assert(found and ns.Toast.IsShown())
-for _,f in ipairs(WoW.frames) do
-    assert(f.GetName==nil or f:GetName()~='PetStableToastTarget','no secure Target frame exists')
-    assert(not (f.attributes and f.attributes.type=='macro'))
-end
+assert(ns.TargetButton.Desired() and ns.TargetButton.Desired().name=='Teacher' and ns.TargetButton.Desired().id==biteID,
+    'the notice asks for a Target button with the unit name')
+assert(ns.Toast.Frame():GetParent()==UIParent and not (ns.Toast.Frame()._template or ''):find('Secure'),'the notice stays unprotected')
+ns.Toast.Hide(); assert(ns.TargetButton.Desired()==nil,'closing lets the button go')
+local unitName=UnitName
+UnitName=function(unit) if unit=='target' then return nil end return unitName(unit) end
+Reset(); assert(TA.Consider('target') and ns.Toast.IsShown() and ns.TargetButton.Desired()==nil,'no unit name: no Target button')
+ns.Toast.Hide(); UnitName=unitName
+RegisterStateDriver,UnregisterStateDriver=nil,nil
+Reset(); assert(TA.Consider('target'))
 local function ByLabel(text) for _,f in ipairs(WoW.frames) do if f.label and f.label.GetText and f.label:GetText()==text then return f end end end
 local ignore=ByLabel('Ignore Bite'); assert(ignore and ByLabel('Snooze 15 min') and ByLabel('Snooze while I keep this pet'))
 ignore:GetScript('OnClick')(ignore); assert(TA.Ignored('Bite') and not ns.Toast.IsShown()); TA.Ignore('Bite',false)
