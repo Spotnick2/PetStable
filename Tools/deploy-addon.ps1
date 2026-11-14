@@ -13,7 +13,10 @@ if (-not (Test-Path -LiteralPath $AddOnsPath)) { throw 'AddOns directory does no
 $dest = Join-Path $AddOnsPath 'PetStable'
 New-Item -ItemType Directory -Path (Join-Path $dest 'Libs') -Force | Out-Null
 Copy-Item -LiteralPath $lib -Destination (Join-Path $dest 'Libs') -Recurse -Force
-foreach ($name in @('PetStable.toc','Util.lua','Core.lua','Catalog.lua','CatalogData.lua','CatalogReference.lua','CatalogTeachers.lua','CatalogFamilies.lua','Sightings.lua','PetState.lua','GuideData.lua','GuideModels.lua','GuideAppearances.lua','GuideUI.lua','UpgradesData.lua','UpgradesUI.lua','PetsUI.lua','Toast.lua','TeacherAlert.lua','UI.lua')) {
+foreach ($name in @('Util.lua','Core.lua','Catalog.lua','CatalogData.lua','CatalogReference.lua','CatalogTeachers.lua','CatalogFamilies.lua','Sightings.lua','PetState.lua','GuideData.lua','GuideModels.lua','GuideAppearances.lua','GuideUI.lua','UpgradesData.lua','UpgradesUI.lua','PetsUI.lua','Toast.lua','TeacherAlert.lua','UI.lua')) {
     Copy-Item -LiteralPath (Join-Path $root $name) -Destination (Join-Path $dest $name) -Force
 }
+# The repo TOC keeps the packager token; the deployed copy says dev, so the client never shows the token.
+(Get-Content -LiteralPath (Join-Path $root 'PetStable.toc') -Raw) -replace '## Version: @project-version@', '## Version: dev' |
+    Set-Content -LiteralPath (Join-Path $dest 'PetStable.toc') -NoNewline
 Write-Host 'Deployed PetStable. In game: /reload, then /petstable.'
