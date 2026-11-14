@@ -103,6 +103,8 @@ end
 assert(b:GetWidth()==372 and b:GetHeight()==26)
 assert(Calls(b,'SetFrameStrata')[1][2]=='DIALOG' and b:GetFrameLevel()==30 and toast:GetFrameLevel()==20,'above the notice')
 local clicks=Calls(b,'RegisterForClicks'); assert(#clicks==1 and clicks[1][2]=='AnyUp' and clicks[1][3]=='AnyDown','both click edges')
+-- In the stub, SetScript on the secure button throws and no XML template runs, so _scripts==nil means
+-- PetStable set no script. A real button keeps the scripts its templates install (OnClick among them).
 assert(b:GetAttribute('typerelease')==nil and b._scripts==nil,'no typerelease, no script: the template keeps its OnClick')
 assert(b:GetAttribute('_onstate-petstablecombat')==TB.LATCH,'the latch snippet is installed')
 assert(not b:IsShown() and b:GetAttribute('type')==nil,'built hidden and unarmed')
@@ -183,7 +185,13 @@ assert(TB.Macro('Prowler')=='/cleartarget\n/targetexact Prowler\n/cleartarget [d
 Toast.Show(Notice('Prowler',{body=string.rep('A very long teaching line. ',80),note=string.rep('A long note. ',20)}))
 assert(toast:GetHeight()<=300,'height capped at 300 (got '..toast:GetHeight()..')')
 assert(w.body:GetStringHeight()<=300-64,'the body was cut')
-for _,button in ipairs(w.buttons) do if button:IsShown() then assert(-button._points[1][3]>56) end end
+for _,button in ipairs(w.buttons) do
+    if button:IsShown() then
+        assert(-button._points[1][3]>56)
+        assert(-button._points[1][3]+24<=toast:GetHeight(),'every button ends inside the capped notice')
+    end
+end
+assert(-w.note._points[1][3]+w.note:GetStringHeight()<=toast:GetHeight(),'the note ends inside the capped notice')
 Toast.Hide()
 
 -- No state driver on this client: no button at all.

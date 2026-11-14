@@ -60,7 +60,7 @@ Probe:Command("target", function(args) return Capture(args ~= "" and args:sub(1,
 local function Step(label) return function() return Capture(label) end end
 
 Probe:Steps("target", {
-    rev = 1, title = "Target button on the teacher notice (#39)",
+    rev = 2, title = "Target button on the teacher notice (#39)",
     { text = "Turn the teacher alert on (/petstable teachers on), summon your pet, and find a beast the alert names (a listed teacher of your pet's next rank). Stay out of combat. When the notice is up with its Target button, record.",
       button = "Record", run = Step("armed"), screenshot = "armed" },
     { text = "Does the Target button sit in the band under the notice's title, clear of the close button and the notice's other buttons?", ask = true },
@@ -76,6 +76,11 @@ Probe:Steps("target", {
     { text = "Start a fight first, then let a teacher come into view so the notice shows during combat. Does the band say \"Target button after combat\", with no button?", ask = true, screenshot = "shown-in-combat" },
     { text = "End the fight with that notice still up. Record: the button should appear.", button = "Record", run = Step("armed-after-combat") },
     { text = "If you can: a notice for a beast that died or left, or with several beasts of the same name nearby. Click the button and say in Notes what got targeted.", ask = true },
+    { text = "With a notice and its button up, press and hold the button, start a fight while holding (a pet attack works), then let go. Did anything get targeted, and did any error show? Notes.", ask = true },
+    { text = "Bring a notice up, then click its button at the very moment combat starts (the latch window). Was the beast targeted? Notes.", ask = true },
+    { text = "With two teachers in view, close the first notice. The second notice shows. Record: the button should say the second beast's name.", button = "Record", run = Step("queued-next") },
+    { text = "Type /console ActionButtonUseKeyDown 0, bring a notice up, click its button. Record, then set it back with /console ActionButtonUseKeyDown 1.", button = "Record", run = Step("keyup-edge") },
+    { text = "Did the click with ActionButtonUseKeyDown 0 target the beast too?", ask = true },
     { text = "Press Finish, then type /reload to save the results." },
 })
 
