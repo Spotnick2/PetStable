@@ -24,6 +24,7 @@ assert(loadfile("Tools/PetStableProbe/Models.lua"))("PetStableProbe", ns)
 assert(loadfile("Tools/PetStableProbe/Discovery.lua"))("PetStableProbe", ns)
 assert(loadfile("Tools/PetStableProbe/Binding.lua"))("PetStableProbe", ns)
 assert(loadfile("Tools/PetStableProbe/Facts.lua"))("PetStableProbe", ns)
+assert(loadfile("Tools/PetStableProbe/Target.lua"))("PetStableProbe", ns)
 assert(rawget(_G, "PetStableProbeDB") == nil, "must not initialize saved data at file scope")
 local log = { "previous session" }
 PetStableProbeDB = { log = log, loads = 7 }
@@ -59,4 +60,5 @@ dofile("tests/model_cases.lua")(ns)
 dofile("tests/discovery_cases.lua")(ns)
 dofile("tests/binding_cases.lua")(ns)
 dofile("tests/facts_cases.lua")(ns)
+dofile("tests/target_probe_cases.lua")(ns)
 io.write("PASS: probe lifecycle, dispatch, log identity, missing API, and guided procedure\n")

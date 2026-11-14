@@ -26,5 +26,6 @@ UpgradesData.lua
 UpgradesUI.lua
 PetsUI.lua
 Toast.lua
+TargetButton.lua
 TeacherAlert.lua
 UI.lua
