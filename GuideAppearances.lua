@@ -122,10 +122,23 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         Button(detail,"Rotate ›",function() preview.Rotate(0.4) end),
     }
     root.modelButtons=modelButtons
-    preview.OnReady=function(ready)
+    local animationButtons={}
+    local function MarkAnimation()
+        for _,button in ipairs(animationButtons) do
+            button.active=button.animationID==preview.animation; button.Paint()
+        end
+    end
+    for _,animation in ipairs(NS.PreviewAnimations or {}) do
+        local button=Button(detail,animation.label,function(self) preview.Play(self.animationID); MarkAnimation() end)
+        button.animationID=animation.id; animationButtons[#animationButtons+1]=button
+    end
+    root.animationButtons=animationButtons; MarkAnimation()
+    local function ShowControls(ready)
         for _,button in ipairs(modelButtons) do button:SetShown(ready) end
+        for _,button in ipairs(animationButtons) do button:SetShown(ready) end
         previewHelp:SetShown(ready)
     end
+    preview.OnReady=ShowControls
     local body=CreateFrame("ScrollFrame",nil,detail); root.body=body; body:EnableMouseWheel(true)
     local bodyChild=CreateFrame("Frame",nil,body); bodyChild:SetSize(500,400); body:SetScrollChild(bodyChild)
     local bodyBar=Scrollbar(detail,body); root.bodyBar=bodyBar
@@ -355,9 +368,7 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         end
         bodyChild:SetSize(width,math.max(body:GetHeight(),y)); bodyBar.Sync()
         preview.Set(group)
-        local controls=preview.ready==true
-        for _,b in ipairs(modelButtons) do b:SetShown(controls) end
-        previewHelp:SetShown(controls)
+        ShowControls(preview.ready==true)
     end
     function root.OpenAppearance(result)
         panel.ClearFocus(); root.Stop(); state.result=result; state.selected=result.matches[1]
@@ -415,7 +426,12 @@ function NS.CreateAppearanceBrowser(panel,window,Text)
         local detailY=headingHeight+54
         Place(detail,0,detailY,width,math.max(160,height+16-detailY))
         local left=math.floor(width*0.48)
-        Place(preview,0,0,left,detail:GetHeight()-56)
+        -- Under the model: the animation row, the help line, then rotate and zoom.
+        local animated=#animationButtons>0 and 30 or 0
+        Place(preview,0,0,left,detail:GetHeight()-56-animated)
+        for i,b in ipairs(animationButtons) do
+            local w=(left-16)/#animationButtons; Place(b,(i-1)*(w+4),detail:GetHeight()-82,w,24); b.label:SetWidth(w-4)
+        end
         Place(previewHelp,8,detail:GetHeight()-50,left-16,16)
         for i,b in ipairs(modelButtons) do
             local w=(left-16)/5; Place(b,(i-1)*(w+4),detail:GetHeight()-30,w,26); b.label:SetWidth(w-4)

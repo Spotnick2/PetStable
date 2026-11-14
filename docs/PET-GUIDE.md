@@ -107,6 +107,12 @@ resize and Reset reuse those measurements. Card labels grow when needed instead 
 reserving a second line for every name, leaving more height for previews.
 Gallery poses are still; callbacks stop after fitting.
 Detail previews support drag/button rotation, wheel/button zoom and reset.
+They also animate (#48): idle plays at normal speed, and a row of buttons plays
+Idle, Walk, Run, Attack or Roar (AnimationData IDs 0, 4, 5, 16, 55; the client table
+has the IDs and fallbacks but no names). The chosen animation stays while browsing
+other looks. A model without an animation falls back along the client's chain:
+Roar to Attack, the others to Idle. Bounds are still measured once, from the
+first pose, so a wide animation such as Run can reach past the 72% fit.
 Controls appear after successful fitting. Hiding a view cancels fitting/dragging
 and clears actors. Missing/rejected models and bounds timeouts show a verified
 portrait where available, otherwise an explicit unavailable-preview message.
