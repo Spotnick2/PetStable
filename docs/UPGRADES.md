@@ -5,8 +5,10 @@ The Ability Upgrades page browses the 31 pet abilities in the catalog (see
 training points, and the creatures a listing reports as teaching it. It is built by
 `UpgradesData.lua` (a projection of the catalog) and `UpgradesUI.lua`.
 
-- Left: all abilities, sorted by name, with their rank count (or "Trainer").
-- Right: the selected ability's families and, per rank, "Rank n · pet level · training points"
+- Left: all abilities, sorted by name, each with its spell icon and its rank count (or "Trainer").
+  The icons come from the client's own spell tables (`CatalogSpells.lua`, see
+  [REFERENCE-CATALOG.md](REFERENCE-CATALOG.md#ability-icons-and-rank-spell-ids)).
+- Right: the selected ability's icon and name, its families and, per rank, "Rank n · pet level · training points"
   and its listed teachers as `name · level · zone`. Website levels and zones carry the same
   "(reference)" qualifier as the Pet Guide. Trainer abilities say they are learned from a Pet Trainer.
 - The family button cycles through the 19 families. It keeps only abilities some rank of which

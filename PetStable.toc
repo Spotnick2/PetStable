@@ -15,6 +15,7 @@ CatalogData.lua
 CatalogReference.lua
 CatalogTeachers.lua
 CatalogFamilies.lua
+CatalogSpells.lua
 Sightings.lua
 PetState.lua
 GuideData.lua

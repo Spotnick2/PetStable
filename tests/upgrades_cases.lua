@@ -15,6 +15,10 @@ return function(ns)
     for _,row in ipairs(rows) do if row.ability.name=="Bite" then bite=row end end
     bite:GetScript("OnClick")(bite)
     assert(up.state.selected=="ability-bite")
+    for _,row in ipairs(rows) do
+        assert(row.icon:IsShown() and type(row.icon._file)=="number" and row.icon._file==row.ability.icon,"each row shows its ability's icon")
+    end
+    assert(bite.icon._file==132278 and up.titleIcon:IsShown() and up.titleIcon._file==132278,"the selected ability's icon beside its name")
     local teachers=Shown(function(f) return f.teacher~=nil end)
     assert(#teachers>0,"teaching creatures are listed under each rank")
     assert(teachers[1].label:GetText():find(" · ",1,true) and teachers[1].label:GetText():find("(reference)",1,true),

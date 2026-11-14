@@ -72,8 +72,24 @@ function Upgrades.Build(data, entries, families)
         end
     end
     abilities = listed
+    -- Client spell data (CatalogSpells.lua): the ability's icon, and each rank's spell ID matched by
+    -- rank order, only when the client has exactly as many ranks as the listing.
+    local spellData = type(data.abilitySpells) == "table" and type(data.abilitySpells.abilities) == "table"
+        and data.abilitySpells.abilities or {}
     for _, ability in ipairs(abilities) do
         table.sort(ability.ranks, function(a, b) return (a.ordinal or 0) < (b.ordinal or 0) end)
+        local client = spellData[ability.key]
+        if type(client) == "table" then
+            if type(client.icon) == "number" and client.icon > 0 then ability.icon = client.icon end
+            local ranks = type(client.ranks) == "table" and client.ranks or {}
+            if #ranks == #ability.ranks then
+                for i, rank in ipairs(ability.ranks) do
+                    local row = ranks[i]
+                    rank.spellID = type(row) == "table" and type(row[1]) == "number" and row[1] or nil
+                    if type(row) == "table" and type(row[2]) == "number" and row[2] > 0 then rank.clientLevel = row[2] end
+                end
+            end
+        end
         local fam, trainer, count = {}, false, 0
         for _, rank in ipairs(ability.ranks) do
             trainer = trainer or rank.trainer
