@@ -29,6 +29,17 @@ EXCLUDED_CREATURES = {
     5596: 'Twain Test Prop: test NPC listed as a Wolf; renders creature/dragonwhelp/dragonwhelp.m2 (display 138634)',
 }
 
+# Source-only creatures whose NPC ID comes from a reviewed database record with the same name,
+# family and zone (issue #44). That record is the evidence; URL digits are still never read as IDs.
+DATABASE_NPC_IDS = {
+    'creature:beastmaster:juvenile-vuldren-250873': 250873,
+    'creature:beastmaster:vuldren-alpha-250874': 250874,
+    'creature:beastmaster:slydris-255887': 255887,
+    'creature:beastmaster:gray-fox-277645': 277645,
+}
+DATABASE_EVIDENCE = dict(date='2026-11-11', url='https://www.wowhead.com/forever/npc=%d',
+                         locator='Wowhead Forever NPC tooltip: name, Fox family and zone match the website record')
+
 
 def display_build(path):
     match = re.search(r'-(\d+\.\d+\.\d+\.\d+)\.csv$', str(path))
@@ -114,7 +125,15 @@ def generate(raw, displays=None, geosets=b'', build=None, textures=None):
         if claim['source_key'] not in sources:
             raise ValueError('Missing source: ' + claim['key'])
     families = {k: 'family-' + FAMILY_NAMES.get(k.split(':')[1], k.split(':')[1]) for k in indexes['families']}
-    creatures = {c['key']: ('creature-' + str(c['npc_id']) if c['npc_id'] else 'research-' + c['key']) for c in data['creatures']}
+    def creature_key(c):
+        npc = c['npc_id'] or DATABASE_NPC_IDS.get(c['key'])
+        return 'creature-' + str(npc) if npc else 'research-' + c['key']
+
+    listed = {c['npc_id'] for c in data['creatures'] if c['npc_id']}
+    for npc in DATABASE_NPC_IDS.values():
+        if npc in listed:
+            raise ValueError('NPC %d now has its own inventory record; drop it from DATABASE_NPC_IDS' % npc)
+    creatures = {c['key']: creature_key(c) for c in data['creatures']}
     excluded = {c['key'] for c in data['creatures'] if c['npc_id'] in EXCLUDED_CREATURES}
     appearances = {}
     for a in data['appearances']:
@@ -146,7 +165,13 @@ def generate(raw, displays=None, geosets=b'', build=None, textures=None):
             continue
         key = creatures[c['key']]
         records[key] = 'creature'
-        if not c['npc_id']:
+        if not c['npc_id'] and c['key'] in DATABASE_NPC_IDS:
+            npc = DATABASE_NPC_IDS[c['key']]
+            ekey = 'database-npc-%d' % npc
+            evidence[ekey] = dict(key=ekey, game='forever', kind='reference', date=DATABASE_EVIDENCE['date'],
+                                  locale='enUS', url=DATABASE_EVIDENCE['url'] % npc, locator=DATABASE_EVIDENCE['locator'])
+            facts.append([key, 'creatureID', npc, ekey])
+        elif not c['npc_id']:
             # Preserve source-only creatures without interpreting URL digits as IDs.
             first = claims[next(iter(c['field_claims'].values()))[0]]
             fact(key, 'sourceIdentity', c['key'], first)
