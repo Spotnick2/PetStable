@@ -103,8 +103,8 @@ local function Arm(spec)
 end
 
 -- What the latch's own condition reads now. Measured in game (#39, run #320): at PLAYER_REGEN_ENABLED
--- the lockdown is off, but a button armed then for a notice shown in combat was latched off at once,
--- as if [combat] still read 1. The secure manager writes the state only when it changes, so arming
+-- a button armed then for a notice shown in combat ended up latched off: likely [combat] still read 1
+-- (or the lockdown was still on; the probe samples both). The manager writes the state only on change, so arming
 -- while it reads 1 either latches at once (the state was 0) or leaves the latch stuck at 1 (no change).
 -- So the button is armed only once the condition reads 0, and retried shortly until it does.
 local function DriverSaysCombat()
