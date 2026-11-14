@@ -39,11 +39,17 @@ exit 0
     & pwsh -NoProfile -File (Join-Path $repoRoot 'Tools\deploy-addon.ps1') -AddOnsPath $addons -Lua $Lua
     if ($LASTEXITCODE -ne 0) { throw 'Player addon deployment failed.' }
     $player = Join-Path $addons 'PetStable'
-    foreach ($name in @('Util.lua','Core.lua','Catalog.lua','CatalogData.lua','CatalogReference.lua','CatalogTeachers.lua','CatalogFamilies.lua','Sightings.lua','PetState.lua','GuideData.lua','GuideModels.lua','GuideAppearances.lua','GuideUI.lua','UpgradesData.lua','UpgradesUI.lua','PetsUI.lua','Toast.lua','TeacherAlert.lua','UI.lua','PetStable.toc','Libs\LibGlass-1.0\LibGlass.lua','Libs\LibGlass-1.0\Media\rim_thin.tga')) {
+    foreach ($name in @('Util.lua','Core.lua','Catalog.lua','CatalogData.lua','CatalogReference.lua','CatalogTeachers.lua','CatalogFamilies.lua','Sightings.lua','PetState.lua','GuideData.lua','GuideModels.lua','GuideAppearances.lua','GuideUI.lua','UpgradesData.lua','UpgradesUI.lua','PetsUI.lua','Toast.lua','TeacherAlert.lua','UI.lua','Libs\LibGlass-1.0\LibGlass.lua','Libs\LibGlass-1.0\Media\rim_thin.tga')) {
         if ((Get-FileHash -LiteralPath (Join-Path $repoRoot $name)).Hash -ne (Get-FileHash -LiteralPath (Join-Path $player $name)).Hash) {
             throw "Player deployment differs: $name"
         }
     }
+    # The TOC is the one file that differs: only its version line, stamped dev.
+    $tocSource = Get-Content -LiteralPath (Join-Path $repoRoot 'PetStable.toc') -Raw
+    $tocDeployed = Get-Content -LiteralPath (Join-Path $player 'PetStable.toc') -Raw
+    if ($tocDeployed -notmatch '(?m)^## Version: dev\r?$') { throw 'Deployed TOC must say ## Version: dev.' }
+    if ($tocDeployed -ne ($tocSource -replace '## Version: @project-version@', '## Version: dev')) { throw 'Deployed TOC differs beyond its version line.' }
+    if ((Get-Content -LiteralPath (Join-Path $repoRoot 'PetStable.toc') -Raw) -notmatch '@project-version@') { throw 'The repo TOC must keep the packager token.' }
     foreach ($excluded in @('Tools','tests','docs','PetStableProbe.lua','ForeverProbe.lua')) {
         if (Test-Path -LiteralPath (Join-Path $player $excluded)) { throw "Player addon must not include $excluded." }
     }
