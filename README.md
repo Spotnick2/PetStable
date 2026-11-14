@@ -47,6 +47,7 @@ Open or close the window with `/petstable`. Escape or the close button closes it
 | `/petstable reset` | Back to the default size, scale and position |
 | `/petstable levelfilter on\|off` | Filter the guide and Ability Upgrades to your level (on by default) |
 | `/petstable teachers on\|off` | Nearby teacher alert (off by default) |
+| `/petstable teachers check` | Check your current target for the teacher alert now, or say why it shows nothing |
 | `/petstable sightings on\|off\|clear` | Local sighting journal (off by default) |
 | `/petstable material reflective\|flat` | Window material, for this session |
 

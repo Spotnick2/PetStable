@@ -38,7 +38,7 @@ local function Capture(label)
         row.latchState = Read(button, "GetAttribute", "state-petstablecombat")
         row.protected = Read(button, "IsProtected")
         row.rect = { left = Read(button, "GetLeft"), top = Read(button, "GetTop"), width = Read(button, "GetWidth"), height = Read(button, "GetHeight") }
-        row.label = button.label and Read(button.label, "GetText")
+        row.buttonText = button.label and Read(button.label, "GetText")
     end
     if notice then
         row.noticeShown = Read(notice, "IsShown")
@@ -59,29 +59,51 @@ Probe:Command("target", function(args) return Capture(args ~= "" and args:sub(1,
 
 local function Step(label) return function() return Capture(label) end end
 
+-- Brings the notice back on demand: /petstable teachers check looks at the current target past the
+-- per-beast cooldown and the snoozes, so a step never waits fifteen minutes. The notice still closes
+-- itself after 45 seconds, so each step that needs it starts with this.
+local function Show(label)
+    return function()
+        local slash = rawget(_G, "SlashCmdList")
+        local handler = type(slash) == "table" and slash.PETSTABLE
+        if type(handler) ~= "function" then error("PetStable is not loaded") end
+        handler("teachers check")
+        return Capture(label)
+    end
+end
+
+local SHOW = "Target a Deepmoss Creeper (or any beast the alert names) and press Show notice. "
+    .. "The notice closes itself after 45 seconds: if it goes before you finish a step, press Back and show it again. "
+
 Probe:Steps("target", {
-    rev = 2, title = "Target button on the teacher notice (#39)",
-    { text = "Turn the teacher alert on (/petstable teachers on), summon your pet, and find a beast the alert names (a listed teacher of your pet's next rank). Stay out of combat. When the notice is up with its Target button, record.",
-      button = "Record", run = Step("armed"), screenshot = "armed" },
+    rev = 3, title = "Target button on the teacher notice (#39)",
+    { text = "Turn the teacher alert on (/petstable teachers on) and summon your pet. Stay out of combat. " .. SHOW
+        .. "If no notice comes, chat says why.", button = "Show notice", run = Show("armed"), screenshot = "armed" },
     { text = "Does the Target button sit in the band under the notice's title, clear of the close button and the notice's other buttons?", ask = true },
-    { text = "Click the Target button. Is the beast now your target?", ask = true },
+    { text = "Clear your target (Escape), then click the Target button. Is the beast your target again?", ask = true },
     { text = "Record after the click.", button = "Record", run = Step("clicked") },
-    { text = "Close the notice with its close button. The Target button should go. Record.", button = "Record", run = Step("closed"), screenshot = "closed" },
-    { text = "Bring the notice up again, out of combat. Then start a fight (attack anything) with the notice still up. Record while in combat: the button should be gone (the latch).",
+    { text = "Close the notice with its close button. The Target button should go with it. Record.", button = "Record", run = Step("closed"), screenshot = "closed" },
+    { text = "Out of combat: " .. SHOW, button = "Show notice", run = Show("before-combat") },
+    { text = "Now start a fight with the notice still up (send your pet or attack). Record while in combat: the button should be gone (the latch).",
       button = "Record", run = Step("combat-latched"), screenshot = "combat" },
-    { text = "Still in combat, did the Target button disappear as combat started?", ask = true },
-    { text = "End the fight with the notice still up. Record after combat: the button should be back.", button = "Record", run = Step("regen-rearmed"), screenshot = "regen" },
-    { text = "Bring a notice up, start a fight, close the notice during the fight, then end the fight. Record after combat: no button should come back.",
+    { text = "Did the Target button disappear as combat started?", ask = true },
+    { text = "End the fight with the notice still up. Record after combat: the button should be back. (If the notice closed by itself first, say so in Notes.)",
+      button = "Record", run = Step("regen-rearmed"), screenshot = "regen" },
+    { text = "Out of combat: " .. SHOW, button = "Show notice", run = Show("before-close-in-combat") },
+    { text = "Start a fight, close the notice during the fight, then end the fight. Record after combat: no button should come back.",
       button = "Record", run = Step("closed-in-combat") },
-    { text = "Start a fight first, then let a teacher come into view so the notice shows during combat. Does the band say \"Target button after combat\", with no button?", ask = true, screenshot = "shown-in-combat" },
+    { text = "Start a fight. While in combat, target a beast the alert names and press Show notice. The notice should show with the band saying \"Target button after combat\" and no button.",
+      button = "Show notice", run = Show("shown-in-combat"), screenshot = "shown-in-combat" },
+    { text = "Did the band say \"Target button after combat\", with no button?", ask = true },
     { text = "End the fight with that notice still up. Record: the button should appear.", button = "Record", run = Step("armed-after-combat") },
-    { text = "If you can: a notice for a beast that died or left, or with several beasts of the same name nearby. Click the button and say in Notes what got targeted.", ask = true },
-    { text = "With a notice and its button up, press and hold the button, start a fight while holding (a pet attack works), then let go. Did anything get targeted, and did any error show? Notes.", ask = true },
-    { text = "Bring a notice up, then click its button at the very moment combat starts (the latch window). Was the beast targeted? Notes.", ask = true },
-    { text = "With two teachers in view, close the first notice. The second notice shows. Record: the button should say the second beast's name.", button = "Record", run = Step("queued-next") },
-    { text = "Type /console ActionButtonUseKeyDown 0, bring a notice up, click its button. Record, then set it back with /console ActionButtonUseKeyDown 1.", button = "Record", run = Step("keyup-edge") },
-    { text = "Did the click with ActionButtonUseKeyDown 0 target the beast too?", ask = true },
+    { text = "If you can: show the notice, then let that beast die or wander off (or several of the same name stand nearby), clear your target and click the button. Say in Notes what got targeted.", ask = true },
+    { text = "Show the notice (/petstable teachers check with a beast targeted). Press and hold the Target button, start a fight while holding (a pet attack works), then let go. Did anything get targeted, and did any error show? Notes.", ask = true },
+    { text = "Show the notice, then click its button at the very moment combat starts (the latch window). Was the beast targeted? Notes.", ask = true },
+    { text = "Optional: with two different beasts the alert names in view (not two of the same kind), close the first notice when the second one is waiting. Record: the button should say the second beast's name.",
+      button = "Record", run = Step("queued-next") },
+    { text = "Type /console ActionButtonUseKeyDown 0. Then " .. SHOW, button = "Show notice", run = Show("keyup-shown") },
+    { text = "Clear your target and click the Target button. Did it target the beast with ActionButtonUseKeyDown 0? Then set it back with /console ActionButtonUseKeyDown 1.", ask = true },
     { text = "Press Finish, then type /reload to save the results." },
 })
 
-NS._test.Target = { Capture = Capture }
+NS._test.Target = { Capture = Capture, Show = Show }

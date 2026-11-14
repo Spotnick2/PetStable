@@ -21,8 +21,17 @@ return function(ns)
     UnitName=function() return "Prowler" end; UnitIsDead=function() return false end
     local row=db.target.captures[ns._test.Target.Capture("armed")]
     assert(row.shown[2]==true and row.type[2]=="macro" and row.latchState[2]==0 and row.keyDown[2]=="1")
-    assert(row.macrotext[2]:find("/targetexact Prowler",1,true) and row.label[2]=="Target Prowler" and row.target[2]=="Prowler")
+    assert(row.macrotext[2]:find("/targetexact Prowler",1,true) and row.label=="armed" and row.buttonText[2]=="Target Prowler" and row.target[2]=="Prowler")
     assert(row.protected[2]==true and row.noticeProtected[2]==false,"the button is protected, the notice is not")
     assert(row.rect.top[2]==900 and row.noticeRect.top[2]==930,"positions recorded to check the band")
+    -- Show notice asks PetStable to check the target now, then records.
+    local savedSlash=rawget(_G,"SlashCmdList"); local asked
+    SlashCmdList={PETSTABLE=function(message) asked=message end}
+    local before=#db.target.captures
+    ns._test.Target.Show("shown")()
+    assert(asked=="teachers check" and db.target.captures[#db.target.captures].label=="shown","Show runs the check, then captures")
+    assert(#db.target.captures==math.min(before+1,40))
+    SlashCmdList={}; assert(not pcall(ns._test.Target.Show("missing")),"without PetStable the step fails")
+    SlashCmdList=savedSlash
     for name,value in pairs(saved) do rawset(_G,name,value) end
 end

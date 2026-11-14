@@ -141,6 +141,44 @@ assert(TA.Consider('target'),'a different pet ends the hold even with the same n
 local noGuid=UnitGUID; UnitGUID=function(unit) if unit=='pet' then return nil end return unitState.guid end
 Reset(); TA.SnoozeForPet(); assert(TA.Consider('target'),'with no pet identity there is no hold to apply'); ns.Toast.Hide(); UnitGUID=noGuid
 
+-- /petstable teachers check looks at the target now, past the cooldown and the snoozes, without
+-- clearing them; it closes a notice already up, and says why when nothing shows.
+do
+    local said; local realPrint=print; print=function(s) said=s end
+    Reset(); assert(TA.Consider('target')); ns.Toast.Hide()
+    assert(not TA.Consider('target'),'cooldown'); SlashCmdList.PETSTABLE('teachers check'); assert(ns.Toast.IsShown(),'check passes the cooldown')
+    SlashCmdList.PETSTABLE('teachers check'); assert(ns.Toast.IsShown(),'check closes the notice up and shows it again')
+    ns.Toast.Hide(); TA.Snooze(now); SlashCmdList.PETSTABLE('teachers check'); assert(ns.Toast.IsShown(),'check passes a timed snooze')
+    ns.Toast.Hide(); assert(not TA.Consider('target'),'and leaves it in place')
+    -- Another Bite 2 teacher, never alerted: only the snooze can keep it quiet.
+    local otherID
+    for id,list in pairs(TA.Index()) do
+        for _,row in ipairs(list) do
+            if id~=biteID and row.ability.name=='Bite' and row.rank.ordinal==2 then
+                for _,k in ipairs(row.rank.familyKeys) do if k=='family-cat' then otherID=id end end
+            end
+        end
+    end
+    assert(otherID,'a second Bite 2 teacher for Cats')
+    unitState.id=otherID; local _,why=TA.Consider('target'); assert(why=='snoozed','the snooze is still in place: '..tostring(why)); unitState.id=biteID
+    -- A unit queued behind the open notice is dropped by a check, not shown after it.
+    Reset(); others={ nameplate1={id=otherID,level=8} }
+    assert(TA.Consider('target')); assert(not TA.Consider('nameplate1'),'queued behind the notice')
+    SlashCmdList.PETSTABLE('teachers check'); assert(ns.Toast.IsShown(),'the check shows the target')
+    ns.Toast.Hide(); assert(not ns.Toast.IsShown(),'the queued unit was dropped by the check'); others={}
+    Reset(); TA.SnoozeForPet(); SlashCmdList.PETSTABLE('teachers check'); assert(ns.Toast.IsShown(),'check passes the pet hold')
+    ns.Toast.Hide(); now=now+901; assert(not TA.Consider('target'),'and leaves the hold in place')
+    Reset(); said=nil; unitState.id=999999999; SlashCmdList.PETSTABLE('teachers check')
+    assert(not ns.Toast.IsShown() and said and said:find('not a listed teacher',1,true),'check says why: '..tostring(said))
+    unitState.id=biteID; unitState.level=playerLevel+5; said=nil; SlashCmdList.PETSTABLE('teachers check')
+    assert(said and said:find('above your level',1,true),'check passes on the reason from Find'); unitState.level=8
+    unitState.player=true; said=nil; SlashCmdList.PETSTABLE('teachers check')
+    assert(said and said:find('not a wild creature',1,true)); unitState.player=false
+    ns.db.teacherAlerts=false; said=nil; SlashCmdList.PETSTABLE('teachers check')
+    assert(not ns.Toast.IsShown() and said and said:find('alerts are off',1,true)); ns.db.teacherAlerts=true
+    print=realPrint; Reset()
+end
+
 -- Data from before this session's scan, or about to change, is not used: wait and look again.
 Reset()
 local watcherPS=PS.watcher

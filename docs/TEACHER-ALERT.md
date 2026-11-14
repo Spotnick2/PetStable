@@ -2,7 +2,7 @@
 
 An optional notice when a creature in view is listed as teaching the next rank of a pet ability
 that the **active pet** lacks. It is off by default; Settings has "Nearby teacher alerts" and
-`/petstable teachers on|off` does the same. `TeacherAlert.lua` holds the logic and `Toast.lua`
+`/petstable teachers on|off` does the same. `/petstable teachers check` looks at the current target now (see Controls). `TeacherAlert.lua` holds the logic and `Toast.lua`
 the notice.
 
 ## When it shows
@@ -56,7 +56,12 @@ this is reference data. It never says the hunter has or lacks a rank: that is no
   client gives no GUID there is nothing to hold on and no hold is set.
 - **Ignore <ability>** adds it to the ignore list. Cower is ignored by default.
 - A creature that alerted stays quiet for fifteen minutes. The cooldown starts only when a notice
-  actually appeared.
+  actually appeared. A notice closes itself after 45 seconds.
+- **`/petstable teachers check`** looks at the current target now. It passes over the cooldown and
+  both snoozes without clearing them, closes a notice already up (the units queued behind it are
+  dropped and show again when seen), and when nothing shows it prints why: alerts off, not a wild
+  creature, not a listed teacher, above your level, waiting for the pet scan, nothing new for the
+  active pet, and so on. The guided probe uses it to bring the notice back between steps.
 
 ## What it does not know
 

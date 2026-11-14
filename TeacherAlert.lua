@@ -113,31 +113,33 @@ local function Push(list, unit)
     if #list < MAX_WAITING then list[#list + 1] = unit end
 end
 
--- Evaluate one unit; shows the toast when it qualifies. Returns the candidate.
-function TA.Consider(unit)
-    if not TA.Enabled() or not NS.PetState or not NS.Toast then return nil end
+-- Evaluate one unit; shows the toast when it qualifies. Returns the candidate, or nil and a reason.
+-- force (an explicit check) passes over the snoozes and the cooldown without clearing them.
+function TA.Consider(unit, force)
+    if not TA.Enabled() or not NS.PetState or not NS.Toast then return nil, "alerts are off" end
     local now = Plain(Call(rawget(_G, "GetTime"))) or 0
-    if now < snoozedUntil then return nil end
+    if not force and now < snoozedUntil then return nil, "snoozed" end
     local creatureID = Eligible(unit)
-    if not creatureID or not TA.Index()[creatureID] then return nil end
-    if alerted[creatureID] and now - alerted[creatureID] < COOLDOWN then return nil end
+    if not creatureID then return nil, "not a wild creature" end
+    if not TA.Index()[creatureID] then return nil, "not a listed teacher" end
+    if not force and alerted[creatureID] and now - alerted[creatureID] < COOLDOWN then return nil, "shown recently" end
     -- A notice already up is never replaced: this unit waits its turn and is checked again when it goes.
-    if NS.Toast.IsShown() then Push(waiting, unit); return nil end
+    if NS.Toast.IsShown() then Push(waiting, unit); return nil, "another notice is up" end
     -- Pet data from before this session's scan, or about to be replaced by a pending one, is not
     -- current: wait for the refresh and look at this unit again then.
     if NS.PetState.State() ~= "fresh" or NS.PetState.Pending() then
         -- Every unit seen meanwhile is kept, not just the last: nameplates arrive in bursts.
         Push(deferred, unit)
-        return nil
+        return nil, "waiting for the pet scan"
     end
     local active = NS.PetState.Active()
-    if snoozedPet then
-        if PetIdentity() == snoozedPet then return nil end
+    if snoozedPet and not force then
+        if PetIdentity() == snoozedPet then return nil, "snoozed for this pet" end
         snoozedPet = nil -- a different pet is out now
     end
-    local found = TA.Find(creatureID, { playerLevel = NS.PlayerLevel(), now = now,
+    local found, reason = TA.Find(creatureID, { playerLevel = NS.PlayerLevel(), now = now,
         creatureLevel = Plain(Call(rawget(_G, "UnitLevel"), unit)), active = active })
-    if not found then return nil end
+    if not found then return nil, reason end
     local unitName = Plain(Call(rawget(_G, "UnitName"), unit))
     local name = unitName or found.creature.label
     local shown = NS.Toast.Show({
@@ -156,9 +158,17 @@ function TA.Consider(unit)
         },
     })
     -- The cooldown starts only when a notice really appeared.
-    if not shown then return nil end
+    if not shown then return nil, "the notice could not show" end
     alerted[creatureID] = now
     return found
+end
+
+-- /petstable teachers check: look at the current target now. A notice already up closes first, and
+-- the units queued behind it are dropped (they show again when seen). Returns the candidate or nil, reason.
+function TA.Check()
+    waiting = {}
+    if NS.Toast and NS.Toast.IsShown() then NS.Toast.Hide() end
+    return TA.Consider("target", true)
 end
 
 -- One notice at a time. The first unit that qualifies shows; the units after it wait, and are looked at
