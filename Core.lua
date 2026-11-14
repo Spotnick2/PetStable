@@ -40,12 +40,15 @@ SlashCmdList.PETSTABLE = function(message)
     local command, value = message:match("^%s*(%S*)%s*(.-)%s*$")
     command = command:lower()
     if command == "sightings" and NS.Sightings then NS.Sightings.Command(value:lower())
+    elseif command == "teachers" and value:lower() == "check" and NS.TeacherAlert then
+        local found, reason = NS.TeacherAlert.Check()
+        if not found then print("PetStable: no teacher notice for your target: " .. tostring(reason) .. ".") end
     elseif command == "teachers" then
         if (value:lower() == "on" or value:lower() == "off") and NS.TeacherAlert then
             NS.TeacherAlert.SetEnabled(value:lower() == "on")
             if NS.settings then NS.settings.Sync() end
         end
-        print("PetStable: nearby teacher alerts " .. (NS.db.teacherAlerts and "on" or "off") .. ". /petstable teachers on|off")
+        print("PetStable: nearby teacher alerts " .. (NS.db.teacherAlerts and "on" or "off") .. ". /petstable teachers on|off|check")
     elseif command == "levelfilter" then
         if value:lower() == "on" or value:lower() == "off" then
             NS.db.filterToLevel = value:lower() == "on"

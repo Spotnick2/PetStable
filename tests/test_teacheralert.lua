@@ -91,7 +91,34 @@ unitState.id=999999999; assert(not Fires(),'only listed teachers'); unitState.id
 spells[1].subName='Rank 2'; PS.Refresh('test'); assert(not Fires(),'the pet already has Bite 2')
 spells[1].subName='Rank 3'; PS.Refresh('test'); assert(not Fires(),'a higher rank is not the next one')
 spells[1].subName='Rank 1'; PS.Refresh('test'); assert(Fires())
-petLevel=5; PS.Refresh('test'); assert(not Fires(),'the pet is below the rank\'s pet level'); petLevel=12; PS.Refresh('test')
+-- Taming teaches the hunter whatever the pet's level, so a rank above the pet still shows, with the
+-- level the pet trains it at; a rank within it says nothing about levels.
+do
+    local show, opts=ns.Toast.Show
+    ns.Toast.Show=function(o) opts=o; return show(o) end
+    local need=biteRow.rank.petLevel
+    assert(need and need>5,'Bite 2 has a pet level above 5')
+    petLevel=5; PS.Refresh('test'); assert(Fires(),'a rank above the pet\'s level still shows')
+    assert(opts.body:find('It can train this rank at level '..need..'.',1,true),'it names the level the pet needs')
+    petLevel=need; PS.Refresh('test'); assert(Fires()); assert(not opts.body:find('can train',1,true),'no level line when the pet can train it now')
+    ns.Toast.Show=show; petLevel=12; PS.Refresh('test')
+    -- Among the ranks one creature teaches, the lowest pet level wins: one the pet can train now first.
+    local index=TA.Index
+    local function Rank(name, level) return { ability={ name=name }, rank={ ordinal=2, petLevel=level, allFamilies=true, familyKeys={} }, creature={} } end
+    TA.Index=function() return { [1]={ Rank('Bite', 30), Rank('Claw', 12), Rank('Dash', 20) } } end
+    local active={ present=true, locale='enUS', abilitiesRead=true, familyKey='family-cat', level=12,
+        abilities={ { name='Bite', rank=1 }, { name='Claw', rank=1 }, { name='Dash', rank=1 } } }
+    local found=TA.Find(1,{ playerLevel=40, active=active })
+    assert(found.ability.name=='Claw' and not found.needsLevel,'a rank the pet can train now comes first')
+    active.level=10; found=TA.Find(1,{ playerLevel=40, active=active })
+    assert(found.ability.name=='Claw' and found.needsLevel==12,'then the lowest pet level')
+    active.level=nil; found=TA.Find(1,{ playerLevel=40, active=active })
+    assert(found.ability.name=='Claw' and not found.needsLevel,'an unknown pet level names no level')
+    active.level=10; TA.Index=function() return { [1]={ Rank('Bite', 30), Rank('Dash', nil) } } end
+    found=TA.Find(1,{ playerLevel=40, active=active })
+    assert(found.ability.name=='Dash' and not found.needsLevel,'a rank with no listed pet level names no level')
+    TA.Index=index
+end
 local savedBook=C_SpellBook; C_SpellBook=nil; PS.Refresh('test'); assert(not Fires(),'unreadable pet abilities are unknown, not empty'); C_SpellBook=savedBook
 local held=spells; spells={}; C_SpellBook={HasPetSpells=function() return 0 end}; PS.Refresh('test')
 assert(not Fires(),'a pet that knows nothing yet (a quest pet) is left alone')
@@ -113,6 +140,44 @@ petGuid='Pet-0-1-2' -- another pet with the same name and family
 assert(TA.Consider('target'),'a different pet ends the hold even with the same name and family'); ns.Toast.Hide(); petGuid='Pet-0-1-1'
 local noGuid=UnitGUID; UnitGUID=function(unit) if unit=='pet' then return nil end return unitState.guid end
 Reset(); TA.SnoozeForPet(); assert(TA.Consider('target'),'with no pet identity there is no hold to apply'); ns.Toast.Hide(); UnitGUID=noGuid
+
+-- /petstable teachers check looks at the target now, past the cooldown and the snoozes, without
+-- clearing them; it closes a notice already up, and says why when nothing shows.
+do
+    local said; local realPrint=print; print=function(s) said=s end
+    Reset(); assert(TA.Consider('target')); ns.Toast.Hide()
+    assert(not TA.Consider('target'),'cooldown'); SlashCmdList.PETSTABLE('teachers check'); assert(ns.Toast.IsShown(),'check passes the cooldown')
+    SlashCmdList.PETSTABLE('teachers check'); assert(ns.Toast.IsShown(),'check closes the notice up and shows it again')
+    ns.Toast.Hide(); TA.Snooze(now); SlashCmdList.PETSTABLE('teachers check'); assert(ns.Toast.IsShown(),'check passes a timed snooze')
+    ns.Toast.Hide(); assert(not TA.Consider('target'),'and leaves it in place')
+    -- Another Bite 2 teacher, never alerted: only the snooze can keep it quiet.
+    local otherID
+    for id,list in pairs(TA.Index()) do
+        for _,row in ipairs(list) do
+            if id~=biteID and row.ability.name=='Bite' and row.rank.ordinal==2 then
+                for _,k in ipairs(row.rank.familyKeys) do if k=='family-cat' then otherID=id end end
+            end
+        end
+    end
+    assert(otherID,'a second Bite 2 teacher for Cats')
+    unitState.id=otherID; local _,why=TA.Consider('target'); assert(why=='snoozed','the snooze is still in place: '..tostring(why)); unitState.id=biteID
+    -- A unit queued behind the open notice is dropped by a check, not shown after it.
+    Reset(); others={ nameplate1={id=otherID,level=8} }
+    assert(TA.Consider('target')); assert(not TA.Consider('nameplate1'),'queued behind the notice')
+    SlashCmdList.PETSTABLE('teachers check'); assert(ns.Toast.IsShown(),'the check shows the target')
+    ns.Toast.Hide(); assert(not ns.Toast.IsShown(),'the queued unit was dropped by the check'); others={}
+    Reset(); TA.SnoozeForPet(); SlashCmdList.PETSTABLE('teachers check'); assert(ns.Toast.IsShown(),'check passes the pet hold')
+    ns.Toast.Hide(); now=now+901; assert(not TA.Consider('target'),'and leaves the hold in place')
+    Reset(); said=nil; unitState.id=999999999; SlashCmdList.PETSTABLE('teachers check')
+    assert(not ns.Toast.IsShown() and said and said:find('not a listed teacher',1,true),'check says why: '..tostring(said))
+    unitState.id=biteID; unitState.level=playerLevel+5; said=nil; SlashCmdList.PETSTABLE('teachers check')
+    assert(said and said:find('above your level',1,true),'check passes on the reason from Find'); unitState.level=8
+    unitState.player=true; said=nil; SlashCmdList.PETSTABLE('teachers check')
+    assert(said and said:find('not a wild creature',1,true)); unitState.player=false
+    ns.db.teacherAlerts=false; said=nil; SlashCmdList.PETSTABLE('teachers check')
+    assert(not ns.Toast.IsShown() and said and said:find('alerts are off',1,true)); ns.db.teacherAlerts=true
+    print=realPrint; Reset()
+end
 
 -- Data from before this session's scan, or about to change, is not used: wait and look again.
 Reset()

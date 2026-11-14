@@ -75,6 +75,8 @@ function TA.Find(creatureID, ctx)
     -- A temporary quest pet knows nothing yet; an unreadable spellbook is unknown, not empty.
     if not (pet.abilitiesRead and #pet.abilities > 0) then return nil, "pet abilities unknown" end
     if not pet.familyKey then return nil, "pet family unknown" end
+    -- Taming the beast teaches the hunter, whatever the pet's level: the pet's level only gates
+    -- training the pet, so a rank above it still shows, with the level the pet needs.
     local best
     for _, row in ipairs(listed) do
         local name, rank = row.ability.name, row.rank
@@ -82,13 +84,16 @@ function TA.Find(creatureID, ctx)
         for _, ability in ipairs(pet.abilities) do if ability.name == name then current = ability.rank or 1 end end
         local fits = rank.allFamilies
         for _, key in ipairs(rank.familyKeys) do if key == pet.familyKey then fits = true end end
-        -- Only the next rank, within the pet's level, for an ability that is not ignored.
-        if fits and not TA.Ignored(name) and (rank.ordinal or 0) == current + 1
-            and (not rank.petLevel or not pet.level or rank.petLevel <= pet.level) then
+        -- Only the next rank, for an ability that is not ignored. The lowest pet level wins, so a rank
+        -- the pet can train now always comes before one it cannot.
+        if fits and not TA.Ignored(name) and (rank.ordinal or 0) == current + 1 then
             if not best or (rank.petLevel or 0) < (best.rank.petLevel or 0) then
                 best = { ability = row.ability, rank = rank, creature = row.creature, current = current, pet = pet }
             end
         end
+    end
+    if best and best.rank.petLevel and pet.level and best.rank.petLevel > pet.level then
+        best.needsLevel = best.rank.petLevel
     end
     if not best then return nil, "nothing new for the active pet" end
     return best
@@ -108,40 +113,43 @@ local function Push(list, unit)
     if #list < MAX_WAITING then list[#list + 1] = unit end
 end
 
--- Evaluate one unit; shows the toast when it qualifies. Returns the candidate.
-function TA.Consider(unit)
-    if not TA.Enabled() or not NS.PetState or not NS.Toast then return nil end
+-- Evaluate one unit; shows the toast when it qualifies. Returns the candidate, or nil and a reason.
+-- force (an explicit check) passes over the snoozes and the cooldown without clearing them.
+function TA.Consider(unit, force)
+    if not TA.Enabled() or not NS.PetState or not NS.Toast then return nil, "alerts are off" end
     local now = Plain(Call(rawget(_G, "GetTime"))) or 0
-    if now < snoozedUntil then return nil end
+    if not force and now < snoozedUntil then return nil, "snoozed" end
     local creatureID = Eligible(unit)
-    if not creatureID or not TA.Index()[creatureID] then return nil end
-    if alerted[creatureID] and now - alerted[creatureID] < COOLDOWN then return nil end
+    if not creatureID then return nil, "not a wild creature" end
+    if not TA.Index()[creatureID] then return nil, "not a listed teacher" end
+    if not force and alerted[creatureID] and now - alerted[creatureID] < COOLDOWN then return nil, "shown recently" end
     -- A notice already up is never replaced: this unit waits its turn and is checked again when it goes.
-    if NS.Toast.IsShown() then Push(waiting, unit); return nil end
+    if NS.Toast.IsShown() then Push(waiting, unit); return nil, "another notice is up" end
     -- Pet data from before this session's scan, or about to be replaced by a pending one, is not
     -- current: wait for the refresh and look at this unit again then.
     if NS.PetState.State() ~= "fresh" or NS.PetState.Pending() then
         -- Every unit seen meanwhile is kept, not just the last: nameplates arrive in bursts.
         Push(deferred, unit)
-        return nil
+        return nil, "waiting for the pet scan"
     end
     local active = NS.PetState.Active()
-    if snoozedPet then
-        if PetIdentity() == snoozedPet then return nil end
+    if snoozedPet and not force then
+        if PetIdentity() == snoozedPet then return nil, "snoozed for this pet" end
         snoozedPet = nil -- a different pet is out now
     end
-    local found = TA.Find(creatureID, { playerLevel = NS.PlayerLevel(), now = now,
+    local found, reason = TA.Find(creatureID, { playerLevel = NS.PlayerLevel(), now = now,
         creatureLevel = Plain(Call(rawget(_G, "UnitLevel"), unit)), active = active })
-    if not found then return nil end
+    if not found then return nil, reason end
     local unitName = Plain(Call(rawget(_G, "UnitName"), unit))
     local name = unitName or found.creature.label
     local shown = NS.Toast.Show({
         -- Only the unit's own name goes into /targetexact; a catalog label may not be a unit's name.
         target = unitName and { id = creatureID, name = unitName } or nil,
         title = "PET ABILITY NEARBY",
-        body = string.format("%s is listed as teaching %s rank %d.\n%s (%s) has %s.",
+        body = string.format("%s is listed as teaching %s rank %d.\n%s (%s) has %s.%s",
             name, found.ability.name, found.rank.ordinal, found.pet.name or "Your pet", found.pet.family or "pet",
-            found.current > 0 and ("rank " .. found.current) or "none"),
+            found.current > 0 and ("rank " .. found.current) or "none",
+            found.needsLevel and string.format("\nIt can train this rank at level %d.", found.needsLevel) or ""),
         note = "Listed by references, not confirmed in game. Your hunter's learned ranks are not tracked.",
         buttons = {
             { text = "Snooze 15 min", onClick = function() TA.Snooze(now) end },
@@ -150,9 +158,17 @@ function TA.Consider(unit)
         },
     })
     -- The cooldown starts only when a notice really appeared.
-    if not shown then return nil end
+    if not shown then return nil, "the notice could not show" end
     alerted[creatureID] = now
     return found
+end
+
+-- /petstable teachers check: look at the current target now. A notice already up closes first, and
+-- the units queued behind it are dropped (they show again when seen). Returns the candidate or nil, reason.
+function TA.Check()
+    waiting = {}
+    if NS.Toast and NS.Toast.IsShown() then NS.Toast.Hide() end
+    return TA.Consider("target", true)
 end
 
 -- One notice at a time. The first unit that qualifies shows; the units after it wait, and are looked at

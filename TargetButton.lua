@@ -102,12 +102,40 @@ local function Arm(spec)
     RegisterStateDriver(button, TB.STATE, "[combat] 1; 0")
 end
 
+-- What the latch's own condition reads now. Measured in game (#39, run #320): at PLAYER_REGEN_ENABLED
+-- a button armed then for a notice shown in combat ended up latched off: likely [combat] still read 1
+-- (or the lockdown was still on; the probe samples both). The manager writes the state only on change, so arming
+-- while it reads 1 either latches at once (the state was 0) or leaves the latch stuck at 1 (no change).
+-- So the button is armed only once the condition reads 0, and retried shortly until it does.
+local function DriverSaysCombat()
+    local parse = rawget(_G, "SecureCmdOptionParse")
+    if type(parse) ~= "function" then return false end
+    local ok, value = pcall(parse, "[combat] 1; 0")
+    return ok and value == "1"
+end
+
+local SETTLE_DELAY, SETTLE_TRIES = 0.2, 25 -- up to five seconds after combat ends
+local tries, retryPending = 0, false
+local function Retry()
+    local timer = rawget(_G, "C_Timer")
+    if retryPending or tries >= SETTLE_TRIES or type(timer) ~= "table" or type(timer.After) ~= "function" then return end
+    tries, retryPending = tries + 1, true
+    timer.After(SETTLE_DELAY, function() retryPending = false; TB.Reconcile(true) end)
+end
+
 -- Applies the desired state when insecure code may: out of combat, unconditionally (the latch may have
--- cleared the button without us knowing). Returns whether it applied.
-function TB.Reconcile()
-    if Locked() then return false end
+-- cleared the button without us knowing). Returns whether it applied. retry: a scheduled retry, which
+-- keeps the count of tries; any other call starts it again.
+function TB.Reconcile(retry)
+    if not retry then tries = 0 end
+    if Locked() then if retry then Retry() end; return false end
     if not TB.Build() then return false end
-    if desired and TB.SafeName(desired.name) and TB.Available() then Arm(desired) else Disarm() end
+    if desired and TB.SafeName(desired.name) and TB.Available() then
+        if DriverSaysCombat() then Disarm(); Retry(); return false end
+        Arm(desired)
+        -- The latch fired as it was armed after all: try again shortly.
+        if not (button:IsShown() and button:GetAttribute("type") == "macro") then Retry() end
+    else Disarm() end
     return true
 end
 
@@ -132,6 +160,6 @@ watcher:SetScript("OnEvent", function(self, event)
         TB.Build()
     elseif event == "PLAYER_REGEN_ENABLED" then
         if pendingBuild then TB.Build() end
-        TB.Reconcile()
+        if not TB.Reconcile() then Retry() end -- the lockdown may lift a moment after the event
     end
 end)

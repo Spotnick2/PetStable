@@ -2,7 +2,7 @@
 
 An optional notice when a creature in view is listed as teaching the next rank of a pet ability
 that the **active pet** lacks. It is off by default; Settings has "Nearby teacher alerts" and
-`/petstable teachers on|off` does the same. `TeacherAlert.lua` holds the logic and `Toast.lua`
+`/petstable teachers on|off` does the same. `/petstable teachers check` looks at the current target now (see Controls). `TeacherAlert.lua` holds the logic and `Toast.lua`
 the notice.
 
 ## When it shows
@@ -20,7 +20,10 @@ as teachers (an index of creature ID to ability ranks, built once). It shows whe
 - The client is English. Catalog ability names are English, so on other locales the alert stays
   quiet rather than misreport a rank.
 - The ability is not a trainer ability, fits the active pet's family, is not ignored, and the listed
-  rank is exactly the next one after the pet's current rank, at or below the pet's level.
+  rank is exactly the next one after the pet's current rank. The pet's level does not hide it:
+  taming the beast teaches the hunter, and the pet's level only gates training the pet. When the
+  rank's pet level is above the pet's, the text adds the level the pet can train it at. Among the
+  ranks one creature teaches, the lowest pet level wins, so one the pet can train now comes first.
 
 The text says what the creature is *listed* as teaching and what the pet has now, and notes that
 this is reference data. It never says the hunter has or lacks a rank: that is not tracked.
@@ -45,6 +48,13 @@ this is reference data. It never says the hunter has or lacks a rank: that is no
     itself. In the brief window before that update, the button still targets the beast it was armed for.
   - **A notice that appears in combat** says "Target button after combat", and the button comes at
     combat end if the notice is still up.
+  - **Combat end, measured (run #320, build 70938):** a button armed in the `PLAYER_REGEN_ENABLED`
+    handler for a notice shown in combat ended up latched off. The likely cause: the latch's `[combat]`
+    still read 1 at the event (or the lockdown was still on); the probe's combat-end samples are to
+    confirm which. The secure manager writes the state only when it changes, so arming
+    then either latches at once or leaves the latch stuck at 1. So the button is armed only once
+    `SecureCmdOptionParse("[combat] 1; 0")` reads 0, retried every 0.2 s for up to five seconds (also
+    when the lockdown itself is still on at the event). The probe samples both at each combat end.
   - The design was reviewed with Codex to consensus. It is on issue #39.
 - **Snooze 15 min** holds all alerts for fifteen minutes.
 - **Snooze while I keep this pet** holds alerts for as long as the same pet stays active, for when
@@ -53,7 +63,12 @@ this is reference data. It never says the hunter has or lacks a rank: that is no
   client gives no GUID there is nothing to hold on and no hold is set.
 - **Ignore <ability>** adds it to the ignore list. Cower is ignored by default.
 - A creature that alerted stays quiet for fifteen minutes. The cooldown starts only when a notice
-  actually appeared.
+  actually appeared. A notice closes itself after 45 seconds.
+- **`/petstable teachers check`** looks at the current target now. It passes over the cooldown and
+  both snoozes without clearing them, closes a notice already up (the units queued behind it are
+  dropped and show again when seen), and when nothing shows it prints why: alerts off, not a wild
+  creature, not a listed teacher, above your level, waiting for the pet scan, nothing new for the
+  active pet, and so on. The guided probe uses it to bring the notice back between steps.
 
 ## What it does not know
 
