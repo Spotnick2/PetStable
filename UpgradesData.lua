@@ -144,3 +144,56 @@ function Upgrades.RankLabel(rank)
     if rank.trainingPoints then parts[#parts + 1] = rank.trainingPoints .. " training points" end
     return table.concat(parts, " · ")
 end
+
+-- What the active pet has learned (#10, per active pet). Only the active pet's own spellbook is
+-- read; what the hunter could teach is not known, so nothing here is about the hunter.
+-- pet is PetState.Active(): present, abilitiesRead, level, familyKey, locale, abilities {spellID, name, rank}.
+
+-- Highest learned rank of an ability (0 = none), or nil when it cannot be known. Spell IDs match in
+-- any locale; English name and rank text are the fallback for a rank without a client spell ID.
+function Upgrades.KnownRank(ability, pet)
+    if not (type(pet) == "table" and pet.present and pet.abilitiesRead and type(pet.abilities) == "table") then return nil end
+    local ids = {}
+    for _, known in ipairs(pet.abilities) do if known.spellID then ids[known.spellID] = true end end
+    local best, mapped = 0, false
+    for _, rank in ipairs(ability.ranks) do
+        if rank.spellID then
+            mapped = true
+            if ids[rank.spellID] and (rank.ordinal or 0) > best then best = rank.ordinal end
+        end
+    end
+    if best > 0 then return best end
+    if pet.locale == "enUS" then
+        for _, known in ipairs(pet.abilities) do
+            if known.name == ability.name then return known.rank or 1 end
+        end
+        return 0
+    end
+    -- Without English names, only an ability whose every rank has a spell ID can be called unlearned.
+    return mapped and 0 or nil
+end
+
+-- "learned", "ready" (not learned, the pet's family can use it, pet level reached), "level" (pet level
+-- too low), or nil: unknown knowledge, unknown family or level, or a rank for another family.
+function Upgrades.RankStatus(rank, known, pet)
+    if known == nil or type(pet) ~= "table" or not pet.familyKey then return nil end
+    if not Upgrades.Fits(rank, pet.familyKey) then return nil end
+    if (rank.ordinal or 0) <= known then return "learned" end
+    if not rank.petLevel then return nil end
+    if not pet.level then return nil end
+    return rank.petLevel <= pet.level and "ready" or "level"
+end
+
+-- One ability's summary for the active pet: { known, total, ready }, or nil when nothing can be said.
+function Upgrades.PetSummary(ability, pet)
+    local known = Upgrades.KnownRank(ability, pet)
+    if known == nil then return nil end
+    local fits, ready = false, false
+    for _, rank in ipairs(ability.ranks) do
+        local status = Upgrades.RankStatus(rank, known, pet)
+        if status then fits = true end
+        if status == "ready" then ready = true end
+    end
+    if not fits then return nil end
+    return { known = known, total = #ability.ranks, ready = ready }
+end

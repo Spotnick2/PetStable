@@ -54,4 +54,34 @@ for _,a in ipairs(U.Build(data,entries,families)) do
     if a.name=="Bite" then assert(a.icon==132278 and not a.ranks[1].spellID,"rank count mismatch: icon only") end
 end
 data.abilitySpells.abilities["ability-bite"]=saved
-io.write("PASS: ability projection, rank order, family filters and teacher resolution, icons and rank spell IDs\n")
+-- Learned markers for the active pet (#10): spell IDs match in any locale.
+local wolf={present=true,abilitiesRead=true,level=20,familyKey="family-wolf",locale="deDE",
+    abilities={{spellID=17255,name="Biss",rank=2}}}
+assert(U.KnownRank(bite,wolf)==2,"rank found by spell ID, whatever the language")
+assert(U.RankStatus(bite.ranks[1],2,wolf)=="learned" and U.RankStatus(bite.ranks[2],2,wolf)=="learned")
+assert(bite.ranks[3].petLevel==16 and U.RankStatus(bite.ranks[3],2,wolf)=="ready","pet level reached: can learn now")
+assert(bite.ranks[4].petLevel==24 and U.RankStatus(bite.ranks[4],2,wolf)=="level","pet level too low")
+local s=U.PetSummary(bite,wolf); assert(s.known==2 and s.total==8 and s.ready)
+assert(U.PetSummary(by["Scorpid Poison"],wolf)==nil,"another family's ability gets no marker")
+assert(U.RankStatus(by["Scorpid Poison"].ranks[1],0,wolf)==nil)
+local growl=by["Growl"]
+assert(U.KnownRank(growl,wolf)==0 and U.RankStatus(growl.ranks[1],0,wolf)=="ready","unlearned rank 1 at level 1")
+-- Unknown stays unknown: no spellbook, no family, no level.
+assert(U.KnownRank(bite,{present=true,abilitiesRead=false,abilities={}})==nil)
+assert(U.KnownRank(bite,{present=false})==nil and U.KnownRank(bite,nil)==nil)
+assert(U.RankStatus(bite.ranks[3],nil,wolf)==nil,"unknown knowledge is never 'not learned'")
+assert(U.RankStatus(bite.ranks[3],2,{familyKey=nil,level=20})==nil,"unknown family: no marker")
+assert(U.RankStatus(bite.ranks[3],2,{familyKey="family-wolf"})==nil,"unknown pet level: no marker")
+-- English name and rank text are the fallback when the spell ID does not match.
+local english={present=true,abilitiesRead=true,level=20,familyKey="family-wolf",locale="enUS",
+    abilities={{spellID=999999,name="Bite",rank=3}}}
+assert(U.KnownRank(bite,english)==3)
+english.locale="frFR"; assert(U.KnownRank(bite,english)==0,"no English fallback outside enUS")
+-- Without client spell IDs, only an English client can say anything.
+local plain
+for _,a in ipairs(U.Build({records=data.records,facts=data.facts,evidence=data.evidence},entries,families)) do
+    if a.name=="Bite" then plain=a end
+end
+assert(U.KnownRank(plain,wolf)==nil,"no spell IDs and no English names: unknown")
+english.locale="enUS"; assert(U.KnownRank(plain,english)==3)
+io.write("PASS: ability projection, rank order, family filters and teacher resolution, icons, rank spell IDs and active-pet markers\n")
