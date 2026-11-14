@@ -91,7 +91,34 @@ unitState.id=999999999; assert(not Fires(),'only listed teachers'); unitState.id
 spells[1].subName='Rank 2'; PS.Refresh('test'); assert(not Fires(),'the pet already has Bite 2')
 spells[1].subName='Rank 3'; PS.Refresh('test'); assert(not Fires(),'a higher rank is not the next one')
 spells[1].subName='Rank 1'; PS.Refresh('test'); assert(Fires())
-petLevel=5; PS.Refresh('test'); assert(not Fires(),'the pet is below the rank\'s pet level'); petLevel=12; PS.Refresh('test')
+-- Taming teaches the hunter whatever the pet's level, so a rank above the pet still shows, with the
+-- level the pet trains it at; a rank within it says nothing about levels.
+do
+    local show, opts=ns.Toast.Show
+    ns.Toast.Show=function(o) opts=o; return show(o) end
+    local need=biteRow.rank.petLevel
+    assert(need and need>5,'Bite 2 has a pet level above 5')
+    petLevel=5; PS.Refresh('test'); assert(Fires(),'a rank above the pet\'s level still shows')
+    assert(opts.body:find('It can train this rank at level '..need..'.',1,true),'it names the level the pet needs')
+    petLevel=need; PS.Refresh('test'); assert(Fires()); assert(not opts.body:find('can train',1,true),'no level line when the pet can train it now')
+    ns.Toast.Show=show; petLevel=12; PS.Refresh('test')
+    -- Among the ranks one creature teaches, the lowest pet level wins: one the pet can train now first.
+    local index=TA.Index
+    local function Rank(name, level) return { ability={ name=name }, rank={ ordinal=2, petLevel=level, allFamilies=true, familyKeys={} }, creature={} } end
+    TA.Index=function() return { [1]={ Rank('Bite', 30), Rank('Claw', 12), Rank('Dash', 20) } } end
+    local active={ present=true, locale='enUS', abilitiesRead=true, familyKey='family-cat', level=12,
+        abilities={ { name='Bite', rank=1 }, { name='Claw', rank=1 }, { name='Dash', rank=1 } } }
+    local found=TA.Find(1,{ playerLevel=40, active=active })
+    assert(found.ability.name=='Claw' and not found.needsLevel,'a rank the pet can train now comes first')
+    active.level=10; found=TA.Find(1,{ playerLevel=40, active=active })
+    assert(found.ability.name=='Claw' and found.needsLevel==12,'then the lowest pet level')
+    active.level=nil; found=TA.Find(1,{ playerLevel=40, active=active })
+    assert(found.ability.name=='Claw' and not found.needsLevel,'an unknown pet level names no level')
+    active.level=10; TA.Index=function() return { [1]={ Rank('Bite', 30), Rank('Dash', nil) } } end
+    found=TA.Find(1,{ playerLevel=40, active=active })
+    assert(found.ability.name=='Dash' and not found.needsLevel,'a rank with no listed pet level names no level')
+    TA.Index=index
+end
 local savedBook=C_SpellBook; C_SpellBook=nil; PS.Refresh('test'); assert(not Fires(),'unreadable pet abilities are unknown, not empty'); C_SpellBook=savedBook
 local held=spells; spells={}; C_SpellBook={HasPetSpells=function() return 0 end}; PS.Refresh('test')
 assert(not Fires(),'a pet that knows nothing yet (a quest pet) is left alone')

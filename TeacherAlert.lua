@@ -75,6 +75,8 @@ function TA.Find(creatureID, ctx)
     -- A temporary quest pet knows nothing yet; an unreadable spellbook is unknown, not empty.
     if not (pet.abilitiesRead and #pet.abilities > 0) then return nil, "pet abilities unknown" end
     if not pet.familyKey then return nil, "pet family unknown" end
+    -- Taming the beast teaches the hunter, whatever the pet's level: the pet's level only gates
+    -- training the pet, so a rank above it still shows, with the level the pet needs.
     local best
     for _, row in ipairs(listed) do
         local name, rank = row.ability.name, row.rank
@@ -82,13 +84,16 @@ function TA.Find(creatureID, ctx)
         for _, ability in ipairs(pet.abilities) do if ability.name == name then current = ability.rank or 1 end end
         local fits = rank.allFamilies
         for _, key in ipairs(rank.familyKeys) do if key == pet.familyKey then fits = true end end
-        -- Only the next rank, within the pet's level, for an ability that is not ignored.
-        if fits and not TA.Ignored(name) and (rank.ordinal or 0) == current + 1
-            and (not rank.petLevel or not pet.level or rank.petLevel <= pet.level) then
+        -- Only the next rank, for an ability that is not ignored. The lowest pet level wins, so a rank
+        -- the pet can train now always comes before one it cannot.
+        if fits and not TA.Ignored(name) and (rank.ordinal or 0) == current + 1 then
             if not best or (rank.petLevel or 0) < (best.rank.petLevel or 0) then
                 best = { ability = row.ability, rank = rank, creature = row.creature, current = current, pet = pet }
             end
         end
+    end
+    if best and best.rank.petLevel and pet.level and best.rank.petLevel > pet.level then
+        best.needsLevel = best.rank.petLevel
     end
     if not best then return nil, "nothing new for the active pet" end
     return best
@@ -139,9 +144,10 @@ function TA.Consider(unit)
         -- Only the unit's own name goes into /targetexact; a catalog label may not be a unit's name.
         target = unitName and { id = creatureID, name = unitName } or nil,
         title = "PET ABILITY NEARBY",
-        body = string.format("%s is listed as teaching %s rank %d.\n%s (%s) has %s.",
+        body = string.format("%s is listed as teaching %s rank %d.\n%s (%s) has %s.%s",
             name, found.ability.name, found.rank.ordinal, found.pet.name or "Your pet", found.pet.family or "pet",
-            found.current > 0 and ("rank " .. found.current) or "none"),
+            found.current > 0 and ("rank " .. found.current) or "none",
+            found.needsLevel and string.format("\nIt can train this rank at level %d.", found.needsLevel) or ""),
         note = "Listed by references, not confirmed in game. Your hunter's learned ranks are not tracked.",
         buttons = {
             { text = "Snooze 15 min", onClick = function() TA.Snooze(now) end },

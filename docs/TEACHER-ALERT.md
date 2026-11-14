@@ -20,7 +20,10 @@ as teachers (an index of creature ID to ability ranks, built once). It shows whe
 - The client is English. Catalog ability names are English, so on other locales the alert stays
   quiet rather than misreport a rank.
 - The ability is not a trainer ability, fits the active pet's family, is not ignored, and the listed
-  rank is exactly the next one after the pet's current rank, at or below the pet's level.
+  rank is exactly the next one after the pet's current rank. The pet's level does not hide it:
+  taming the beast teaches the hunter, and the pet's level only gates training the pet. When the
+  rank's pet level is above the pet's, the text adds the level the pet can train it at. Among the
+  ranks one creature teaches, the lowest pet level wins, so one the pet can train now comes first.
 
 The text says what the creature is *listed* as teaching and what the pet has now, and notes that
 this is reference data. It never says the hunter has or lacks a rank: that is not tracked.
