@@ -6,6 +6,12 @@ local function Call(object,name,...)
 end
 local function Number(v) return type(v)=="number" and v==v and math.abs(v)<math.huge end
 
+-- AnimationData IDs (client table 1.60.1.70938 has IDs and fallbacks, no names; the names are the
+-- long-standing M2 numbering). A model without one falls back along the table's chain: BattleRoar
+-- to AttackUnarmed, the others to Stand. Names are checked in game (#48).
+NS.PreviewAnimations={{label="Idle",id=0},{label="Walk",id=4},{label="Run",id=5},
+    {label="Attack",id=16},{label="Roar",id=55}}
+
 -- Same custom ModelScene actor path measured by PetStableProbe Models.lua.
 -- Exact displays preserve skins; no SetCreature/SetUnit or model-file fallback.
 function NS.CreateAppearancePreview(parent,Text,interactive)
@@ -26,7 +32,7 @@ function NS.CreateAppearancePreview(parent,Text,interactive)
     end
     preview.scene,preview.actor=scene,actor
     local group,elapsed,since,dragX,baseScale,boundsWidth,boundsHeight,boundsX,boundsY
-    preview.yaw=0.5; preview.zoom=1
+    preview.yaw=0.5; preview.zoom=1; preview.animation=0
     local function Viewport()
         if scene then
             local side=math.max(1,(interactive and math.min or math.max)(preview:GetWidth(),preview:GetHeight()))
@@ -123,9 +129,18 @@ function NS.CreateAppearancePreview(parent,Text,interactive)
         Call(actor,"SetPosition",0,0,0); Call(actor,"SetYaw",preview.yaw)
         local success,accepted=Call(actor,"SetModelByCreatureDisplayID",value.displayID,false)
         if not success or accepted~=true then Fallback(); return end
-        -- A still pose avoids running nine idle animations while browsing.
-        Call(actor,"SetAnimation",0,0,0,0)
+        -- Gallery cards keep a still pose so nine models don't animate while browsing; the
+        -- detail preview plays the chosen animation (idle by default) at normal speed.
+        if interactive then Call(actor,"SetAnimation",preview.animation,0,1,0)
+        else Call(actor,"SetAnimation",0,0,0,0) end
         elapsed,since=0,0; preview:SetScript("OnUpdate",Update)
+    end
+    -- The choice stays while browsing other looks, so walks or attacks can be compared.
+    function preview.Play(id)
+        if not interactive or type(id)~="number" then return false end
+        preview.animation=id
+        if preview.key then Call(actor,"SetAnimation",id,0,1,0) end
+        return true
     end
     function preview.Rotate(delta) if preview.ready then preview.yaw=preview.yaw+delta; Call(actor,"SetYaw",preview.yaw) end end
     function preview.Zoom(delta)

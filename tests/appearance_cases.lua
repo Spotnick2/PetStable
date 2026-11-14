@@ -59,6 +59,20 @@ return function(ns)
     Click(ui.modelButtons[4]); assert(ui.preview.actor.scale>originalScale)
     Click(ui.modelButtons[1]); assert(ui.preview.actor.yaw<0.5)
     Click(ui.modelButtons[3]); assert(ui.preview.actor.yaw==0.5 and ui.preview.zoom==1)
+    -- The detail preview animates; the gallery cards above stay still (#48).
+    local anim=ui.preview.actor.animation
+    assert(anim[1]==0 and anim[2]==0 and anim[3]==1 and anim[4]==0,"detail preview plays idle at normal speed")
+    assert(#ui.animationButtons==5 and ui.animationButtons[1]:IsShown(),"animation row shown with the model")
+    assert(ui.animationButtons[1].active and not ui.animationButtons[2].active,"idle selected by default")
+    local walk=ui.animationButtons[2]; assert(walk.animationID==4)
+    Click(walk)
+    assert(ui.preview.actor.animation[1]==4 and ui.preview.actor.animation[3]==1,"a button plays its animation at normal speed")
+    assert(walk.active and not ui.animationButtons[1].active,"the playing animation is highlighted")
+    assert(ui.preview.Play("run")==false and ui.preview.animation==4,"only numeric animation IDs are accepted")
+    assert(card.preview.Play(5)==false,"gallery previews never animate")
+    ui.preview.Clear(); ui.preview.Set(card.result.group); Tick(ui.preview)
+    assert(ui.preview.actor.animation[1]==4 and ui.preview.actor.animation[3]==1,"the chosen animation stays while browsing looks")
+    Click(ui.animationButtons[1]); assert(ui.preview.actor.animation[1]==0)
     local pw,ph=ui.preview:GetWidth(),ui.preview:GetHeight()
     local readBounds=ui.preview.actor.GetActiveBoundingBox
     ui.preview.actor.GetActiveBoundingBox=function() error("layout/reset must reuse the unit-scale bounds") end
