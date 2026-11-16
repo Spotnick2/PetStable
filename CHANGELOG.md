@@ -16,6 +16,9 @@ teacher check, and fixes below.
     client's spell IDs, so this works in any client language. Nothing is marked when the pet's
     abilities are unknown.
   - *New in alpha2:* Faster Attack and Slower Attack are no longer listed as taught by trainers.
+  - *New in alpha2:* the teaching beasts come from Petopia's current listing (read 2026-11-14): 433
+    teacher rows, 91 more than before, and six moved to another ability or rank. Mine! is no longer
+    listed. Each rank keeps its own Petopia link.
 - **My Pets:** your active pet and stable, as last observed.
 - **Level filter:** the guide and Ability Upgrades show only what your hunter's level can use
   (Settings, or `/petstable levelfilter on|off`).

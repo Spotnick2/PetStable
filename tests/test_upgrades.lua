@@ -3,7 +3,7 @@ for _,file in ipairs({"Catalog.lua","CatalogData.lua","CatalogReference.lua","Ca
 local data,U=ns.CatalogData,ns.UpgradesData
 local entries,families=ns.GuideData.Build(data)
 local abilities=U.Build(data,entries,families)
-assert(#abilities==31,"the 31 listed abilities; measured spell records are not duplicated")
+assert(#abilities==30,"the 30 listed abilities; measured spell records are not duplicated")
 local by={}
 for _,a in ipairs(abilities) do assert(not by[a.name],a.name); by[a.name]=a end
 for i=2,#abilities do assert(abilities[i-1].name<=abilities[i].name,"sorted by name") end
@@ -30,7 +30,7 @@ for _,entry in ipairs(wolves) do assert(entry.familyKey=="family-wolf") end
 assert(#wolves<=#rank.teachers and #U.Teachers(rank,nil)==#rank.teachers)
 -- Only reference-backed ranks: a missing guide entry drops that teacher, not the rank.
 local partial=U.Build(data,{},families)
-assert(#partial==31 and partial[1].teachers==0)
+assert(#partial==30 and partial[1].teachers==0)
 -- Client spell data: every ability has its icon and every rank its spell ID (CatalogSpells.lua).
 for _,a in ipairs(abilities) do
     assert(type(a.icon)=="number" and a.icon>0,a.name.." icon")
