@@ -263,7 +263,8 @@ local function Build()
         glass = lib:New({ preset="clean", bodyAlpha=0.88, style={ rimAlpha=1 } })
     end
     NS.Glass = glass
-    frame = CreateFrame("Frame", "PetStableFrame", UIParent, "BackdropTemplate")
+    -- Not "PetStableFrame": that is Blizzard's own stable window on Forever (Blizzard_StableUI, #57).
+    frame = CreateFrame("Frame", "PetStableMainFrame", UIParent, "BackdropTemplate")
     NS.frame = frame
     frame:SetSize(NS.db.width,NS.db.height)
     frame:SetFrameStrata("DIALOG")
