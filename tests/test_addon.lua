@@ -49,6 +49,8 @@ assert(ns.db.scale==1 and not ns.frame, "load must not open a window or require 
 assert(ns.db.width==1040 and ns.db.height==700,"old settings receive default window dimensions")
 SlashCmdList.PETSTABLE("")
 assert(ns.frame:IsShown() and not ns.Glass, "missing library must use flat frame")
+assert(rawget(_G,"PetStableMainFrame")==ns.frame and rawget(_G,"PetStableFrame")==nil,
+    "the window must not take Blizzard's stable window name (#57)")
 for _,key in ipairs({"guide","upgrades","pets"}) do
     ns.buttons[key]:GetScript("OnClick")()
     assert(ns.db.page==key)
