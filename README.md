@@ -4,9 +4,9 @@ A hunter pet field guide for **WoW: Forever**, in one window. Browse the pet fam
 each one has and the creatures recorded for them, check which pet ability ranks you could train next
 and who is listed as teaching them, and see your active pet and stable.
 
-> **Alpha.** The catalog is bounded, some in-game checks are still pending, and ability-rank tracking
-> and recommendations are not implemented. Every fact says where it came from; a website listing is
-> never presented as something measured in the client.
+> **Alpha.** The catalog is bounded, some in-game checks are still pending, ranks are marked for the
+> active pet only, and recommendations are not implemented. Every fact says where it came from; a
+> website listing is never presented as something measured in the client.
 
 - [PetStable on CurseForge](https://www.curseforge.com/wow/addons/petstable) (CurseForge project 1749062)
 - [Releases on GitHub](https://github.com/Spotnick2/PetStable/releases)
@@ -26,7 +26,9 @@ Open or close the window with `/petstable`. Escape or the close button closes it
   and a look opens the creatures recorded for it and their details. "All Creatures" is the flat list.
   Sources and observations are collapsed on each page, with the source links you can select and copy.
   See [the guide](docs/PET-GUIDE.md) and the [family index](docs/FAMILY-INDEX.md).
-- **Ability Upgrades:** pet ability ranks, and the creatures reported to teach them
+- **Ability Upgrades:** pet ability ranks, and the creatures reported to teach them. When your active
+  pet's abilities can be read, the ranks its family can use are marked: Learned, Can learn now, or
+  Needs pet level N. "Can learn now" checks the pet's family and level only, not your training points
   ([details](docs/UPGRADES.md)).
 - **My Pets:** your active pet and your stable as last observed ([details](docs/MY-PETS.md)).
   Family diet comes from the client's own family table ([details](docs/FAMILY-FACTS.md)).
@@ -55,8 +57,8 @@ Open or close the window with `/petstable`. Escape or the close button closes it
 
 - **Nearby teacher alert:** a notice when a creature you target, mouse over or see on a nameplate is
   *listed* as teaching the next rank of an ability your active pet lacks. It never says you have or
-  lack a rank, since that isn't tracked. English client only
-  ([when it shows](docs/TEACHER-ALERT.md)).
+  lack a rank, since that isn't tracked. A **Target** button on the notice targets the beast in one
+  click, out of combat only. English client only ([when it shows](docs/TEACHER-ALERT.md)).
 - **Local sightings:** records the exact appearance of world beasts you target or mouse over, when the
   client gives its IDs. It stays in your saved variables; nothing is uploaded. Capture is off until its
   model binding is measured on the live client ([reference guide](docs/REFERENCE-CATALOG.md)).
@@ -70,7 +72,8 @@ Open or close the window with `/petstable`. Escape or the close button closes it
   No entry claims an acquisition source, and an observer's position is not a spawn location.
 - Some entries have no measured appearance and show an unresolved card (Ornery Galestrider has no
   display ID); an appearance with no recorded wild name says so.
-- Recommendations and learned-rank tracking are not implemented.
+- What your hunter has learned can't be read on Forever, so rank markers are for the active pet only.
+  Recommendations are not implemented.
 
 ## Bug reports
 
