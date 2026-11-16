@@ -40,6 +40,18 @@ DATABASE_NPC_IDS = {
 DATABASE_EVIDENCE = dict(date='2026-11-11', url='https://www.wowhead.com/forever/npc=%d',
                          locator='Wowhead Forever NPC tooltip: name, Fox family and zone match the website record')
 
+# Reviewed family corrections (owner decision, 2026-11-16): the October records' family is replaced, not
+# kept beside the correction, because a creature with two families has none in the guide. Each entry is
+# (the family the October claims all say, the corrected family). The raw research keeps the old claims.
+FAMILY_CORRECTIONS = {
+    253282: ('family:raptor', 'family:birdofprey'),  # Shriekling Fledgling
+    253283: ('family:raptor', 'family:birdofprey'),  # Shriekling Matriarch
+    254589: ('family:wolf', 'family:fox'),  # Vulgara the Insatiable
+}
+FAMILY_EVIDENCE = dict(date='2026-11-16', url='https://www.wowhead.com/forever/npc=%d',
+                       locator="Wowhead Forever NPC tooltip puts it in %s; Petopia's look page and Beastmaster "
+                               'agree (pet-sites exports, 2026-11-14/15). The October records said %s')
+
 
 def display_build(path):
     match = re.search(r'-(\d+\.\d+\.\d+\.\d+)\.csv$', str(path))
@@ -110,8 +122,9 @@ def lua(value):
     return str(value)
 
 
-def generate(raw, displays=None, geosets=b'', build=None, textures=None):
+def generate(raw, displays=None, geosets=b'', build=None, textures=None, corrections=None):
     data = json.loads(raw)
+    corrections = FAMILY_CORRECTIONS if corrections is None else corrections
     if data['schema_version'] != '1.0.0':
         raise ValueError('Unsupported research schema')
     indexes = {}
@@ -135,6 +148,13 @@ def generate(raw, displays=None, geosets=b'', build=None, textures=None):
             raise ValueError('NPC %d now has its own inventory record; drop it from DATABASE_NPC_IDS' % npc)
     creatures = {c['key']: creature_key(c) for c in data['creatures']}
     excluded = {c['key'] for c in data['creatures'] if c['npc_id'] in EXCLUDED_CREATURES}
+    by_npc = {c['npc_id']: c for c in data['creatures'] if c['npc_id']}
+    for npc, (old, new) in corrections.items():
+        if npc not in by_npc:
+            raise ValueError('Family correction for NPC %d, which the inventory no longer has' % npc)
+        said = [claims[ref]['value'] for ref in by_npc[npc]['field_claims'].get('family_key', [])]
+        if not said or any(value != old for value in said) or new not in families or old not in families:
+            raise ValueError('NPC %d family claims changed (%s); review its FAMILY_CORRECTIONS entry again' % (npc, said))
     appearances = {}
     for a in data['appearances']:
         value = a['creature_display_id']
@@ -165,6 +185,14 @@ def generate(raw, displays=None, geosets=b'', build=None, textures=None):
             continue
         key = creatures[c['key']]
         records[key] = 'creature'
+        if c['npc_id'] in corrections:
+            old, new = corrections[c['npc_id']]
+            ekey = 'family-review-%d' % c['npc_id']
+            evidence[ekey] = dict(key=ekey, game='forever', kind='reference', date=FAMILY_EVIDENCE['date'], locale='enUS',
+                                  url=FAMILY_EVIDENCE['url'] % c['npc_id'],
+                                  locator=FAMILY_EVIDENCE['locator'] % (indexes['families'][new].get('name') or new,
+                                                                        indexes['families'][old].get('name') or old))
+            facts.append([key, 'family', families[new], ekey])
         if not c['npc_id'] and c['key'] in DATABASE_NPC_IDS:
             npc = DATABASE_NPC_IDS[c['key']]
             ekey = 'database-npc-%d' % npc
@@ -181,7 +209,9 @@ def generate(raw, displays=None, geosets=b'', build=None, textures=None):
                 value = claim['value']
                 if field == 'npc_id': fact(key, 'creatureID', value, claim)
                 elif field == 'name': fact(key, 'name', value, claim)
-                elif field == 'family_key': fact(key, 'family', families[value], claim)
+                elif field == 'family_key':
+                    if c['npc_id'] not in corrections:
+                        fact(key, 'family', families[value], claim)
                 elif field == 'reported_tameability': fact(key, 'tameable', value, claim)
                 elif field == 'rarity': fact(key, 'rarity', value, claim)
                 elif field == 'level' and isinstance(value, dict):

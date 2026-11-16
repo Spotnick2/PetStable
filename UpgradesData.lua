@@ -3,8 +3,9 @@ local Upgrades = {}
 NS.UpgradesData = Upgrades
 
 -- Ability ranks and who teaches them, projected from the catalog for display.
--- Everything here is reference data: it says what a listing reports, never what
--- a character has learned or what the game confirms.
+-- Nearly everything here is reference data: it says what a listing reports, never what
+-- a character has learned. The exception is the pet level of the ranks the Pet Trainer
+-- listed in game (observed); the projection takes it like any other level.
 local function Sorted(set)
     local list = {}
     for key in pairs(set) do list[#list + 1] = key end

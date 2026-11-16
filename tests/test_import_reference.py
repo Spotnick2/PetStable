@@ -11,6 +11,9 @@ spec.loader.exec_module(importer)
 
 class ReferenceImportTests(unittest.TestCase):
     def setUp(self):
+        # The production family corrections name real NPCs; these fixtures pass their own.
+        self.addCleanup(setattr, importer, 'FAMILY_CORRECTIONS', importer.FAMILY_CORRECTIONS)
+        importer.FAMILY_CORRECTIONS = {}
         self.data = {
             'schema_version': '1.0.0',
             'sources': [dict(key='source', access_status='inspected', reported_game_version='Forever',
@@ -28,6 +31,35 @@ class ReferenceImportTests(unittest.TestCase):
 
     def generate(self):
         return importer.generate(json.dumps(self.data).encode())
+
+    def test_family_correction_replaces_the_old_claims(self):
+        self.data['families'].append(dict(key='family:fox'))
+        self.data['claims'].append(dict(key='family2', source_key='source', locator='row 2', value='family:cat'))
+        self.data['creatures'][0]['field_claims']['family_key'].append('family2')
+        text = importer.generate(json.dumps(self.data).encode(), corrections={10: ('family:cat', 'family:fox')})
+        self.assertIn('{"creature-10","family","family-fox","family-review-10"}', text)
+        self.assertNotIn('family-cat"', text.split('for _,f in ipairs({', 1)[1])
+        self.assertIn('https://www.wowhead.com/forever/npc=10', text)
+        self.assertIn('The October records said family:cat', text)
+        self.assertNotIn('"creature-10","family","family-fox","family-review-10"}', self.generate())
+
+    def test_family_correction_guards(self):
+        self.data['families'].append(dict(key='family:fox'))
+        cases = [{11: ('family:cat', 'family:fox')},   # the NPC is gone
+                 {10: ('family:wolf', 'family:fox')},  # its claims no longer say the old family
+                 {10: ('family:cat', 'family:moth')}]  # an unknown family
+        for corrections in cases:
+            with self.assertRaises(ValueError):
+                importer.generate(json.dumps(self.data).encode(), corrections=corrections)
+        mixed = copy.deepcopy(self.data)
+        mixed['claims'].append(dict(key='family2', source_key='source', locator='row 2', value='family:fox'))
+        mixed['creatures'][0]['field_claims']['family_key'].append('family2')
+        with self.assertRaises(ValueError):
+            importer.generate(json.dumps(mixed).encode(), corrections={10: ('family:cat', 'family:fox')})
+        empty = copy.deepcopy(self.data)
+        empty['creatures'][0]['field_claims']['family_key'] = []
+        with self.assertRaises(ValueError):
+            importer.generate(json.dumps(empty).encode(), corrections={10: ('family:cat', 'family:fox')})
 
     def test_explicit_identity_only(self):
         text = self.generate()

@@ -34,9 +34,28 @@ local generated={}
 for _,r in ipairs(data.records) do
     if r.key:match("^ability%-") and not r.key:match("^ability%-for%-") or r.key:match("^source%-tame%-") or r.key=="source-pet-trainer" then generated[r.key]=true end
 end
+-- The one exception: the pet level of each rank the Pet Trainer listed in game is that observation (41 ranks).
+local trainer=evidence["trainer-2026-11-14"]
+assert(trainer.kind=="observation" and trainer.build=="1.60.1.70938" and trainer.locale=="enUS"
+    and trainer.url:match("/blob/%x+/docs/FOREVER%-PROBE%.md#live%-trainer%-results%-2026%-11%-14%-build%-160170938$"))
+local observed,levels=0,{}
 for _,f in ipairs(data.facts) do
-    if generated[f.subject] then assert(f.evidence:match("^petopia%-abilities%-") and f.status=="reference",f.subject.." "..f.field) end
+    if generated[f.subject] then
+        if f.evidence=="trainer-2026-11-14" then
+            assert(f.field=="petLevel" and f.status=="observed",f.subject.." "..f.field)
+            observed=observed+1
+        else
+            assert(f.evidence:match("^petopia%-abilities%-") and f.status=="reference",f.subject.." "..f.field)
+        end
+        if f.field=="petLevel" then
+            assert(not levels[f.subject],"one shipped pet level per rank: "..f.subject); levels[f.subject]=f
+        end
+    end
 end
+assert(observed==41,"every rank the trainer listed")
+assert(levels["ability-shadow-resistance-rank-4"].value==50 and levels["ability-shadow-resistance-rank-4"].status=="observed")
+assert(levels["ability-great-stamina-rank-1"].status=="reference","ranks the trainer did not list keep Petopia's level")
+assert(levels["ability-bite-rank-3"].status=="reference" and levels["ability-bite-rank-3"].value==16)
 -- Each tame source links an existing catalog creature and a rank of the right ability.
 local linked=0
 for _,r in ipairs(data.records) do

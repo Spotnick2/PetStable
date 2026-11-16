@@ -31,7 +31,7 @@ Reviewed 2026-11-16 against client build 1.60.1.70938. Inputs: petopia ability: 
 
 ## Rank levels against the client
 
-Shipped levels stay Petopia's (reference); the owner decides any change.
+Where the Pet Trainer listed a rank, the shipped pet level is the trainer's (observed in game); elsewhere it is Petopia's (reference).
 
 - Shadow Resistance 4: Petopia pet level 40; the Pet Trainer listed it at 50 (Pet Trainer, runs #288/#289, build 1.60.1.70938 (docs/FOREVER-PROBE.md))
 
@@ -188,6 +188,8 @@ None.
 - 3631 Deviate Stinglash: The Barrens (Petopia teacher Lightning Breath 2, inventory source:wowhead:family:windserpent); Wailing Caverns (outdoor), The Barrens (Petopia look windserpentskingreen); Wailing Caverns (Dungeon) (Beastmaster deviate-stinglash-3631, inventory source:petopia:look:windserpentskingreen, inventory source:beastmaster:family:windserpent)
 
 ## Family disagreements
+
+The inventory claims are the October records. The catalog replaces the family of NPCs 253282, 253283, 254589 after review (`FAMILY_CORRECTIONS` in `Tools/import-reference.py`); their October family claims are no longer shipped.
 
 - 4825 Aku'mai Snapjaw: Crab (Petopia teacher Bite 4, Petopia teacher Shell Shield 1); turtle (Beastmaster akumai-snapjaw-4825, inventory source:petopia:look:seaturtleskinred, inventory source:wowhead:family:turtle, inventory source:beastmaster:family:turtle)
 - 253282 Shriekling Fledgling: Bird of Prey (Petopia teacher Cower 1); birdofprey (Petopia look thunderisleyoungbird_c60_green); owl (Beastmaster shriekling-fledgling-253282); raptor (inventory source:wowhead:family:raptor, inventory source:beastmaster:family:raptor)

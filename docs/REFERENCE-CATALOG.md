@@ -44,7 +44,14 @@ Vuldren Alpha, Slydris, Gray Fox) the ID of a Wowhead Forever record with the sa
 family and zone, under that record's own evidence (#44). Only the ID is taken from it:
 Slydris is level 6 Rare Elite there and level 10 Rare on the website, and stays as the website
 reports it until seen in game. It keeps
-disagreeing claims rather than choosing a source winner. The catalog validator
+disagreeing claims rather than choosing a source winner, with one exception:
+`FAMILY_CORRECTIONS` replaces the October family claims of three creatures after review
+(2026-11-16), since a creature with two families has none in the guide. Shriekling Fledgling
+(253282) and Shriekling Matriarch (253283) are Birds of Prey, not Raptors, and Vulgara the
+Insatiable (254589) is a Fox, not a Wolf: Wowhead Forever's tooltip, Petopia's look page and
+Beastmaster agree. The correction cites the Wowhead NPC page; the raw research keeps the old
+claims, and the importer stops if they change. Aku'mai Snapjaw stays a Turtle: only
+Petopia's teacher listing calls it a Crab. The catalog validator
 reports these disagreements separately from structural errors; the guide leaves
 disputed single-valued fields unresolved. Multiple zone names and display links
 are legitimate multi-valued relationships.
@@ -80,8 +87,9 @@ Petopia's look slugs are the skin's texture file names (`bearskinblack` is
 texture variation's file name equals a Petopia look slug in the same family; a
 numbered texture (`batskinbrown01`) may match its stem (`batskinbrown`), recorded as
 `match="texture stem"`. 143 skins match exactly and 23 bat displays by stem. A
-skin Petopia files under another family stays unnamed in this one (Vulgara's
-fox-wyvern under Wolves, the Shriekling birds under Raptors). Two skins Petopia
+skin Petopia files under another family stays unnamed in this one. Vulgara's
+fox-wyvern and the Shriekling birds were such skins until their families were corrected;
+they are now the Black Slyvern (Fox) and the Flightless Teroclaws (Birds of Prey). Two skins Petopia
 gives the same name append their display ID. The detail page cites the Petopia
 page and the texture. Petopia availability other than "obtainable" is shown as
 its claim; it is never treated as a verification.
@@ -98,8 +106,7 @@ display's model path (CreatureModelData plus the community listfile, 70450):
 | Twain Test Prop (5596) | Wolf | `creature/dragonwhelp/dragonwhelp.m2` (138634) | Test NPC |
 
 Other families also contain a model unlike the rest, kept until checked in game:
-Vulgara the Insatiable (fox-wyvern, Wolves), Young Pridewing (wyvern, Wind
-Serpents), Shriekling Fledgling/Matriarch (Thunder Isle bird, Raptors),
+Young Pridewing (wyvern, Wind Serpents),
 Bloodshrike (eagle, Birds of Prey), Gharrik and Enraged Stormcrow (stormcrow,
 Carrion Birds). Skinning Bear and Cooking Bear also remain: their bear models
 are correct, but their eligibility is still unreviewed.
@@ -210,8 +217,12 @@ and `--exports DIR` reads saved `<site>-<kind>.json` exports instead of running 
   the date Petopia was read, and a locator with the review date and the client build it was reviewed
   against (`REVIEW` in the importer). No `build` field: a website listing is not a measurement.
 - Every claim is `reference` status, so none of it certifies a rank, a teacher or tameability in game,
-  and the Pet Guide shows no new entries. Promotion to verified needs recorded in-game evidence, never
-  agreement between sources.
+  and the Pet Guide shows no new entries. Promotion needs recorded in-game evidence, never agreement
+  between sources. The one in-game evidence so far is the Pet Trainer (runs #288/#289, 1.60.1.70938):
+  for the 41 ranks it listed, the shipped pet level is the trainer's, `observed` under its own evidence
+  record (`trainer-2026-11-14`), as the owner decided on 2026-11-16. Only the level: the rank's other
+  facts stay reference. Shadow Resistance 4 is the one rank where they differ (50 at the trainer, 40 on
+  Petopia).
 - The listing's Faster Attack and Slower Attack are left out if they come back (`EXCLUDED_ABILITIES`,
   #43): in the client's spell tables each rank is one attack speed aura, the beast's own speed, with no
   training cost or rank chain. Petopia no longer lists them, nor Mine!, which the client's spell tables
@@ -227,7 +238,7 @@ and the inventory's claims (each with its source), and families against the clie
 names; what each beast teaches against Beastmaster and Petopia's look pages; and coordinates between
 the inventory and Beastmaster. It lists ranks with no candidate teacher, creatures teaching more than
 one rank, and rank levels that differ from the Pet Trainer measured in game (Shadow Resistance 4: 40
-listed, 50 at the trainer) or from the client's spell levels. Shipped values stay Petopia's.
+listed, 50 at the trainer, which is shipped) or from the client's spell levels.
 
 ## Ability icons and rank spell IDs
 
