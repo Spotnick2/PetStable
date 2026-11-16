@@ -88,21 +88,35 @@ class TeacherImportTests(unittest.TestCase):
                          '{"ability-arcane-resistance-rank-1","allFamilies",true,"petopia-abilities-arcaneresistance"}',
                          '{"ability-arcane-resistance-rank-1","source","source-pet-trainer","petopia-abilities-arcaneresistance1"}']:
             self.assertIn(expected, result)
-        self.assertIn('status="reference"', result)
-        self.assertNotIn('status="observed"', result)
+        self.assertIn('status=f[5] or "reference"', result)
         self.assertNotIn('spawn', result)
         self.assertNotIn('tameable', result)
         self.assertEqual((summary['abilities'], summary['ranks'], summary['sources']), (2, 3, 1))
 
     def test_one_citation_per_anchor_with_the_review(self):
         result, _, summary = generate()
-        self.assertEqual(summary['evidence'], 5)  # bite, bite1, bite2, arcaneresistance, arcaneresistance1
+        self.assertEqual(summary['evidence'], 6)  # bite, bite1, bite2, arcaneresistance, arcaneresistance1, the trainer
         line = next(l for l in result.splitlines() if 'key="petopia-abilities-bite2"' in l)
         self.assertIn('url="%sbite2"' % URL, line)
         self.assertIn('date="2026-11-14"', line)
         self.assertIn('against client build %s' % importer.REVIEW['build'], line)
         self.assertIn('kind="reference"', line)
         self.assertNotIn('build=', line)
+
+    def test_the_trainer_level_is_shipped_where_it_was_measured(self):
+        ranks = [record('bite1', dict(ability='bite', pet_level=1, rank=1, source='taming', tp_cost=1)),
+                 record('bite2', dict(ability='bite', pet_level=8, rank=2, source='taming', tp_cost=4)),
+                 record('arcaneresistance1', dict(ability='arcaneresistance', pet_level=30, rank=1, source='trainer', tp_cost=5))]
+        result, report, summary = generate(exports(ranks=ranks))
+        self.assertIn('{"ability-arcane-resistance-rank-1","petLevel",20,"trainer-2026-11-14","observed"}', result)
+        self.assertNotIn('"ability-arcane-resistance-rank-1","petLevel",30', result)  # Petopia's stays in the report only
+        self.assertIn('Petopia pet level 30; the Pet Trainer listed it at 20', report)
+        self.assertIn('{"ability-bite-rank-2","petLevel",8,"petopia-abilities-bite2"}', result)  # not listed: Petopia's
+        self.assertEqual(summary['observed_levels'], 1)
+        line = next(l for l in result.splitlines() if 'key="trainer-2026-11-14"' in l)
+        for part in ('kind="observation"', 'build="1.60.1.70938"', 'locale="enUS"', '#live-trainer-results-2026-11-14-build-160170938'):
+            self.assertIn(part, line)
+        self.assertEqual(result.count('"observed"'), 1)  # only the level; the rank's other facts stay reference
 
     def test_agreeing_sources_report_nothing(self):
         _, report, summary = generate(inv=inventory([point(30.5, 40.5)]))

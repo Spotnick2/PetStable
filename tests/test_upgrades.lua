@@ -84,4 +84,11 @@ for _,a in ipairs(U.Build({records=data.records,facts=data.facts,evidence=data.e
 end
 assert(U.KnownRank(plain,wolf)==nil,"no spell IDs and no English names: unknown")
 english.locale="enUS"; assert(U.KnownRank(plain,english)==3)
+-- The Pet Trainer's level is shipped where it listed the rank (owner, 2026-11-16): Shadow Resistance 4 is 50, not
+-- Petopia's 40, for the level filter and the active-pet markers alike.
+local shadow=by["Shadow Resistance"].ranks[4]
+assert(shadow.petLevel==50,"the level the Pet Trainer listed")
+assert(not U.Visible(shadow,40) and not U.Visible(shadow,49) and U.Visible(shadow,50))
+local level45={present=true,abilitiesRead=true,level=45,familyKey="family-wolf",locale="enUS",abilities={}}
+assert(U.RankStatus(shadow,3,level45)=="level" and U.RankStatus(shadow,3,{familyKey="family-wolf",level=50})=="ready")
 io.write("PASS: ability projection, rank order, family filters and teacher resolution, icons, rank spell IDs and active-pet markers\n")

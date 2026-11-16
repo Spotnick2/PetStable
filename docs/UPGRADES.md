@@ -10,7 +10,9 @@ training points, and the creatures a listing reports as teaching it. It is built
   [REFERENCE-CATALOG.md](REFERENCE-CATALOG.md#ability-icons-and-rank-spell-ids)).
 - Right: the selected ability's icon and name, its families and, per rank, "Rank n · pet level · training points"
   and its listed teachers as `name · level · zone`. Website levels and zones carry the same
-  "(reference)" qualifier as the Pet Guide. Trainer abilities say they are learned from a Pet Trainer.
+  "(reference)" qualifier as the Pet Guide. Trainer abilities say they are learned from a Pet Trainer; where the Pet Trainer listed a rank in game,
+  its pet level is the trainer's (Shadow Resistance 4: 50), not the listing's
+  ([details](REFERENCE-CATALOG.md#pet-ability-teachers)).
 - The family button cycles through the 19 families. It keeps only abilities some rank of which
   the family can learn, and only that family's teachers.
 - A teacher opens its family in the Pet Guide.

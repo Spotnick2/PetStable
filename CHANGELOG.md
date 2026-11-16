@@ -19,6 +19,8 @@ teacher check, and fixes below.
   - *New in alpha2:* the teaching beasts come from Petopia's current listing (read 2026-11-14): 433
     teacher rows, 91 more than before, and six moved to another ability or rank. Mine! is no longer
     listed. Each rank keeps its own Petopia link.
+  - *New in alpha2:* trainer-taught ranks use the pet levels the Pet Trainer showed in game. Shadow
+    Resistance 4 needs pet level 50, not 40.
 - **My Pets:** your active pet and stable, as last observed.
 - **Level filter:** the guide and Ability Upgrades show only what your hunter's level can use
   (Settings, or `/petstable levelfilter on|off`).
@@ -37,6 +39,8 @@ teacher check, and fixes below.
 - Resizable window with scale and reset (`/petstable scale`, `/petstable reset`); Mouse Button 4 and
   5 go back and forward through what you viewed.
 - *New in alpha2:* the appearance preview is animated, and four Fox records gained their NPC IDs.
+- *Fixed in alpha2:* Vulgara the Insatiable is a Fox, and Shriekling Fledgling and Shriekling Matriarch
+  are Birds of Prey (they were listed as a Wolf and Raptors). Their looks now have names.
 - *Fixed in alpha2:* PetStable's window no longer takes the global name of Blizzard's stable window
   (`PetStableFrame`), so addons that restyle the stable window find Blizzard's.
 
