@@ -260,7 +260,9 @@ local function Build()
     local stub = rawget(_G, "LibStub")
     local lib = stub and stub("LibGlass-1.0", true)
     if lib and type(lib.New) == "function" then
-        glass = lib:New({ preset="clean", bodyAlpha=0.88, style={ rimAlpha=1 } })
+        -- Pearl, the Glass suite's theme, from r11; an older copy (r6-r10) knows only clean. PetStable still
+        -- paints its own tint, wash and rims per surface (PaintMaterial), so Pearl changes only what it doesn't.
+        glass = lib:New({ preset=(lib.ready or 0) >= 11 and "pearl" or "clean", bodyAlpha=0.88, style={ rimAlpha=1 } })
     end
     NS.Glass = glass
     -- Not "PetStableFrame": that is Blizzard's own stable window on Forever (Blizzard_StableUI, #57).
