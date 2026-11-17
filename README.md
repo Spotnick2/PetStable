@@ -95,12 +95,12 @@ Window material by [LibGlass](https://github.com/Spotnick2/LibGlass) (MIT), whic
 ## Development
 
 ```powershell
-pwsh Tools/embed-libglass.ps1   # copy the pinned LibGlass r9 into Libs/
+pwsh Tools/embed-libglass.ps1   # copy the pinned LibGlass r12 into Libs/
 pwsh Tools/deploy-addon.ps1     # copy the addon to the game's AddOns folder
 ```
 
-Then `/reload` and `/petstable`. The embed script reads pinned LibGlass r9
-(`fcfd472b30756a51b265969e71deb36cd3524802`) from `../LibGlass` without modifying that checkout, and
+Then `/reload` and `/petstable`. The embed script reads pinned LibGlass r12
+(`34a2dd5f648861a212c588d6f87e3845f3a4169f`) from `../LibGlass` without modifying that checkout, and
 uses the release's own deployment script. Override the source with `-LibGlass <path>`. `.pkgmeta` pins
 the same release for packaging; the embedded copy is gitignored. A source checkout without the
 library uses a flat readable frame, and deployment requires the embedded library. PetStable has no
@@ -119,7 +119,7 @@ captures are evidence only: they don't automatically confirm tameability or hunt
 acquisition.
 
 The window follows the shared
-[window styling recipe](../References/Docs/LIBGLASS-WINDOW-STYLING.md) using LibGlass r9's `Reflect`
+[window styling recipe](../References/Docs/LIBGLASS-WINDOW-STYLING.md) using LibGlass r12's `Reflect`
 and `SetSurfaceAlpha`. `/petstable material flat|reflective` compares the two for the session without
 changing saved settings.
 

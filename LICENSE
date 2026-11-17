@@ -23,7 +23,7 @@ SOFTWARE.
 Third-party code shipped in the package
 ---------------------------------------
 
-Libs/LibGlass-1.0 (r9): LibGlass, Copyright (c) 2026 Spotnick2, MIT licence
+Libs/LibGlass-1.0 (r12): LibGlass, Copyright (c) 2026 Spotnick2, MIT licence
 (its own LICENSE ships in that folder). It bundles:
 
   LibStub, public domain (Kaelten, Cladhaire, ckknight, Mikk, Ammo, Nevcairiel,

@@ -52,7 +52,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Spotnick2/LibGlass
-          ref: fcfd472b30756a51b265969e71deb36cd3524802
+          ref: 34a2dd5f648861a212c588d6f87e3845f3a4169f
           path: .test-output/LibGlass
       - name: Lua syntax
         run: |

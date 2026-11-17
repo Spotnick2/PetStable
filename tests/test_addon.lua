@@ -87,7 +87,7 @@ assert(saved.scale==1 and saved.position.point=="CENTER" and saved.page=="guide"
 assert(saved.width==1040 and saved.height==560)
 saved.height=700
 
--- Real r9 library, including LibStub, loaded with the consumer addon name.
+-- Real r12 library, including LibStub, loaded with the consumer addon name.
 local embedded=os.getenv("PETSTABLE_LIBGLASS") or "Libs/LibGlass-1.0"
 local f=assert(io.open(embedded.."/LibGlass-1.0.xml","rb"))
 local xml=f:read("*a"):gsub("<!%-%-.-%-%->",""); f:close()
@@ -95,7 +95,7 @@ for path in xml:gmatch('<Script%s+file="([^"]+)"') do
     assert(loadfile(embedded.."/"..path:gsub("\\","/")))("PetStable",{})
 end
 local lib=LibStub("LibGlass-1.0")
-assert(lib.ready==9, "tests must load the pinned r9 release")
+assert(lib.ready==12, "tests must load the pinned r12 release")
 local other=lib:New({bodyAlpha=0.3})
 local shell, reflectionCount
 local reflect=lib.impl.Reflect
@@ -107,6 +107,7 @@ end
 fresh.Toggle()
 lib.impl.Reflect=reflect
 assert(reflectionCount==1 and shell.reflect, "window must use one library-owned reflective shell")
+assert(fresh.Glass.preset=="pearl" and fresh.Glass.STYLE.gloss==0.15, "r11+ copies give the window Pearl")
 checkEscape(fresh.frame,fresh.Toggle)
 dofile("tests/guide_cases.lua")(fresh)
 dofile("tests/appearance_cases.lua")(fresh)
@@ -139,4 +140,18 @@ assert(not fresh.SetMaterial("invalid"))
 assert(#WoW.widgets==widgetCount and fresh.frame==window, "comparison must repaint existing layers")
 assert(fresh.db.page==selected and fresh.db.position==position, "comparison must preserve navigation and placement")
 assert(other.STYLE.bodyAlpha==0.3, "comparison must not modify another glass instance")
+-- An older copy (r6-r10) won LibStub: it knows only "clean", and asking it for "pearl" would error.
+local stub, asked = LibStub, {}
+for _,ready in ipairs({10,11}) do
+    local copy={ready=ready,New=function(self,opts)
+        asked[ready]=opts.preset
+        rawset(_G,"LibStub",stub); local inst=lib:New(opts); rawset(_G,"LibStub",function() return self end)
+        return inst -- the real r12 builds it; its readiness check reads the real LibStub
+    end}
+    rawset(_G,"LibStub",function() return copy end)
+    local old=loadAddon(); WoW.fire("ADDON_LOADED","PetStable"); old.Toggle()
+    assert(old.Glass and old.frame:IsShown(),"the window builds with copy r"..ready)
+end
+rawset(_G,"LibStub",stub)
+assert(asked[10]=="clean" and asked[11]=="pearl","Pearl only from r11")
 io.write("PASS: addon lifecycle, guide rows/portraits/focus/scrolling, Escape, non-hunter navigation, fallback, saved settings, scaling, and embedded LibGlass\n")
