@@ -15,10 +15,6 @@ return function(ns)
     local function has(text)
         return table.concat(PetStableProbeDB.log, "\n"):find(text, 1, true)
     end
-    local eventNames = { "UNIT_PET", "PET_BAR_UPDATE", "SPELLS_CHANGED",
-        "LEARNED_SPELL_IN_SKILL_LINE", "UNIT_PET_TRAINING_POINTS",
-        "TRAINER_SHOW", "TRAINER_UPDATE", "TRAINER_CLOSED" }
-    for _, name in ipairs(eventNames) do WoW.KNOWN_EVENTS[name] = true end
     -- Capabilities absent on a class/no-pet environment remain unknown, not false.
     command("capture missing")
     local missing = last()

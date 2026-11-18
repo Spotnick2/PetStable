@@ -107,11 +107,20 @@ library uses a flat readable frame, and deployment requires the embedded library
 AltStable or ForeverProbe dependency, and its glass instance doesn't change another addon's material
 settings.
 
-Run the syntax and integration checks with `pwsh tests/run.ps1` after embedding. Lua 5.1,
-`../LibGlass` (or `LIBGLASS`, for its widget mocks) and the sibling `../ForeverProbe` checkout (or
-`FOREVERPROBE`) are needed for the full suite. CI tests the addon against the pinned LibGlass commit
-and skips probe integration when the private host is unavailable. The host and probe module are
-excluded from the package.
+Run the syntax and integration checks with `pwsh tests/run.ps1` after embedding. Lua 5.1, the
+embedded library (or `PETSTABLE_LIBGLASS`, a LibGlass r12 tree) and the sibling `../ForeverProbe`
+checkout (or `FOREVERPROBE`) are needed for the full suite. CI tests the addon against the pinned
+LibGlass commit and skips probe integration when the private host is unavailable. The host and probe
+module are excluded from the package.
+
+The test scaffolding is [WowTestKit](https://github.com/Spotnick2/WowTestKit) (its README is the
+reference) at the commit and client build `tests/kit.pin` names. `tests/run.ps1` puts that commit in
+`%LOCALAPPDATA%\WowTestKit\<sha>` and hands off to the kit's runner; CI fetches it with
+`tests/fetch_kit.sh`. `tests/kit.lua`, `kit.ps1` and `fetch_kit.sh` are the kit's bootstrap copies:
+never edit them here. `tests/wow_stubs.lua` is PetStable's own part of the mock; no test loads
+another repo's test files. A kit need is an issue on the kit, worked around in `tests/wow_stubs.lua`
+with a `-- WowTestKit #N:` comment meanwhile. `tests/run.ps1 -KitDev` runs against the
+`../WowTestKit` working copy instead of the pin.
 
 The developer-only PetStableProbe module measures what the client does (training, models, creature
 discovery, planned tames; `/fp steps ps ...`). See [the probe guide](docs/FOREVER-PROBE.md). Its

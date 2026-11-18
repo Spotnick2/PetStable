@@ -1,6 +1,5 @@
 -- The level filter: creatures and ranks above the hunter's level are hidden, and it can be turned off.
-local source=(os.getenv('LIBGLASS') or '../LibGlass'):gsub('\\','/')
-dofile(source..'/tests/wow_stubs.lua'); dofile('tests/guide_stubs.lua')
+dofile('tests/wow_stubs.lua')
 SlashCmdList={}
 local class,level='HUNTER',12
 UnitClass=function() return class=='HUNTER' and 'Hunter' or 'Mage',class end
@@ -117,3 +116,4 @@ assert(button.label:GetText()=='Filter to your level: Off','the slash command up
 SlashCmdList.PETSTABLE('levelfilter on')
 assert(button.label:GetText()=='Filter to your level: On')
 io.write('PASS: level filter hides creatures and ranks above the hunter, keeps unknown levels, other classes, and turns off\n')
+WoW.finish("test_levelfilter")

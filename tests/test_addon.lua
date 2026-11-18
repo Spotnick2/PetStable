@@ -1,7 +1,5 @@
--- Use the material's shared widget mocks and the actual embedded release.
-local source = (os.getenv("LIBGLASS") or "../LibGlass"):gsub("\\", "/")
-dofile(source .. "/tests/wow_stubs.lua")
-dofile("tests/guide_stubs.lua")
+-- PetStable's own stub (on WowTestKit) and the actual embedded LibGlass release.
+dofile("tests/wow_stubs.lua")
 rawset(_G,"SlashCmdList",{})
 rawset(_G,"UnitClass",function() return "Mage", "MAGE" end)
 UIParent:SetSize(1920,1080)
@@ -155,3 +153,4 @@ end
 rawset(_G,"LibStub",stub)
 assert(asked[10]=="clean" and asked[11]=="pearl","Pearl only from r11")
 io.write("PASS: addon lifecycle, guide rows/portraits/focus/scrolling, Escape, non-hunter navigation, fallback, saved settings, scaling, and embedded LibGlass\n")
+WoW.finish("test_addon")

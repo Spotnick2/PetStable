@@ -1,6 +1,5 @@
 -- Nearby teacher alert: eligibility, cooldown, snoozes, ignore list, hunters only, and the toast.
-local source=(os.getenv('LIBGLASS') or '../LibGlass'):gsub('\\','/')
-dofile(source..'/tests/wow_stubs.lua'); dofile('tests/guide_stubs.lua')
+dofile('tests/wow_stubs.lua')
 SlashCmdList={}
 local class,playerLevel,combat='HUNTER',20,false
 UnitClass=function() return class=='HUNTER' and 'Hunter' or 'Mage',class end
@@ -273,3 +272,4 @@ assert(next(mageWatcher._events)==nil,'a mage registers no events')
 local hunterWatcher=Login('HUNTER')
 assert(hunterWatcher._events.PLAYER_TARGET_CHANGED and hunterWatcher._events.UPDATE_MOUSEOVER_UNIT and hunterWatcher._events.NAME_PLATE_UNIT_ADDED)
 io.write('PASS: teacher alerts: eligibility, cooldown, snoozes, pet hold, ignore list, toast in combat and hunters only\n')
+WoW.finish("test_teacheralert")
