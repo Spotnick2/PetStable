@@ -2,8 +2,7 @@
 -- The secure rules are modelled here: insecure code may not call a protected method on the secure
 -- button in combat; the state driver evaluates on a separate "next update", and runs the button's real
 -- latch snippet in a secure context.
-local source=(os.getenv('LIBGLASS') or '../LibGlass'):gsub('\\','/')
-dofile(source..'/tests/wow_stubs.lua'); dofile('tests/guide_stubs.lua')
+dofile('tests/wow_stubs.lua')
 SlashCmdList={}
 local class,combat='HUNTER',false
 UnitClass=function() return class=='HUNTER' and 'Hunter' or 'Mage',class end
@@ -111,9 +110,11 @@ end
 assert(b:GetWidth()==372 and b:GetHeight()==26)
 assert(Calls(b,'SetFrameStrata')[1][2]=='DIALOG' and b:GetFrameLevel()==30 and toast:GetFrameLevel()==20,'above the notice')
 local clicks=Calls(b,'RegisterForClicks'); assert(#clicks==1 and clicks[1][2]=='AnyUp' and clicks[1][3]=='AnyDown','both click edges')
--- In the stub, SetScript on the secure button throws and no XML template runs, so _scripts==nil means
--- PetStable set no script. A real button keeps the scripts its templates install (OnClick among them).
-assert(b:GetAttribute('typerelease')==nil and b._scripts==nil,'no typerelease, no script: the template keeps its OnClick')
+-- In the stub, SetScript on the secure button throws, and the template installs only its OnClick
+-- (WowTestKit's SecureActionButtonTemplate), so an OnClick alone means PetStable set no script. A real
+-- button keeps the scripts its templates install (OnClick among them).
+local scripts={}; for k in pairs(b._scripts) do scripts[#scripts+1]=k end
+assert(b:GetAttribute('typerelease')==nil and #scripts==1 and scripts[1]=='OnClick','no typerelease, no script: the template keeps its OnClick')
 assert(b:GetAttribute('_onstate-petstablecombat')==TB.LATCH,'the latch snippet is installed')
 assert(not b:IsShown() and b:GetAttribute('type')==nil,'built hidden and unarmed')
 local clamp=Calls(toast,'SetClampedToScreen'); assert(#clamp==1 and clamp[1][2]==false,'the notice is never clamped')
@@ -242,3 +243,4 @@ combat=false; Event(locked,'PLAYER_REGEN_ENABLED'); assert(locked.TargetButton.b
 assert(#errors==0)
 
 io.write("PASS: Target button structure, combat latch, regen reconcile, A->B sequencing, expiry, names and geometry\n")
+WoW.finish("test_targetbutton")

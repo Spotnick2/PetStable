@@ -49,6 +49,8 @@ jobs:
           sudo apt-get install -y -qq lua5.1
 
       # The full suite gates publication: `release` and `wago` need this job.
+      # The embedded library at the .pkgmeta pin (r12): test_addon and test_methods load its
+      # runtime files as the client does. The test scaffolding is WowTestKit's, never LibGlass's.
       - uses: actions/checkout@v4
         with:
           repository: Spotnick2/LibGlass
@@ -59,37 +61,40 @@ jobs:
           while IFS= read -r -d '' file; do
             luac5.1 -p "$file" || exit 1
           done < <(find Util.lua Core.lua Catalog.lua CatalogData.lua CatalogReference.lua CatalogTeachers.lua CatalogFamilies.lua CatalogSpells.lua Sightings.lua PetState.lua GuideData.lua GuideModels.lua GuideAppearances.lua GuideUI.lua UpgradesData.lua UpgradesUI.lua PetsUI.lua Toast.lua TargetButton.lua TeacherAlert.lua UI.lua Tools tests -name '*.lua' -print0)
-      - name: Catalog validation (no client or probe required)
-        run: lua5.1 tests/test_catalog.lua
-      - name: Reference catalog and local sightings
+      # The test scaffolding at the commit tests/kit.pin names, checked to BE that commit
+      # (tests/kit.lua reads it from $WOWTESTKIT).
+      - name: Fetch WowTestKit at its pin
+        if: hashFiles('tests/kit.pin') != ''
         run: |
-          lua5.1 tests/test_reference.lua
-          lua5.1 tests/test_teachers.lua
-          lua5.1 tests/test_upgrades.lua
-          lua5.1 tests/test_families.lua
-          lua5.1 tests/test_petstate.lua
-          lua5.1 tests/test_sightings.lua
+          bash tests/fetch_kit.sh "$RUNNER_TEMP/WowTestKit"
+          echo "WOWTESTKIT=$RUNNER_TEMP/WowTestKit" >> "$GITHUB_ENV"
+      # Every tests/test_*.lua, one process each (the kit's runner).
+      - name: Lua unit tests
+        if: hashFiles('tests/kit.pin') != ''
+        env:
+          PETSTABLE_LIBGLASS: .test-output/LibGlass
+          FOREVERPROBE_OPTIONAL: '1'   # ForeverProbe is private and local: the probe tests run locally
+        run: bash "$WOWTESTKIT/scripts/run.sh"
+      # A tag from before the kit (v0.1.0-alpha3 and older) has no tests/kit.pin, so a
+      # manual re-publish runs that tree's own tests as the workflow then did: each
+      # tests/test_*.lua alone, LibGlass from $LIBGLASS as well (Codex, #65).
+      - name: Lua unit tests (a tree from before the kit)
+        if: hashFiles('tests/kit.pin') == ''
+        env:
+          LIBGLASS: .test-output/LibGlass
+          PETSTABLE_LIBGLASS: .test-output/LibGlass
+          FOREVERPROBE_OPTIONAL: '1'
+        run: |
+          for f in tests/test_*.lua; do
+            echo "-- $f"
+            lua5.1 "$f" || exit 1
+          done
+      - name: Importer tests
+        run: |
           python3 -m unittest discover -s tests -p "test_import_reference.py"
           python3 -m unittest discover -s tests -p "test_import_teachers.py"
           python3 -m unittest discover -s tests -p "test_import_families.py"
           python3 -m unittest discover -s tests -p "test_import_spells.py"
-      - name: Guide data and filters
-        run: lua5.1 tests/test_guide.lua
-      - name: Player addon and pinned LibGlass
-        env:
-          LIBGLASS: .test-output/LibGlass
-          PETSTABLE_LIBGLASS: .test-output/LibGlass
-        run: |
-          lua5.1 tests/test_addon.lua
-          lua5.1 tests/test_levelfilter.lua
-          lua5.1 tests/test_teacheralert.lua
-          lua5.1 tests/test_targetbutton.lua
-          lua5.1 tests/test_markers.lua
-          lua5.1 tests/test_reference_ui.lua
-      - name: Probe integration (optional private host)
-        env:
-          FOREVERPROBE_OPTIONAL: '1'
-        run: lua5.1 tests/test_probe.lua
 
       # On a manual run GITHUB_REF is main, and the packager names the build
       # after whichever tag at HEAD it sorts first (release.sh 613-628 prefers

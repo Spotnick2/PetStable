@@ -1,5 +1,4 @@
-local source=(os.getenv('LIBGLASS') or '../LibGlass'):gsub('\\','/')
-dofile(source..'/tests/wow_stubs.lua'); dofile('tests/guide_stubs.lua')
+dofile('tests/wow_stubs.lua')
 SlashCmdList={}; UnitClass=function() return 'Hunter','HUNTER' end
 UIParent:SetSize(1920,1080)
 local ns={}
@@ -50,3 +49,4 @@ ns.Toggle(); ns.Toggle(); assert(ns.frame:IsShown())
 dofile("tests/upgrades_cases.lua")(ns)
 dofile("tests/pets_cases.lua")(ns)
 io.write('PASS: shipped TOC, full reference gallery, model fallback, proof separation, settings and navigation\n')
+WoW.finish("test_reference_ui")

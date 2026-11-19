@@ -1,22 +1,44 @@
--- Use the sibling host's single stub environment and actual TOC load order.
-local root = (os.getenv("FOREVERPROBE") or "../ForeverProbe"):gsub("\\", "/"):gsub("/$", "")
-local toc = io.open(root .. "/ForeverProbe.toc", "rb")
-if not toc then
-    if os.getenv("FOREVERPROBE_OPTIONAL") == "1" then
-        io.write("SKIPPED: ForeverProbe missing; probe integration tests run locally\n")
-        os.exit(0)
+-- The probe module on the real ForeverProbe host, loaded into PetStable's own stub environment
+-- (ForeverProbe's docs/GUIDE.md, section 8): the host's tests\ files are its own and run only from
+-- its root (PetStable#63).
+dofile("tests/wow_stubs.lua")
+
+-- The client APIs the host reads (each through rawget), as its guide's hosts give them.
+WoW.now = 100
+WoW.errors = {} -- what geterrorhandler() was handed
+SlashCmdList = {}
+-- GetBuildInfo's six returns (1.60.1 declares six; the last two are test values).
+function GetBuildInfo() return "1.60.1", "70374", "Oct 1 2026", 16001, "stub-localized", "stub-buildinfo" end
+function GetCurrentRegion() return 1 end
+WOW_PROJECT_ID = 14
+function geterrorhandler() return function(err) WoW.errors[#WoW.errors + 1] = tostring(err) end end
+date = os.date
+function time() return os.time() end
+function Screenshot() end
+
+-- The host, from $FOREVERPROBE (else the sibling checkout): its TOC's files with ("ForeverProbe", {}),
+-- then ADDON_LOADED. Copied from GlassChat's tests/harness.lua, as the guide says. ForeverProbe is
+-- private and local: CI sets FOREVERPROBE_OPTIONAL=1 and this file skips there.
+local function loadForeverProbe()
+    local root = (os.getenv("FOREVERPROBE") or "../ForeverProbe"):gsub("\\", "/"):gsub("/$", "")
+    local toc = io.open(root .. "/ForeverProbe.toc", "rb")
+    if not toc then
+        if os.getenv("FOREVERPROBE_OPTIONAL") == "1" then
+            io.write("SKIPPED: ForeverProbe isn't here (private, local only); the probe tests run locally\n")
+            os.exit(0)
+        end
+        error("ForeverProbe checkout not found at " .. root .. ": clone it there or set FOREVERPROBE", 0)
     end
-    error("ForeverProbe missing at " .. root .. "; set FOREVERPROBE or restore the sibling checkout")
+    local files = {}
+    for line in toc:read("*a"):gmatch("[^\r\n]+") do
+        if line:match("%.lua$") and not line:match("^#") then files[#files + 1] = root .. "/" .. line end
+    end
+    toc:close()
+    for _, file in ipairs(files) do assert(loadfile(file))("ForeverProbe", {}) end
+    WoW.fire("ADDON_LOADED", "ForeverProbe")
+    return ForeverProbe
 end
-local files = {}
-for line in toc:lines() do
-    line = line:gsub("\r", "")
-    if line:match("%.lua$") and not line:match("^#") then files[#files + 1] = line end
-end
-toc:close()
-dofile(root .. "/tests/wow_stubs.lua")
-for _, file in ipairs(files) do assert(loadfile(root .. "/" .. file))("ForeverProbe", {}) end
-WoW.fire("ADDON_LOADED", "ForeverProbe")
+loadForeverProbe()
 local ns = {}
 assert(loadfile("Tools/PetStableProbe/PetStableProbe.lua"))("PetStableProbe", ns)
 assert(loadfile("Tools/PetStableProbe/Training.lua"))("PetStableProbe", ns)
@@ -62,3 +84,4 @@ dofile("tests/binding_cases.lua")(ns)
 dofile("tests/facts_cases.lua")(ns)
 dofile("tests/target_probe_cases.lua")(ns)
 io.write("PASS: probe lifecycle, dispatch, log identity, missing API, and guided procedure\n")
+WoW.finish("test_probe")

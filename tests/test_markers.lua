@@ -1,6 +1,5 @@
 -- Pet Guide family markers and opening on the active pet's family.
-local source=(os.getenv('LIBGLASS') or '../LibGlass'):gsub('\\','/')
-dofile(source..'/tests/wow_stubs.lua'); dofile('tests/guide_stubs.lua')
+dofile('tests/wow_stubs.lua')
 SlashCmdList={}; UnitClass=function() return 'Hunter','HUNTER' end
 UIParent:SetSize(1920,1080)
 function time() return 1700000000 end
@@ -95,3 +94,4 @@ local bare=Start(true); bare.Toggle(); bare.guide.ShowFamilies()
 assert(Marks(bare)['family-cat']=='Your pet')
 C_StableInfo=savedApi
 io.write('PASS: family markers follow observed pets, and the guide opens on the active family only when enabled\n')
+WoW.finish("test_markers")
