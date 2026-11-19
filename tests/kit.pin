@@ -1,5 +1,5 @@
 # WowTestKit for these tests: the commit, and the client build to test against.
 # PetStable records no measured build (no MEASURED_ON_BUILD): build is the kit's newest data.
-sha=3cba24fd68e35758c19671bcedfefa9ad228c60f
+sha=38c8a6c58a8caaf3b4cee41424e6e43502102a45
 build=70959
 api=2
