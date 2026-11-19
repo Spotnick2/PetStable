@@ -243,4 +243,4 @@ combat=false; Event(locked,'PLAYER_REGEN_ENABLED'); assert(locked.TargetButton.b
 assert(#errors==0)
 
 io.write("PASS: Target button structure, combat latch, regen reconcile, A->B sequencing, expiry, names and geometry\n")
-WoW.finish("test_targetbutton")
+done("test_targetbutton")

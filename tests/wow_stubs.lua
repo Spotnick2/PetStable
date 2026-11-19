@@ -226,32 +226,6 @@ function Methods.CreateActor()
     return actor
 end
 
---------------------------------------------------------------------------------
--- Printed lines
---------------------------------------------------------------------------------
-
--- FINDING (PetStable#64): the slash command's usage lines print a bare
--- "|" ("on|off"), which the client reads as the start of an escape. Until
--- the addon doubles them, exactly these lines may hold one; done() still
--- fails on any other stray "|". WoW.finish(name) drops them, then calls done.
-local KNOWN_STRAYS = {
-    "^PetStable: nearby teacher alerts o[nf]f?%. /petstable teachers on|off|check$",
-    "^PetStable: level filter o[nf]f?%. /petstable levelfilter on|off$",
-    "^PetStable: /petstable material reflective|flat$",
-    "^PetStable: /petstable, /petstable scale 0%.65–1%.3, /petstable reset, /petstable material reflective|flat$",
-    "^PetStable: %d+ local sightings; capture o[nf]f?%. /petstable sightings on|off|clear$",
-}
-function WoW.finish(name)
-    local kept = {}
-    for _, line in ipairs(WoW.strays) do
-        local known = false
-        for _, pattern in ipairs(KNOWN_STRAYS) do known = known or line:find(pattern) ~= nil end
-        if not known then kept[#kept + 1] = line end
-    end
-    WoW.strays = kept
-    done(name)
-end
-
 -- LibStub: nil until the embedded library (or a test's copy) creates it.
 -- PetStableDB and the probes' saved tables are read through rawget.
 Kit.strict({ LibStub = true })

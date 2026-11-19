@@ -94,4 +94,4 @@ local bare=Start(true); bare.Toggle(); bare.guide.ShowFamilies()
 assert(Marks(bare)['family-cat']=='Your pet')
 C_StableInfo=savedApi
 io.write('PASS: family markers follow observed pets, and the guide opens on the active family only when enabled\n')
-WoW.finish("test_markers")
+done("test_markers")

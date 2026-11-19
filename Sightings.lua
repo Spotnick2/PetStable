@@ -122,7 +122,7 @@ function S.Command(value)
     elseif value=="clear" then
         Stop(); NS.db.sightings={version=1,records={}}; S.Initialize(); S.warned=false
     end
-    print("PetStable: "..S.count.." local sightings; capture "..(NS.db.captureSightings and "on" or "off")..". /petstable sightings on|off|clear")
+    print("PetStable: "..S.count.." local sightings; capture "..(NS.db.captureSightings and "on" or "off")..". /petstable sightings on||off||clear")
     print("Sightings are saved in PetStableDB on logout/reload for manual review. Nothing is uploaded; sightings do not confirm tameability.")
 end
 watcher:RegisterEvent("PLAYER_TARGET_CHANGED")

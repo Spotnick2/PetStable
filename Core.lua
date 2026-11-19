@@ -48,15 +48,15 @@ SlashCmdList.PETSTABLE = function(message)
             NS.TeacherAlert.SetEnabled(value:lower() == "on")
             if NS.settings then NS.settings.Sync() end
         end
-        print("PetStable: nearby teacher alerts " .. (NS.db.teacherAlerts and "on" or "off") .. ". /petstable teachers on|off|check")
+        print("PetStable: nearby teacher alerts " .. (NS.db.teacherAlerts and "on" or "off") .. ". /petstable teachers on||off||check")
     elseif command == "levelfilter" then
         if value:lower() == "on" or value:lower() == "off" then
             NS.db.filterToLevel = value:lower() == "on"
             if NS.RefreshFilters then NS.RefreshFilters() end
         end
-        print("PetStable: level filter " .. (NS.db.filterToLevel and "on" or "off") .. ". /petstable levelfilter on|off")
+        print("PetStable: level filter " .. (NS.db.filterToLevel and "on" or "off") .. ". /petstable levelfilter on||off")
     elseif command == "material" then
-        if not NS.SetMaterial(value) then print("PetStable: /petstable material reflective|flat") end
+        if not NS.SetMaterial(value) then print("PetStable: /petstable material reflective||flat") end
     elseif command == "scale" then
         local scale = tonumber(value)
         if Number(scale) then
@@ -69,5 +69,5 @@ SlashCmdList.PETSTABLE = function(message)
         NS.db.width, NS.db.height = 1040, 700
         NS.Layout()
     elseif command == "" then NS.Toggle()
-    else print("PetStable: /petstable, /petstable scale 0.65–1.3, /petstable reset, /petstable material reflective|flat") end
+    else print("PetStable: /petstable, /petstable scale 0.65–1.3, /petstable reset, /petstable material reflective||flat") end
 end
