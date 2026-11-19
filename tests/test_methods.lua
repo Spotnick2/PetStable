@@ -155,4 +155,4 @@ for _, err in ipairs(swallowed) do io.write("  " .. err .. "\n") end
 local recorded = Kit.checkMethods()
 io.write("recorded " .. recorded .. " Type:Method pairs\n")
 check(recorded >= 200, "the exercise reached the windows (" .. recorded .. " recorded)")
-WoW.finish("test_methods")
+done("test_methods")

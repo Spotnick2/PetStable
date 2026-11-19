@@ -116,4 +116,4 @@ assert(button.label:GetText()=='Filter to your level: Off','the slash command up
 SlashCmdList.PETSTABLE('levelfilter on')
 assert(button.label:GetText()=='Filter to your level: On')
 io.write('PASS: level filter hides creatures and ranks above the hunter, keeps unknown levels, other classes, and turns off\n')
-WoW.finish("test_levelfilter")
+done("test_levelfilter")

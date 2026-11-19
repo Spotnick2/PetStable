@@ -153,4 +153,4 @@ end
 rawset(_G,"LibStub",stub)
 assert(asked[10]=="clean" and asked[11]=="pearl","Pearl only from r11")
 io.write("PASS: addon lifecycle, guide rows/portraits/focus/scrolling, Escape, non-hunter navigation, fallback, saved settings, scaling, and embedded LibGlass\n")
-WoW.finish("test_addon")
+done("test_addon")
