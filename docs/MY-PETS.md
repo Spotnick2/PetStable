@@ -25,12 +25,16 @@ safe client call (`NS.Call`: tolerates a missing API, an error or a secret value
   only with proof it is this hunter's, because a same-named hunter on another realm must not take
   it:
   - before the scan, when the realm is readable and `Name-Realm` exists;
-  - after a scan, when a `Name-<anything>` record (`Name-?` included) holds a pet the scan read, by
-    pet number and name. A stable list the scan could not read takes the newest such record's list,
-    still reported as partial, and the record's key is removed.
+  - after a scan, list by list: a legacy stable list of a `Name-<anything>` record (`Name-?`
+    included) is this hunter's when it holds a pet the scan read, by pet number and name. A list is
+    written whole by one scan, so one pet proves it. A list the scan could not read takes the newest
+    proven legacy list, still reported as partial. A shared `Name-?` can mix two hunters' lists (one
+    refreshed the active list while the other's stabled list was kept), so a match in one list
+    proves nothing about the other.
 
-  Unproven legacy records stay as they were, and only GUID records count toward the 20, so they
-  never block a scan.
+  A legacy record is removed only when every list holding pets is proven and its active pet, if any,
+  is among them. Anything less leaves it as it was, for recovery. Only GUID records count toward the
+  20, so legacy records never block a scan.
 
 Scans run on `UNIT_PET`, `PET_BAR_UPDATE`, `SPELLS_CHANGED`, `PET_STABLE_SHOW`, `PET_STABLE_UPDATE`
 and `PLAYER_ENTERING_WORLD`, collapsed by a 0.25 s delay. All six are declared in the 70532 API

@@ -51,13 +51,15 @@ PS.FamilyKey = FamilyKey
 -- every key "Name-?" (AltStable#412). A GUID key never depends on the realm.
 --
 -- A GUID record stores its GUID; a record without one is a legacy record, which is
--- never written again. Legacy records are moved only with proof they are this
--- hunter's, so a same-named hunter on another realm never takes them:
--- - a readable realm and an exact "Name-Realm" key, before the scan;
--- - otherwise, after a scan, a pet of the legacy record that the scan read too,
---   by pet number and name. "Name-?" is claimed only this way, since any
---   same-named hunter could have written it.
--- Unproven legacy records stay, and only GUID records count toward the limit.
+-- never written again. Legacy data moves only with proof it is this hunter's, so a
+-- same-named hunter on another realm never takes it:
+-- - a readable realm and an exact "Name-Realm" key: the whole record, before the scan;
+-- - otherwise proof per section, after a scan: a legacy stable list that holds a pet
+--   the scan read, by pet number and name. A shared "Name-?" may mix two hunters'
+--   lists (one refreshed the active list while the other's stabled list was kept),
+--   so a match in one list proves nothing about the other.
+-- A legacy record is removed only when everything in it is proven; otherwise it
+-- stays for recovery. Only GUID records count toward the limit.
 local function IsLegacy(record) return type(record) == "table" and record.guid == nil end
 
 local function CharacterKey(chars)
@@ -80,43 +82,61 @@ local function Sections(record)
     return type(stable) == "table" and stable or nil
 end
 
--- Whether a legacy record holds a pet the latest scan read, by pet number and name.
-local function SharesPet(legacy, record)
-    local seen, fresh, old = {}, Sections(record), Sections(legacy)
-    if not (fresh and old) then return false end
+-- The pets the latest scan read, by pet number and name.
+local function ReadPetsSeen(fresh)
+    local seen = {}
     for _, name in ipairs({ "active", "stabled" }) do
         local section = fresh[name .. "Read"] and fresh[name]
         for _, pet in ipairs(type(section) == "table" and section.pets or {}) do
             if pet.petNumber and pet.name then seen[pet.petNumber .. "\0" .. pet.name] = true end
         end
     end
-    for _, name in ipairs({ "active", "stabled" }) do
-        local section = old[name]
-        for _, pet in ipairs(type(section) == "table" and type(section.pets) == "table" and section.pets or {}) do
-            if type(pet) == "table" and pet.petNumber and pet.name and seen[pet.petNumber .. "\0" .. pet.name] then return true end
-        end
-    end
-    return false
+    return seen
 end
 
--- After a scan: take this hunter's proven legacy records. A list the scan could not
--- read gets the newest one they hold; then their keys go.
+local function SectionPets(section)
+    return type(section) == "table" and type(section.pets) == "table" and section.pets or nil
+end
+
+-- Whether a legacy list holds a pet the scan read; its pet names, to check the active pet.
+local function Proven(section, seen, names)
+    local proven = false
+    for _, pet in ipairs(SectionPets(section) or {}) do
+        if type(pet) == "table" and pet.petNumber and pet.name then
+            if seen[pet.petNumber .. "\0" .. pet.name] then proven = true end
+            names[pet.name] = true
+        end
+    end
+    return proven
+end
+
+-- After a scan: a list the scan could not read takes the newest proven legacy list.
+-- A legacy record goes once every list holding pets is proven and its active pet,
+-- if any, is among them; one with anything unproven stays.
 local function ClaimLegacy(chars, record)
     local name = Text(Call(rawget(_G, "UnitName"), "player"))
     local fresh = Sections(record)
     if not (name and fresh) then return end
-    local prefix = name .. "-"
+    local seen, prefix = ReadPetsSeen(fresh), name .. "-"
     for key, legacy in pairs(chars) do
-        if type(key) == "string" and key:sub(1, #prefix) == prefix and IsLegacy(legacy) and SharesPet(legacy, record) then
-            local old = Sections(legacy)
+        local old = type(key) == "string" and key:sub(1, #prefix) == prefix and IsLegacy(legacy) and Sections(legacy)
+        if old then
+            local any, all, names = false, true, {}
             for _, section in ipairs({ "active", "stabled" }) do
-                local have, theirs = fresh[section], old[section]
-                if not fresh[section .. "Read"] and type(theirs) == "table" and type(theirs.pets) == "table"
-                    and (type(have) ~= "table" or (theirs.observed or 0) > (have.observed or 0)) then
-                    fresh[section] = theirs
+                local theirs = old[section]
+                if Proven(theirs, seen, names) then
+                    any = true
+                    local have = fresh[section]
+                    if not fresh[section .. "Read"] and (type(have) ~= "table" or (theirs.observed or 0) > (have.observed or 0)) then
+                        fresh[section] = theirs
+                    end
+                elseif SectionPets(theirs) and #theirs.pets > 0 then
+                    all = false
                 end
             end
-            chars[key] = nil -- safe while iterating: an existing key is cleared
+            local pet = type(legacy.active) == "table" and legacy.active
+            if pet and pet.present and not (pet.name and names[pet.name]) then all = false end
+            if any and all then chars[key] = nil end -- safe while iterating: an existing key is cleared
         end
     end
 end

@@ -140,7 +140,7 @@ local function Load(chars)
     return n.PetState, chars
 end
 local function Legacy(petNumber, petName, observed)
-    return { class = "HUNTER", active = { present = true, name = "Old", observed = observed },
+    return { class = "HUNTER", active = { present = true, name = petName, observed = observed },
         stable = { version = 2, activeRead = true, stabledRead = true,
             active = { observed = observed, pets = {} },
             stabled = { observed = observed, pets = { { petNumber = petNumber, name = petName, slotID = 3 } } } } }
@@ -156,7 +156,7 @@ realm = ""; Stable(mine)
 local old = Legacy(99, "Theirs", 50)
 local P, chars = Load({ ["Hunt-Realm"] = old, ["Hunt-?"] = Legacy(98, "Unknown", 60), ["Hunt-Other"] = Legacy(97, "Other", 40) })
 realm = "Realm"
-assert(P.State() == "stale" and P.Active().name == "Old" and chars[guid] == old and old.guid == guid and not chars["Hunt-Realm"],
+assert(P.State() == "stale" and P.Active().name == "Theirs" and chars[guid] == old and old.guid == guid and not chars["Hunt-Realm"],
     "with a realm, Name-Realm is this hunter's")
 assert(chars["Hunt-?"] and chars["Hunt-Other"], "Name-? and another realm's record are not taken on a name alone")
 -- A readable realm with no exact key falls back to nothing.
@@ -184,6 +184,21 @@ assert(#pets == 3 and pets[2].name == "Grumpy" and pets[3].name == "Skitter" and
     "the unread stabled list is the newest proven one, still reported as partial")
 assert(chars["Hunter-Realm"], "a longer name is not a match")
 assert(chars["Hunt-RealmB"], "a same number under another name is no proof")
+-- A shared Name-? can mix two hunters: B's active list beside A's kept stabled list.
+-- B's match proves B's list only: A's is not copied, and the record stays for recovery.
+Stable(nil)
+local mixed = Legacy(43, "Grumpy", 50) -- A's stabled list
+mixed.stable.active = { observed = 60, pets = { { petNumber = 42, name = "Whiskers", slotID = 1 } } }
+mixed.active.name = "Whiskers" -- B's last scan
+P, chars = Load({ ["Hunt-?"] = mixed })
+assert(P.Refresh("test") and chars["Hunt-?"] == mixed and #mixed.stable.stabled.pets == 1, "a mixed record is kept whole")
+local mixedPets = P.Stable()
+assert(#mixedPets == 1 and mixedPets[1].name == "Whiskers", "the other hunter's stabled list is not copied")
+-- A proven list but an active pet that is none of its pets: kept as well.
+local odd = Legacy(42, "Whiskers", 50); odd.active.name = "Stranger"
+P, chars = Load({ ["Hunt-?"] = odd })
+assert(P.Refresh("test") and chars["Hunt-?"] == odd, "an unproven active pet keeps the record")
+
 -- A list the scan read is never replaced by a legacy one.
 Stable({}); P, chars = Load({ ["Hunt-?"] = Legacy(42, "Whiskers", 900) }) -- newer than the scan
 chars["Hunt-?"].stable.active.pets = { { petNumber = 42, name = "Whiskers" } }
