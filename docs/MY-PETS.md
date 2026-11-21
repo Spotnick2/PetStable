@@ -19,12 +19,18 @@ safe client call (`NS.Call`: tolerates a missing API, an error or a secret value
   client's own localized family names, since the stable entries carry a name but no family ID.
 - Everything is stored per character in `PetStableDB.pets`, with the time and build. At most 20
   characters are kept. Non-hunters never scan, register events or store anything.
-- A character's record is keyed by `UnitGUID("player")`. Up to alpha3 the key was `Name-Realm`, but
-  since the 2026-11-20 hotfix `GetRealmName()` returns `""` on purpose, so every key became
-  `Name-?`. The first scan on the GUID key adopts the old record: `Name-Realm` when the realm is
-  known; otherwise the only `Name-<realm>` record, or else `Name-?`. Two or more `Name-<realm>`
-  records for the same name are ambiguous, so none of them is taken. A `Name-?` duplicate goes with
-  the record it was made beside.
+- A character's record is keyed by `UnitGUID("player")` and stores that GUID. Up to alpha3 the key
+  was `Name-Realm`, but since the 2026-11-20 hotfix `GetRealmName()` returns `""` on purpose, so
+  every key became `Name-?`. Those legacy records are never written again. One moves to the GUID
+  only with proof it is this hunter's, because a same-named hunter on another realm must not take
+  it:
+  - before the scan, when the realm is readable and `Name-Realm` exists;
+  - after a scan, when a `Name-<anything>` record (`Name-?` included) holds a pet the scan read, by
+    pet number and name. A stable list the scan could not read takes the newest such record's list,
+    still reported as partial, and the record's key is removed.
+
+  Unproven legacy records stay as they were, and only GUID records count toward the 20, so they
+  never block a scan.
 
 Scans run on `UNIT_PET`, `PET_BAR_UPDATE`, `SPELLS_CHANGED`, `PET_STABLE_SHOW`, `PET_STABLE_UPDATE`
 and `PLAYER_ENTERING_WORLD`, collapsed by a 0.25 s delay. All six are declared in the 70532 API

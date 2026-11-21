@@ -49,26 +49,16 @@ PS.FamilyKey = FamilyKey
 -- The record is keyed by the player's GUID. Up to v0.1.0-alpha3 it was "Name-Realm",
 -- but since the 2026-11-20 hotfix GetRealmName() returns "" on purpose, which made
 -- every key "Name-?" (AltStable#412). A GUID key never depends on the realm.
-local function IsGUID(key) return key:match("^Player%-%d+%-%x+$") ~= nil end
-
--- The old record for this hunter, and the old keys to drop with it. With a realm,
--- only "Name-Realm" is this hunter's. Without one, a single "Name-<realm>" is, and
--- several are ambiguous (same name on other realms), so none is taken. A "Name-?"
--- made since the hotfix goes too, unless an ambiguous name leaves it unclaimed.
-local function LegacyKeys(chars, name, realm)
-    local exact = realm and (name .. "-" .. realm)
-    if exact and chars[exact] then return exact, { exact, name .. "-?" } end
-    local unknown, found, count = name .. "-?", nil, 0
-    local prefix = name .. "-"
-    for key in pairs(chars) do
-        if type(key) == "string" and key ~= unknown and key:sub(1, #prefix) == prefix and not IsGUID(key) then
-            found, count = key, count + 1
-        end
-    end
-    if count == 1 then return found, { found, unknown } end
-    if count == 0 and chars[unknown] then return unknown, { unknown } end
-    return nil
-end
+--
+-- A GUID record stores its GUID; a record without one is a legacy record, which is
+-- never written again. Legacy records are moved only with proof they are this
+-- hunter's, so a same-named hunter on another realm never takes them:
+-- - a readable realm and an exact "Name-Realm" key, before the scan;
+-- - otherwise, after a scan, a pet of the legacy record that the scan read too,
+--   by pet number and name. "Name-?" is claimed only this way, since any
+--   same-named hunter could have written it.
+-- Unproven legacy records stay, and only GUID records count toward the limit.
+local function IsLegacy(record) return type(record) == "table" and record.guid == nil end
 
 local function CharacterKey(chars)
     local guid = Text(Call(rawget(_G, "UnitGUID"), "player"))
@@ -76,14 +66,59 @@ local function CharacterKey(chars)
     if chars and not chars[guid] then
         local name = Text(Call(rawget(_G, "UnitName"), "player"))
         local realm = Text(Call(rawget(_G, "GetRealmName")))
-        local from, drop = nil, nil
-        if name then from, drop = LegacyKeys(chars, name, realm) end
-        if from and type(chars[from]) == "table" then
-            chars[guid] = chars[from]
-            for _, key in ipairs(drop) do chars[key] = nil end
+        local exact = name and realm and (name .. "-" .. realm)
+        if exact and IsLegacy(chars[exact]) then
+            chars[guid], chars[exact] = chars[exact], nil
+            chars[guid].guid = guid
         end
     end
     return guid
+end
+
+local function Sections(record)
+    local stable = type(record) == "table" and record.stable
+    return type(stable) == "table" and stable or nil
+end
+
+-- Whether a legacy record holds a pet the latest scan read, by pet number and name.
+local function SharesPet(legacy, record)
+    local seen, fresh, old = {}, Sections(record), Sections(legacy)
+    if not (fresh and old) then return false end
+    for _, name in ipairs({ "active", "stabled" }) do
+        local section = fresh[name .. "Read"] and fresh[name]
+        for _, pet in ipairs(type(section) == "table" and section.pets or {}) do
+            if pet.petNumber and pet.name then seen[pet.petNumber .. "\0" .. pet.name] = true end
+        end
+    end
+    for _, name in ipairs({ "active", "stabled" }) do
+        local section = old[name]
+        for _, pet in ipairs(type(section) == "table" and type(section.pets) == "table" and section.pets or {}) do
+            if type(pet) == "table" and pet.petNumber and pet.name and seen[pet.petNumber .. "\0" .. pet.name] then return true end
+        end
+    end
+    return false
+end
+
+-- After a scan: take this hunter's proven legacy records. A list the scan could not
+-- read gets the newest one they hold; then their keys go.
+local function ClaimLegacy(chars, record)
+    local name = Text(Call(rawget(_G, "UnitName"), "player"))
+    local fresh = Sections(record)
+    if not (name and fresh) then return end
+    local prefix = name .. "-"
+    for key, legacy in pairs(chars) do
+        if type(key) == "string" and key:sub(1, #prefix) == prefix and IsLegacy(legacy) and SharesPet(legacy, record) then
+            local old = Sections(legacy)
+            for _, section in ipairs({ "active", "stabled" }) do
+                local have, theirs = fresh[section], old[section]
+                if not fresh[section .. "Read"] and type(theirs) == "table" and type(theirs.pets) == "table"
+                    and (type(have) ~= "table" or (theirs.observed or 0) > (have.observed or 0)) then
+                    fresh[section] = theirs
+                end
+            end
+            chars[key] = nil -- safe while iterating: an existing key is cleared
+        end
+    end
 end
 
 local function IsHunter()
@@ -106,11 +141,14 @@ local function Record(create)
     if not key then return nil end
     if not chars[key] and create then
         local count = 0
-        for _ in pairs(chars) do count = count + 1 end
+        for _, record in pairs(chars) do
+            if type(record) == "table" and record.guid then count = count + 1 end
+        end
         if count >= MAX_CHARACTERS then return nil end
-        chars[key] = {}
+        chars[key] = { guid = key }
     end
-    return chars[key]
+    if type(chars[key]) == "table" then chars[key].guid = key end
+    return chars[key], chars
 end
 
 local function Build()
@@ -185,9 +223,11 @@ end
 
 function PS.Refresh(reason)
     if not NS.db or not IsHunter() then return false end
-    local record, now = Record(true), Time()
+    local record, chars = Record(true)
+    local now = Time()
     if not record then return false end
     ScanStable(record, now); ScanActive(record, now)
+    ClaimLegacy(chars, record)
     record.class = "HUNTER"; session.scanned = true
     Notify(reason or "refresh")
     return true
