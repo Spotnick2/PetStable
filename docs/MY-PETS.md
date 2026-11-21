@@ -32,8 +32,11 @@ safe client call (`NS.Call`: tolerates a missing API, an error or a secret value
     refreshed the active list while the other's stabled list was kept), so a match in one list
     proves nothing about the other.
 
-  A legacy record is removed only when every list holding pets is proven and its active pet, if any,
-  is among them. Anything less leaves it as it was, for recovery. Only GUID records count toward the
+  A legacy record is removed only when all of it is this hunter's: every list holding pets is proven,
+  and its active-pet snapshot, if any, was written by the same scan as a proven list. The snapshot has
+  no pet number, so a pet name proves nothing. One refresh stamps the snapshot and each list it read
+  with the same time, and one client never scans as two hunters in the same second. Anything less
+  leaves the record as it was, for recovery. Only GUID records count toward the
   20, so legacy records never block a scan.
 
 Scans run on `UNIT_PET`, `PET_BAR_UPDATE`, `SPELLS_CHANGED`, `PET_STABLE_SHOW`, `PET_STABLE_UPDATE`

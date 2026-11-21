@@ -194,10 +194,27 @@ P, chars = Load({ ["Hunt-?"] = mixed })
 assert(P.Refresh("test") and chars["Hunt-?"] == mixed and #mixed.stable.stabled.pets == 1, "a mixed record is kept whole")
 local mixedPets = P.Stable()
 assert(#mixedPets == 1 and mixedPets[1].name == "Whiskers", "the other hunter's stabled list is not copied")
--- A proven list but an active pet that is none of its pets: kept as well.
-local odd = Legacy(42, "Whiskers", 50); odd.active.name = "Stranger"
-P, chars = Load({ ["Hunt-?"] = odd })
-assert(P.Refresh("test") and chars["Hunt-?"] == odd, "an unproven active pet keeps the record")
+-- The active-pet snapshot has no pet number: a same-named pet proves nothing. Here B's
+-- snapshot (B's own Whiskers) was written by a scan that read neither list, so A's
+-- lists keep A's time; A's match proves the lists but not the snapshot, which stays.
+Stable({ { petNumber = 43, slotID = 3, name = "Grumpy" } })
+local shared = Legacy(42, "Whiskers", 50)
+shared.stable.active.pets = { { petNumber = 42, name = "Whiskers", slotID = 1 } }
+shared.active = { present = true, name = "Whiskers", observed = 75, abilities = { { name = "Growl", spellID = 2649 } } }
+P, chars = Load({ ["Hunt-?"] = shared })
+assert(P.Refresh("test") and chars["Hunt-?"] == shared and shared.active.abilities[1].name == "Growl",
+    "a snapshot from another scan keeps the record")
+-- The same record with the snapshot from the scan that wrote a proven list is all A's.
+shared.active.observed = 50
+P, chars = Load({ ["Hunt-?"] = shared })
+assert(P.Refresh("test") and not chars["Hunt-?"], "a snapshot from a proven list's scan is this hunter's")
+-- A record with nothing in it to match is never claimed.
+local empty = { stable = { version = 2, active = { observed = 50, pets = {} }, stabled = { observed = 50, pets = {} } } }
+P, chars = Load({ ["Hunt-?"] = empty })
+assert(P.Refresh("test") and chars["Hunt-?"] == empty, "no matching pet, no claim")-- A malformed snapshot is no proof either.
+local bad = Legacy(42, "Whiskers", 50); bad.active = "bad"
+P, chars = Load({ ["Hunt-?"] = bad })
+assert(P.Refresh("test") and chars["Hunt-?"] == bad, "a malformed snapshot keeps the record")
 
 -- A list the scan read is never replaced by a legacy one.
 Stable({}); P, chars = Load({ ["Hunt-?"] = Legacy(42, "Whiskers", 900) }) -- newer than the scan

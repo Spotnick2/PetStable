@@ -98,21 +98,20 @@ local function SectionPets(section)
     return type(section) == "table" and type(section.pets) == "table" and section.pets or nil
 end
 
--- Whether a legacy list holds a pet the scan read; its pet names, to check the active pet.
-local function Proven(section, seen, names)
-    local proven = false
+-- Whether a legacy list holds a pet the scan read.
+local function Proven(section, seen)
     for _, pet in ipairs(SectionPets(section) or {}) do
-        if type(pet) == "table" and pet.petNumber and pet.name then
-            if seen[pet.petNumber .. "\0" .. pet.name] then proven = true end
-            names[pet.name] = true
-        end
+        if type(pet) == "table" and pet.petNumber and pet.name and seen[pet.petNumber .. "\0" .. pet.name] then return true end
     end
-    return proven
+    return false
 end
 
 -- After a scan: a list the scan could not read takes the newest proven legacy list.
--- A legacy record goes once every list holding pets is proven and its active pet,
--- if any, is among them; one with anything unproven stays.
+-- A legacy record goes only when all of it is this hunter's: every list holding pets
+-- is proven, and its active-pet snapshot, if any, was written by the same scan as a
+-- proven list. The snapshot has no pet number, so a pet name proves nothing; one
+-- refresh stamps the snapshot and each list it read with the same time, and one
+-- client never scans as two hunters in the same second. Anything less stays.
 local function ClaimLegacy(chars, record)
     local name = Text(Call(rawget(_G, "UnitName"), "player"))
     local fresh = Sections(record)
@@ -121,11 +120,11 @@ local function ClaimLegacy(chars, record)
     for key, legacy in pairs(chars) do
         local old = type(key) == "string" and key:sub(1, #prefix) == prefix and IsLegacy(legacy) and Sections(legacy)
         if old then
-            local any, all, names = false, true, {}
+            local all, times = true, {}
             for _, section in ipairs({ "active", "stabled" }) do
                 local theirs = old[section]
-                if Proven(theirs, seen, names) then
-                    any = true
+                if Proven(theirs, seen) then
+                    if theirs.observed then times[theirs.observed] = true end
                     local have = fresh[section]
                     if not fresh[section .. "Read"] and (type(have) ~= "table" or (theirs.observed or 0) > (have.observed or 0)) then
                         fresh[section] = theirs
@@ -134,9 +133,9 @@ local function ClaimLegacy(chars, record)
                     all = false
                 end
             end
-            local pet = type(legacy.active) == "table" and legacy.active
-            if pet and pet.present and not (pet.name and names[pet.name]) then all = false end
-            if any and all then chars[key] = nil end -- safe while iterating: an existing key is cleared
+            local snapshot = legacy.active
+            if snapshot ~= nil and not (type(snapshot) == "table" and snapshot.observed and times[snapshot.observed]) then all = false end
+            if next(times) and all then chars[key] = nil end -- safe while iterating: an existing key is cleared
         end
     end
 end
