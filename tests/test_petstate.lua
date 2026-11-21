@@ -11,7 +11,9 @@ local now, class, build = 100, "HUNTER", 70450
 function time() return now end
 function UnitClass() return "Hunter", class end
 function UnitName(unit) return unit == "player" and "Hunt" or "Whiskers" end
-function GetRealmName() return "Realm" end
+local realm, guid = "Realm", "Player-4395-0A1B2C3D"
+function GetRealmName() return realm end
+function UnitGUID(unit) return unit == "player" and guid or nil end
 function GetBuildInfo() return "1.60.1", build end
 local pet = { exists = true, level = 12, family = "Cat", familyID = 2 }
 function UnitExists(unit) return unit == "pet" and pet.exists end
@@ -119,6 +121,125 @@ assert(loadfile("Util.lua"))("PetStable", f2); assert(loadfile("PetState.lua"))(
 f2.PetState.Initialize()
 local w2 = f2.PetState.watcher; w2.scripts.OnEvent(w2, "PLAYER_LOGIN")
 assert(next(w2.events) == nil, "a mage registers no pet events")
+
+-- The record is keyed by the GUID, so a hidden realm changes nothing.
+class = "HUNTER"; PS.Initialize(); ns.db.pets.characters = {}
+PS.Refresh("test"); realm = ""; PS.Refresh("test")
+local keys = {}
+for key in pairs(ns.db.pets.characters) do keys[#keys + 1] = key end
+assert(#keys == 1 and keys[1] == guid, "one record, under the GUID, with or without a realm")
+guid = nil
+assert(PS.Active() == nil and PS.Refresh("test") == false, "no GUID, no record")
+guid = "Player-4395-0A1B2C3D"
+
+-- Legacy records move only with proof they are this hunter's.
+local function Load(chars)
+    local n = { db = { pets = { version = 1, characters = chars } }, CatalogData = ns.CatalogData }
+    assert(loadfile("Util.lua"))("PetStable", n); assert(loadfile("PetState.lua"))("PetStable", n)
+    n.PetState.Initialize()
+    return n.PetState, chars
+end
+local function Legacy(petNumber, petName, observed)
+    return { class = "HUNTER", active = { present = true, name = petName, observed = observed },
+        stable = { version = 2, activeRead = true, stabledRead = true,
+            active = { observed = observed, pets = {} },
+            stabled = { observed = observed, pets = { { petNumber = petNumber, name = petName, slotID = 3 } } } } }
+end
+local function Stable(stabledList)
+    C_StableInfo = { GetActivePetList = function() return { { petNumber = 42, slotID = 1, name = "Whiskers" } } end,
+        GetStabledPetList = function() return stabledList end }
+end
+local mine = { { petNumber = 43, slotID = 3, name = "Grumpy" } }
+
+-- A readable realm and an exact Name-Realm key: moved before the scan. Name-? and other realms stay.
+realm = ""; Stable(mine)
+local old = Legacy(99, "Theirs", 50)
+local P, chars = Load({ ["Hunt-Realm"] = old, ["Hunt-?"] = Legacy(98, "Unknown", 60), ["Hunt-Other"] = Legacy(97, "Other", 40) })
+realm = "Realm"
+assert(P.State() == "stale" and P.Active().name == "Theirs" and chars[guid] == old and old.guid == guid and not chars["Hunt-Realm"],
+    "with a realm, Name-Realm is this hunter's")
+assert(chars["Hunt-?"] and chars["Hunt-Other"], "Name-? and another realm's record are not taken on a name alone")
+-- A readable realm with no exact key falls back to nothing.
+P, chars = Load({ ["Hunt-Other"] = Legacy(97, "Other", 40) })
+assert(P.State() == "unknown" and chars["Hunt-Other"] and not chars[guid], "a different realm is not this hunter's")
+
+-- Realm hidden: the one Name-<realm> record of another realm's hunter is never taken.
+realm = ""
+P, chars = Load({ ["Hunt-RealmA"] = Legacy(99, "Theirs", 50) })
+assert(P.State() == "unknown", "no realm, no proof: nothing before the scan")
+assert(P.Refresh("test") and chars["Hunt-RealmA"] and chars[guid].guid == guid, "no shared pet: the record stays")
+assert(chars["Hunt-RealmA"].stable.stabled.pets[1].name == "Theirs", "and is left as it was")
+
+-- A shared pet (number and name) proves it: an unread list comes from it, and its key goes, Name-? too.
+Stable(nil)
+C_StableInfo.GetActivePetList = function() return { { petNumber = 43, slotID = 1, name = "Grumpy" } } end
+local older, newer = Legacy(43, "Grumpy", 50), Legacy(43, "Grumpy", 70)
+newer.stable.stabled.pets[2] = { petNumber = 44, name = "Skitter", slotID = 4 }
+P, chars = Load({ ["Hunt-RealmA"] = older, ["Hunt-?"] = newer, ["Hunter-Realm"] = Legacy(43, "Grumpy", 80),
+    ["Hunt-RealmB"] = Legacy(43, "Other", 90) })
+now = 400; assert(P.Refresh("test"))
+assert(not chars["Hunt-RealmA"] and not chars["Hunt-?"], "proven records are claimed")
+local pets, _, complete = P.Stable()
+assert(#pets == 3 and pets[2].name == "Grumpy" and pets[3].name == "Skitter" and not complete,
+    "the unread stabled list is the newest proven one, still reported as partial")
+assert(chars["Hunter-Realm"], "a longer name is not a match")
+assert(chars["Hunt-RealmB"], "a same number under another name is no proof")
+-- A shared Name-? can mix two hunters: B's active list beside A's kept stabled list.
+-- B's match proves B's list only: A's is not copied, and the record stays for recovery.
+Stable(nil)
+local mixed = Legacy(43, "Grumpy", 50) -- A's stabled list
+mixed.stable.active = { observed = 60, pets = { { petNumber = 42, name = "Whiskers", slotID = 1 } } }
+mixed.active.name = "Whiskers" -- B's last scan
+P, chars = Load({ ["Hunt-?"] = mixed })
+assert(P.Refresh("test") and chars["Hunt-?"] == mixed and #mixed.stable.stabled.pets == 1, "a mixed record is kept whole")
+local mixedPets = P.Stable()
+assert(#mixedPets == 1 and mixedPets[1].name == "Whiskers", "the other hunter's stabled list is not copied")
+-- The active-pet snapshot has no pet number: a same-named pet proves nothing. Here B's
+-- snapshot (B's own Whiskers) was written by a scan that read neither list, so A's
+-- lists keep A's time; A's match proves the lists but not the snapshot, which stays.
+Stable({ { petNumber = 43, slotID = 3, name = "Grumpy" } })
+local shared = Legacy(42, "Whiskers", 50)
+shared.stable.active.pets = { { petNumber = 42, name = "Whiskers", slotID = 1 } }
+shared.active = { present = true, name = "Whiskers", observed = 75, abilities = { { name = "Growl", spellID = 2649 } } }
+P, chars = Load({ ["Hunt-?"] = shared })
+assert(P.Refresh("test") and chars["Hunt-?"] == shared and shared.active.abilities[1].name == "Growl",
+    "a snapshot from another scan keeps the record")
+-- The same record with the snapshot from the scan that wrote a proven list is all A's.
+shared.active.observed = 50
+P, chars = Load({ ["Hunt-?"] = shared })
+assert(P.Refresh("test") and not chars["Hunt-?"], "a snapshot from a proven list's scan is this hunter's")
+-- A record with nothing in it to match is never claimed.
+local empty = { stable = { version = 2, active = { observed = 50, pets = {} }, stabled = { observed = 50, pets = {} } } }
+P, chars = Load({ ["Hunt-?"] = empty })
+assert(P.Refresh("test") and chars["Hunt-?"] == empty, "no matching pet, no claim")-- A malformed snapshot is no proof either.
+local bad = Legacy(42, "Whiskers", 50); bad.active = "bad"
+P, chars = Load({ ["Hunt-?"] = bad })
+assert(P.Refresh("test") and chars["Hunt-?"] == bad, "a malformed snapshot keeps the record")
+
+-- A list the scan read is never replaced by a legacy one.
+Stable({}); P, chars = Load({ ["Hunt-?"] = Legacy(42, "Whiskers", 900) }) -- newer than the scan
+chars["Hunt-?"].stable.active.pets = { { petNumber = 42, name = "Whiskers" } }
+assert(P.Refresh("test") and not chars["Hunt-?"] and #P.Stable() == 1, "a read list stays as read")
+
+-- An existing GUID record is never replaced; a non-table record is ignored.
+realm = "Realm"
+local since = { guid = guid, active = { present = true, name = "Since", observed = 60 } }
+P, chars = Load({ [guid] = since, ["Hunt-Realm"] = Legacy(43, "Grumpy", 50) })
+assert(P.Active().name == "Since" and chars["Hunt-Realm"], "an existing GUID record is never replaced")
+P, chars = Load({ ["Hunt-Realm"] = "bad" })
+assert(P.State() == "unknown" and chars["Hunt-Realm"] == "bad", "a non-table record is not migrated")
+
+-- Only GUID records count toward the limit, so unclaimed legacy records never block a scan.
+realm = ""
+local full = {}
+for i = 1, 20 do full["Alt" .. i .. "-Realm"] = Legacy(i, "Pet" .. i, 10) end
+P, chars = Load(full)
+assert(P.Refresh("test") and chars[guid], "twenty legacy records leave room")
+full = {}
+for i = 1, 20 do full["Player-1-" .. i] = { guid = "Player-1-" .. i } end
+P, chars = Load(full)
+assert(P.Refresh("test") == false and not chars[guid], "twenty GUID records are the limit")
+realm = "Realm"
 
 -- The journal of characters is bounded and a corrupt table is replaced.
 class = "HUNTER"; ns.db.pets = "bad"; PS.Initialize()

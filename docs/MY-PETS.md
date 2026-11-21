@@ -19,6 +19,25 @@ safe client call (`NS.Call`: tolerates a missing API, an error or a secret value
   client's own localized family names, since the stable entries carry a name but no family ID.
 - Everything is stored per character in `PetStableDB.pets`, with the time and build. At most 20
   characters are kept. Non-hunters never scan, register events or store anything.
+- A character's record is keyed by `UnitGUID("player")` and stores that GUID. Up to alpha3 the key
+  was `Name-Realm`, but since the 2026-11-20 hotfix `GetRealmName()` returns `""` on purpose, so
+  every key became `Name-?`. Those legacy records are never written again. One moves to the GUID
+  only with proof it is this hunter's, because a same-named hunter on another realm must not take
+  it:
+  - before the scan, when the realm is readable and `Name-Realm` exists;
+  - after a scan, list by list: a legacy stable list of a `Name-<anything>` record (`Name-?`
+    included) is this hunter's when it holds a pet the scan read, by pet number and name. A list is
+    written whole by one scan, so one pet proves it. A list the scan could not read takes the newest
+    proven legacy list, still reported as partial. A shared `Name-?` can mix two hunters' lists (one
+    refreshed the active list while the other's stabled list was kept), so a match in one list
+    proves nothing about the other.
+
+  A legacy record is removed only when all of it is this hunter's: every list holding pets is proven,
+  and its active-pet snapshot, if any, was written by the same scan as a proven list. The snapshot has
+  no pet number, so a pet name proves nothing. One refresh stamps the snapshot and each list it read
+  with the same time, and one client never scans as two hunters in the same second. Anything less
+  leaves the record as it was, for recovery. Only GUID records count toward the
+  20, so legacy records never block a scan.
 
 Scans run on `UNIT_PET`, `PET_BAR_UPDATE`, `SPELLS_CHANGED`, `PET_STABLE_SHOW`, `PET_STABLE_UPDATE`
 and `PLAYER_ENTERING_WORLD`, collapsed by a 0.25 s delay. All six are declared in the 70532 API
