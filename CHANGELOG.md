@@ -45,8 +45,9 @@ teacher check, and fixes below. alpha4 is a hotfix for the game hiding realm nam
 - *Fixed in alpha3:* Vulgara the Insatiable is a Fox, and Shriekling Fledgling and Shriekling Matriarch
   are Birds of Prey (they were listed as a Wolf and Raptors). Their looks now have names.
 - *Fixed in alpha4:* since the 2026-11-20 hotfix the game hides the realm name, so My Pets lost what
-  it had saved about your stable. Pets are now saved per character whatever the realm. What was
-  saved before carries over once PetStable recognises one of your pets in it.
+  it had saved about your stable. Pets are now saved per character whatever the realm. When My Pets
+  can't read one of your pet lists, it can reuse the copy saved before, if it recognises a pet from
+  that same list.
 - *Fixed in alpha4:* the slash commands' usage lines show their `|` again (`on|off`).
 - *Fixed in alpha3:* PetStable's window no longer takes the global name of Blizzard's stable window
   (`PetStableFrame`), so addons that restyle the stable window find Blizzard's.
