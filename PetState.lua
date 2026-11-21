@@ -46,11 +46,44 @@ local function FamilyKey(name, id)
 end
 PS.FamilyKey = FamilyKey
 
-local function CharacterKey()
-    local name = Text(Call(rawget(_G, "UnitName"), "player"))
-    local realm = Text(Call(rawget(_G, "GetRealmName")))
-    if not name then return nil end
-    return name .. "-" .. (realm or "?")
+-- The record is keyed by the player's GUID. Up to v0.1.0-alpha3 it was "Name-Realm",
+-- but since the 2026-11-20 hotfix GetRealmName() returns "" on purpose, which made
+-- every key "Name-?" (AltStable#412). A GUID key never depends on the realm.
+local function IsGUID(key) return key:match("^Player%-%d+%-%x+$") ~= nil end
+
+-- The old record for this hunter, and the old keys to drop with it. With a realm,
+-- only "Name-Realm" is this hunter's. Without one, a single "Name-<realm>" is, and
+-- several are ambiguous (same name on other realms), so none is taken. A "Name-?"
+-- made since the hotfix goes too, unless an ambiguous name leaves it unclaimed.
+local function LegacyKeys(chars, name, realm)
+    local exact = realm and (name .. "-" .. realm)
+    if exact and chars[exact] then return exact, { exact, name .. "-?" } end
+    local unknown, found, count = name .. "-?", nil, 0
+    local prefix = name .. "-"
+    for key in pairs(chars) do
+        if type(key) == "string" and key ~= unknown and key:sub(1, #prefix) == prefix and not IsGUID(key) then
+            found, count = key, count + 1
+        end
+    end
+    if count == 1 then return found, { found, unknown } end
+    if count == 0 and chars[unknown] then return unknown, { unknown } end
+    return nil
+end
+
+local function CharacterKey(chars)
+    local guid = Text(Call(rawget(_G, "UnitGUID"), "player"))
+    if not guid then return nil end
+    if chars and not chars[guid] then
+        local name = Text(Call(rawget(_G, "UnitName"), "player"))
+        local realm = Text(Call(rawget(_G, "GetRealmName")))
+        local from, drop = nil, nil
+        if name then from, drop = LegacyKeys(chars, name, realm) end
+        if from and type(chars[from]) == "table" then
+            chars[guid] = chars[from]
+            for _, key in ipairs(drop) do chars[key] = nil end
+        end
+    end
+    return guid
 end
 
 local function IsHunter()
@@ -66,9 +99,11 @@ function PS.Initialize()
 end
 
 local function Record(create)
-    local db, key = NS.db, CharacterKey()
-    if not (db and db.pets and key) then return nil end
-    local chars = db.pets.characters
+    local db = NS.db
+    local chars = db and type(db.pets) == "table" and db.pets.characters
+    if type(chars) ~= "table" then return nil end
+    local key = CharacterKey(chars)
+    if not key then return nil end
     if not chars[key] and create then
         local count = 0
         for _ in pairs(chars) do count = count + 1 end

@@ -11,7 +11,9 @@ local now, class, build = 100, "HUNTER", 70450
 function time() return now end
 function UnitClass() return "Hunter", class end
 function UnitName(unit) return unit == "player" and "Hunt" or "Whiskers" end
-function GetRealmName() return "Realm" end
+local realm, guid = "Realm", "Player-4395-0A1B2C3D"
+function GetRealmName() return realm end
+function UnitGUID(unit) return unit == "player" and guid or nil end
 function GetBuildInfo() return "1.60.1", build end
 local pet = { exists = true, level = 12, family = "Cat", familyID = 2 }
 function UnitExists(unit) return unit == "pet" and pet.exists end
@@ -119,6 +121,45 @@ assert(loadfile("Util.lua"))("PetStable", f2); assert(loadfile("PetState.lua"))(
 f2.PetState.Initialize()
 local w2 = f2.PetState.watcher; w2.scripts.OnEvent(w2, "PLAYER_LOGIN")
 assert(next(w2.events) == nil, "a mage registers no pet events")
+
+-- The record is keyed by the GUID, so a hidden realm changes nothing.
+class = "HUNTER"; PS.Initialize(); ns.db.pets.characters = {}
+PS.Refresh("test"); realm = ""; PS.Refresh("test")
+local keys = {}
+for key in pairs(ns.db.pets.characters) do keys[#keys + 1] = key end
+assert(#keys == 1 and keys[1] == guid, "one record, under the GUID, with or without a realm")
+guid = nil
+assert(PS.Active() == nil and PS.Refresh("test") == false, "no GUID, no record")
+guid = "Player-4395-0A1B2C3D"
+
+-- An old "Name-Realm" record moves to the GUID, and a post-hotfix "Name-?" duplicate goes with it.
+local function Load(chars)
+    local n = { db = { pets = { version = 1, characters = chars } }, CatalogData = ns.CatalogData }
+    assert(loadfile("Util.lua"))("PetStable", n); assert(loadfile("PetState.lua"))("PetStable", n)
+    n.PetState.Initialize()
+    return n.PetState, chars
+end
+local old = { active = { present = true, name = "Old", observed = 50 } }
+realm = "Realm"
+local P, chars = Load({ ["Hunt-Realm"] = old, ["Hunt-?"] = {}, ["Hunt-Other"] = {} })
+assert(P.Active().name == "Old" and chars[guid] == old and not chars["Hunt-Realm"] and not chars["Hunt-?"],
+    "with a realm, only Name-Realm is taken")
+assert(chars["Hunt-Other"], "a same-named hunter on another realm is left alone")
+realm = ""
+P, chars = Load({ ["Hunt-Realm"] = old, ["Hunt-?"] = {}, ["Hunter-Realm"] = {} })
+assert(P.State() == "stale" and chars[guid] == old and not chars["Hunt-?"] and chars["Hunter-Realm"],
+    "without a realm, the one Name-<realm> record is taken; a longer name is not a match")
+local since = { active = { present = true, name = "Since", observed = 60 } }
+P, chars = Load({ ["Hunt-?"] = since })
+assert(P.Active().name == "Since" and chars[guid] == since and not chars["Hunt-?"], "with no older record, the Name-? one is taken")
+P, chars = Load({ ["Hunt-Realm"] = old, ["Hunt-Other"] = {}, ["Hunt-?"] = since })
+assert(P.State() == "unknown" and chars["Hunt-Realm"] and chars["Hunt-Other"] and chars["Hunt-?"],
+    "two realms with the name are ambiguous: nothing is taken")
+P, chars = Load({ [guid] = since, ["Hunt-Realm"] = old })
+assert(P.Active().name == "Since" and chars["Hunt-Realm"] == old, "an existing GUID record is never replaced")
+P, chars = Load({ ["Hunt-Realm"] = "bad" })
+assert(P.State() == "unknown" and chars["Hunt-Realm"] == "bad", "a non-table record is not migrated")
+realm = "Realm"
 
 -- The journal of characters is bounded and a corrupt table is replaced.
 class = "HUNTER"; ns.db.pets = "bad"; PS.Initialize()

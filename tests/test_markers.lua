@@ -8,6 +8,7 @@ UnitName=function(unit) return unit=='pet' and 'Whiskers' or 'Hunt' end
 UnitLevel=function() return 12 end
 UnitCreatureFamily=function() return 'Cat',2 end
 GetRealmName=function() return 'Realm' end
+UnitGUID=function(unit) return unit=='player' and 'Player-1-AB' or nil end
 GetBuildInfo=function() return '1.60.1',70450 end
 Enum=Enum or {}; Enum.SpellBookSpellBank={Pet=1}
 C_SpellBook={HasPetSpells=function() return 0 end,GetSpellBookItemInfo=function() end}

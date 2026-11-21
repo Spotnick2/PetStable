@@ -13,6 +13,7 @@ return function(ns)
     -- A scan with an active Cat, a stabled Bear and an unreadable stabled pet.
     UnitExists=function(unit) return unit=="pet" end
     UnitName=function(unit) return unit=="pet" and "Whiskers" or "Hunt" end
+    UnitGUID=function(unit) return unit=="player" and "Player-1-AB" or nil end
     UnitLevel=function() return 12 end
     UnitCreatureFamily=function() return "Cat",2 end
     Enum=Enum or {}; Enum.SpellBookSpellBank={Pet=1}

@@ -19,6 +19,12 @@ safe client call (`NS.Call`: tolerates a missing API, an error or a secret value
   client's own localized family names, since the stable entries carry a name but no family ID.
 - Everything is stored per character in `PetStableDB.pets`, with the time and build. At most 20
   characters are kept. Non-hunters never scan, register events or store anything.
+- A character's record is keyed by `UnitGUID("player")`. Up to alpha3 the key was `Name-Realm`, but
+  since the 2026-11-20 hotfix `GetRealmName()` returns `""` on purpose, so every key became
+  `Name-?`. The first scan on the GUID key adopts the old record: `Name-Realm` when the realm is
+  known; otherwise the only `Name-<realm>` record, or else `Name-?`. Two or more `Name-<realm>`
+  records for the same name are ambiguous, so none of them is taken. A `Name-?` duplicate goes with
+  the record it was made beside.
 
 Scans run on `UNIT_PET`, `PET_BAR_UPDATE`, `SPELLS_CHANGED`, `PET_STABLE_SHOW`, `PET_STABLE_UPDATE`
 and `PLAYER_ENTERING_WORLD`, collapsed by a 0.25 s delay. All six are declared in the 70532 API
